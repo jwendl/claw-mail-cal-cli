@@ -11,7 +11,8 @@ internal sealed class AddAccountCommand(IAccountService accountService)
 	/// <summary>
 	/// Settings for the <see cref="AddAccountCommand"/>.
 	/// </summary>
-	internal sealed class Settings : CommandSettings
+	internal sealed class Settings
+		: CommandSettings
 	{
 		/// <summary>
 		/// The name of the account to add.

@@ -11,7 +11,8 @@ internal sealed class DeleteAccountCommand(IAccountService accountService)
 	/// <summary>
 	/// Settings for the <see cref="DeleteAccountCommand"/>.
 	/// </summary>
-	internal sealed class Settings : CommandSettings
+	internal sealed class Settings
+		: CommandSettings
 	{
 		/// <summary>
 		/// The name of the account to delete.

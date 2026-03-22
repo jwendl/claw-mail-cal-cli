@@ -11,7 +11,8 @@ internal sealed class SetAccountCommand(IAccountService accountService)
 	/// <summary>
 	/// Settings for the <see cref="SetAccountCommand"/>.
 	/// </summary>
-	internal sealed class Settings : CommandSettings
+	internal sealed class Settings
+		: CommandSettings
 	{
 		/// <summary>
 		/// The name of the account to set as default.

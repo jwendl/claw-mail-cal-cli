@@ -8,7 +8,8 @@ internal sealed class DefaultCommand : Command<DefaultCommand.Settings>
 	/// <summary>
 	/// Settings for the <see cref="DefaultCommand"/>.
 	/// </summary>
-	internal sealed class Settings : CommandSettings
+	internal sealed class Settings
+		: CommandSettings
 	{
 	}
 
