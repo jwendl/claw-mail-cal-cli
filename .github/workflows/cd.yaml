@@ -24,9 +24,6 @@ jobs:
       - name: Restore dependencies (Windows x64)
         run: dotnet restore src/ClawMailCalCli/ClawMailCalCli.csproj --runtime win-x64
 
-      - name: Restore dependencies (Ubuntu x64)
-        run: dotnet restore src/ClawMailCalCli/ClawMailCalCli.csproj --runtime linux-x64
-
       - name: Publish Windows x64
         run: >
           dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj
@@ -36,6 +33,9 @@ jobs:
           --no-restore
           --output publish/win-x64
           -p:PublishSingleFile=true
+
+      - name: Restore dependencies (Ubuntu x64)
+        run: dotnet restore src/ClawMailCalCli/ClawMailCalCli.csproj --runtime linux-x64
 
       - name: Publish Ubuntu x64
         run: >
