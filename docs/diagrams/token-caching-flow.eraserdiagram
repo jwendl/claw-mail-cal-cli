@@ -16,7 +16,8 @@ alt [label: Valid cached token exists, color: green] {
 }
 
 alt [label: Access token expired - refresh available, color: yellow] {
-  Azure Key Vault --> Auth Manager: Token expired
+  Azure Key Vault --> Auth Manager: Return access token
+  Auth Manager > Auth Manager: Detect access token expired (from secret attributes/claims)
   Auth Manager > Azure Key Vault: GetSecretAsync("{account}_refresh_token")
   Azure Key Vault --> Auth Manager: Return refresh token
   Auth Manager > Entra ID: POST /oauth2/v2.0/token (refresh_token grant)
