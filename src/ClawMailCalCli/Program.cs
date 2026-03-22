@@ -30,7 +30,7 @@ services.AddSingleton<ISecretStore, KeyVaultSecretStore>();
 services.AddScoped<IAccountService, AccountService>();
 
 var registrar = new TypeRegistrar(services);
-var app = new CommandApp(registrar);
+var app = new CommandApp<DefaultCommand>(registrar);
 
 app.Configure(config =>
 {

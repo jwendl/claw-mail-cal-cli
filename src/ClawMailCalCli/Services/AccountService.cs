@@ -14,25 +14,35 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 	/// <inheritdoc />
 	public async Task<bool> AddAccountAsync(string name, string email, CancellationToken cancellationToken = default)
 	{
-		var existingNames = await GetAccountNamesAsync(cancellationToken);
-		if (existingNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+		if (!TryNormalizeName(name, out var normalizedName))
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
-				logger.LogWarning("Account '{Name}' already exists.", name);
+				logger.LogWarning("Account name '{Name}' is invalid. Names must be non-empty and must not contain commas.", name);
 			}
 
 			return false;
 		}
 
-		await secretStore.SetSecretValueAsync($"account-{name}-email", email, cancellationToken);
+		var existingNames = await GetAccountNamesAsync(cancellationToken);
+		if (existingNames.Contains(normalizedName, StringComparer.OrdinalIgnoreCase))
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("Account '{Name}' already exists.", normalizedName);
+			}
 
-		var updatedNames = existingNames.Append(name).ToList();
+			return false;
+		}
+
+		await secretStore.SetSecretValueAsync($"account-{normalizedName}-email", email, cancellationToken);
+
+		var updatedNames = existingNames.Append(normalizedName).ToList();
 		await secretStore.SetSecretValueAsync(AccountNamesSecret, string.Join(",", updatedNames), cancellationToken);
 
 		if (logger.IsEnabled(LogLevel.Information))
 		{
-			logger.LogInformation("Account '{Name}' added successfully.", name);
+			logger.LogInformation("Account '{Name}' added successfully.", normalizedName);
 		}
 
 		return true;
@@ -66,28 +76,38 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 	/// <inheritdoc />
 	public async Task<bool> DeleteAccountAsync(string name, CancellationToken cancellationToken = default)
 	{
-		var existingNames = await GetAccountNamesAsync(cancellationToken);
-		if (!existingNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+		if (!TryNormalizeName(name, out var normalizedName))
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
-				logger.LogWarning("Account '{Name}' does not exist.", name);
+				logger.LogWarning("Account name '{Name}' is invalid.", name);
 			}
 
 			return false;
 		}
 
-		await secretStore.DeleteSecretAsync($"account-{name}-email", cancellationToken);
+		var existingNames = await GetAccountNamesAsync(cancellationToken);
+		if (!existingNames.Contains(normalizedName, StringComparer.OrdinalIgnoreCase))
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("Account '{Name}' does not exist.", normalizedName);
+			}
+
+			return false;
+		}
+
+		await secretStore.DeleteSecretAsync($"account-{normalizedName}-email", cancellationToken);
 
 		var updatedNames = existingNames
-			.Where(n => !string.Equals(n, name, StringComparison.OrdinalIgnoreCase))
+			.Where(n => !string.Equals(n, normalizedName, StringComparison.OrdinalIgnoreCase))
 			.ToList();
 
 		await secretStore.SetSecretValueAsync(AccountNamesSecret, string.Join(",", updatedNames), cancellationToken);
 
 		if (logger.IsEnabled(LogLevel.Information))
 		{
-			logger.LogInformation("Account '{Name}' deleted successfully.", name);
+			logger.LogInformation("Account '{Name}' deleted successfully.", normalizedName);
 		}
 
 		return true;
@@ -96,22 +116,32 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 	/// <inheritdoc />
 	public async Task<bool> SetDefaultAccountAsync(string name, CancellationToken cancellationToken = default)
 	{
-		var existingNames = await GetAccountNamesAsync(cancellationToken);
-		if (!existingNames.Contains(name, StringComparer.OrdinalIgnoreCase))
+		if (!TryNormalizeName(name, out var normalizedName))
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
-				logger.LogWarning("Account '{Name}' does not exist.", name);
+				logger.LogWarning("Account name '{Name}' is invalid.", name);
 			}
 
 			return false;
 		}
 
-		await secretStore.SetSecretValueAsync("default-account", name, cancellationToken);
+		var existingNames = await GetAccountNamesAsync(cancellationToken);
+		if (!existingNames.Contains(normalizedName, StringComparer.OrdinalIgnoreCase))
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("Account '{Name}' does not exist.", normalizedName);
+			}
+
+			return false;
+		}
+
+		await secretStore.SetSecretValueAsync("default-account", normalizedName, cancellationToken);
 
 		if (logger.IsEnabled(LogLevel.Information))
 		{
-			logger.LogInformation("Default account set to '{Name}'.", name);
+			logger.LogInformation("Default account set to '{Name}'.", normalizedName);
 		}
 
 		return true;
@@ -126,5 +156,18 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 		}
 
 		return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+	}
+
+	private static bool TryNormalizeName(string name, out string normalizedName)
+	{
+		var trimmed = name.Trim().ToLowerInvariant();
+		if (string.IsNullOrEmpty(trimmed) || trimmed.Contains(','))
+		{
+			normalizedName = string.Empty;
+			return false;
+		}
+
+		normalizedName = trimmed;
+		return true;
 	}
 }

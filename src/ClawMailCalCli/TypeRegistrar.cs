@@ -17,7 +17,7 @@ internal sealed class TypeRegistrar(IServiceCollection services)
 	/// <inheritdoc />
 	public void Register(Type service, Type implementation)
 	{
-		services.AddSingleton(service, implementation);
+		services.AddTransient(service, implementation);
 	}
 
 	/// <inheritdoc />
@@ -29,6 +29,6 @@ internal sealed class TypeRegistrar(IServiceCollection services)
 	/// <inheritdoc />
 	public void RegisterLazy(Type service, Func<object> factory)
 	{
-		services.AddSingleton(service, _ => factory());
+		services.AddTransient(service, _ => factory());
 	}
 }

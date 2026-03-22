@@ -32,11 +32,11 @@ internal sealed class AddAccountCommand(IAccountService accountService)
 		var added = await accountService.AddAccountAsync(settings.Name, settings.Email, cancellationToken);
 		if (!added)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{settings.Name}[/]' already exists.");
+			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");
 			return 1;
 		}
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{settings.Name}[/]' added successfully.");
+		AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' added successfully.");
 		return 0;
 	}
 }

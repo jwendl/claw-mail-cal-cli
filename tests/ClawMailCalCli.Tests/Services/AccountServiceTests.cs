@@ -23,6 +23,92 @@ public class AccountServiceTests
 	}
 
 	[Fact]
+	public async Task AddAccountAsync_WithNameContainingComma_ReturnsFalse()
+	{
+		// Arrange (no secret store setup needed — validation fails before any IO)
+
+		// Act
+		var result = await _accountService.AddAccountAsync("bad,name", "user@example.com");
+
+		// Assert
+		result.Should().BeFalse();
+		_mockSecretStore.Verify(s => s.SetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+	}
+
+	[Fact]
+	public async Task AddAccountAsync_WithEmptyName_ReturnsFalse()
+	{
+		// Arrange (no secret store setup needed — validation fails before any IO)
+
+		// Act
+		var result = await _accountService.AddAccountAsync("   ", "user@example.com");
+
+		// Assert
+		result.Should().BeFalse();
+		_mockSecretStore.Verify(s => s.SetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+	}
+
+	[Fact]
+	public async Task AddAccountAsync_WithMixedCaseName_NormalizesToLowercase()
+	{
+		// Arrange
+		_mockSecretStore
+			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string?)null);
+
+		// Act
+		await _accountService.AddAccountAsync("MyAccount", "user@example.com");
+
+		// Assert — secret key uses the normalized (lowercase) name
+		_mockSecretStore.Verify(
+			s => s.SetSecretValueAsync("account-myaccount-email", "user@example.com", It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task AddAccountAsync_WithNameWithLeadingTrailingWhitespace_NormalizesName()
+	{
+		// Arrange
+		_mockSecretStore
+			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string?)null);
+
+		// Act
+		await _accountService.AddAccountAsync("  myaccount  ", "user@example.com");
+
+		// Assert — stored with trimmed name
+		_mockSecretStore.Verify(
+			s => s.SetSecretValueAsync("account-myaccount-email", "user@example.com", It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task DeleteAccountAsync_WithNameContainingComma_ReturnsFalse()
+	{
+		// Arrange (no secret store setup needed — validation fails before any IO)
+
+		// Act
+		var result = await _accountService.DeleteAccountAsync("bad,name");
+
+		// Assert
+		result.Should().BeFalse();
+		_mockSecretStore.Verify(s => s.DeleteSecretAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+	}
+
+	[Fact]
+	public async Task SetDefaultAccountAsync_WithNameContainingComma_ReturnsFalse()
+	{
+		// Arrange (no secret store setup needed — validation fails before any IO)
+
+		// Act
+		var result = await _accountService.SetDefaultAccountAsync("bad,name");
+
+		// Assert
+		result.Should().BeFalse();
+		_mockSecretStore.Verify(s => s.SetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+	}
+
+	[Fact]
 	public async Task AddAccountAsync_WithNewAccount_ReturnsTrue()
 	{
 		// Arrange

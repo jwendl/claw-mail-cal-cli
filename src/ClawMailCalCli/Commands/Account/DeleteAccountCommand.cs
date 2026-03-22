@@ -26,11 +26,11 @@ internal sealed class DeleteAccountCommand(IAccountService accountService)
 		var deleted = await accountService.DeleteAccountAsync(settings.Name, cancellationToken);
 		if (!deleted)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{settings.Name}[/]' does not exist.");
+			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
 			return 1;
 		}
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{settings.Name}[/]' deleted successfully.");
+		AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' deleted successfully.");
 		return 0;
 	}
 }

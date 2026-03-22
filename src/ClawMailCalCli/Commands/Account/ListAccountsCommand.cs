@@ -24,7 +24,7 @@ internal sealed class ListAccountsCommand(IAccountService accountService)
 
 		foreach (var account in accounts)
 		{
-			table.AddRow(account.Name, account.Email);
+			table.AddRow(new Text(account.Name), new Text(account.Email));
 		}
 
 		AnsiConsole.Write(table);

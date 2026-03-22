@@ -26,11 +26,11 @@ internal sealed class SetAccountCommand(IAccountService accountService)
 		var set = await accountService.SetDefaultAccountAsync(settings.Name, cancellationToken);
 		if (!set)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{settings.Name}[/]' does not exist.");
+			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
 			return 1;
 		}
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Default account set to '[yellow]{settings.Name}[/]'.");
+		AnsiConsole.MarkupLine($"[green]✓[/] Default account set to '[yellow]{Markup.Escape(settings.Name)}[/]'.");
 		return 0;
 	}
 }
