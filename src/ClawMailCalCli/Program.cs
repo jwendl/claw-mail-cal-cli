@@ -35,6 +35,9 @@ var app = new CommandApp<DefaultCommand>(registrar);
 app.Configure(config =>
 {
 	config.SetApplicationName("claw-mail-cal-cli");
+	config.UseStrictParsing();
+
+	config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
 
 	config.AddBranch("account", account =>
 	{
