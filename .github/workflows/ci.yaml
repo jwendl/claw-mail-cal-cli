@@ -31,4 +31,4 @@ jobs:
         run: dotnet test tests/ClawMailCalCli.Tests/ClawMailCalCli.Tests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Check formatting
-        run: dotnet format src/ --verify-no-changes
+        run: dotnet format claw-mail-cal-cli.slnx --verify-no-changes
