@@ -86,9 +86,29 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			return null;
 		}
 
-		var recordBytes = Convert.FromBase64String(secretValue);
-		using var memoryStream = new MemoryStream(recordBytes);
-		return await AuthenticationRecord.DeserializeAsync(memoryStream, cancellationToken);
+		try
+		{
+			var recordBytes = Convert.FromBase64String(secretValue);
+			using var memoryStream = new MemoryStream(recordBytes);
+			return await AuthenticationRecord.DeserializeAsync(memoryStream, cancellationToken);
+		}
+		catch (FormatException formatException)
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning(formatException, "Failed to parse cached AuthenticationRecord for account '{AccountName}'. Stored secret is not valid Base64. User must re-authenticate.", accountName);
+			}
+		}
+		catch (Exception deserializationException) when (deserializationException is not FormatException)
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning(deserializationException, "Failed to deserialize cached AuthenticationRecord for account '{AccountName}'. User must re-authenticate.", accountName);
+			}
+		}
+
+		AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{accountName}[/]' is invalid. Please re-authenticate. You may need to delete the Key Vault secret '[bold]{AuthRecordSecretName(accountName)}[/]'.");
+		return null;
 	}
 
 	private async Task SaveAuthenticationRecordAsync(string accountName, AuthenticationRecord authenticationRecord, CancellationToken cancellationToken)
