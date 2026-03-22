@@ -47,6 +47,10 @@ var app = new CommandApp<DefaultCommand>(registrar);
 app.Configure(config =>
 {
 	config.SetApplicationName("claw-mail-cal-cli");
+	config.UseStrictParsing();
+
+	config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
+
 	config.AddCommand<LoginCommand>("login")
 		.WithDescription("Authenticate an account using the Entra ID device code flow.")
 		.WithExample("login", "my-account");
