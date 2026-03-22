@@ -40,7 +40,20 @@ public class KeyVaultSecretStore(SecretClient secretClient, ILogger<KeyVaultSecr
 	{
 		try
 		{
-			await secretClient.StartDeleteSecretAsync(name, cancellationToken);
+			var deleteOperation = await secretClient.StartDeleteSecretAsync(name, cancellationToken);
+			await deleteOperation.WaitForCompletionAsync(cancellationToken);
+
+			try
+			{
+				await secretClient.PurgeDeletedSecretAsync(name, cancellationToken);
+			}
+			catch (RequestFailedException requestFailedException) when (requestFailedException.Status == 404 || requestFailedException.Status == 403)
+			{
+				if (logger.IsEnabled(LogLevel.Debug))
+				{
+					logger.LogDebug("Secret '{Name}' could not be purged (status {Status}). It may already be purged, not deleted, or purge is not permitted.", name, requestFailedException.Status);
+				}
+			}
 		}
 		catch (RequestFailedException requestFailedException) when (requestFailedException.Status == 404)
 		{
