@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ClawMailCalCli/ClawMailCalCli.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ClawMailCalCli.Tests/ClawMailCalCli.Tests.csproj" />
+  </Folder>
+</Solution>
