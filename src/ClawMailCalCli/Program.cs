@@ -9,21 +9,37 @@ using Spectre.Console;
 var services = new ServiceCollection();
 
 services.AddLogging();
+services.AddSingleton<IConfigurationService, ConfigurationService>();
 
-var keyVaultUri = Environment.GetEnvironmentVariable("KEYVAULT_URI");
-Uri? keyVaultUriParsed = null;
+// Resolve Key Vault URI: config file takes precedence, KEYVAULT_URI env var is the fallback.
+Uri keyVaultUriToUse;
 
-if (!string.IsNullOrWhiteSpace(keyVaultUri))
+var configurationService = new ConfigurationService();
+try
 {
-	if (!Uri.TryCreate(keyVaultUri, UriKind.Absolute, out keyVaultUriParsed))
+	var clawConfiguration = await configurationService.ReadConfigurationAsync();
+	keyVaultUriToUse = new Uri(clawConfiguration.KeyVaultUri);
+}
+catch (Exception exception) when (exception is InvalidOperationException or System.Text.Json.JsonException)
+{
+	var keyVaultUri = Environment.GetEnvironmentVariable("KEYVAULT_URI");
+
+	if (string.IsNullOrWhiteSpace(keyVaultUri))
 	{
-		AnsiConsole.MarkupLine("[red]✗ Invalid KEYVAULT_URI environment variable value: '{0}'[/]", keyVaultUri);
-		AnsiConsole.MarkupLine("[yellow]- Please provide a valid absolute URI or unset KEYVAULT_URI to use the placeholder vault.[/]");
+		AnsiConsole.MarkupLine("[red]✗ No Key Vault URI configured.[/]");
+		AnsiConsole.MarkupLine("[yellow]- Create ~/.claw-mail-cal-cli/config.json with a 'keyVaultUri' entry, or set the KEYVAULT_URI environment variable.[/]");
 		return 1;
 	}
-}
 
-var keyVaultUriToUse = keyVaultUriParsed ?? new Uri("https://placeholder.vault.azure.net/");
+	if (!Uri.TryCreate(keyVaultUri, UriKind.Absolute, out var keyVaultUriParsed))
+	{
+		AnsiConsole.MarkupLine("[red]✗ Invalid KEYVAULT_URI environment variable value: '{0}'[/]", Markup.Escape(keyVaultUri));
+		AnsiConsole.MarkupLine("[yellow]- Provide a valid absolute URI or configure ~/.claw-mail-cal-cli/config.json with a 'keyVaultUri' entry.[/]");
+		return 1;
+	}
+
+	keyVaultUriToUse = keyVaultUriParsed;
+}
 
 services.AddSingleton(_ => new SecretClient(keyVaultUriToUse, new Azure.Identity.DefaultAzureCredential()));
 services.AddSingleton<ISecretStore, KeyVaultSecretStore>();
@@ -36,8 +52,6 @@ app.Configure(config =>
 {
 	config.SetApplicationName("claw-mail-cal-cli");
 	config.UseStrictParsing();
-
-	config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
 
 	config.AddBranch("account", account =>
 	{
