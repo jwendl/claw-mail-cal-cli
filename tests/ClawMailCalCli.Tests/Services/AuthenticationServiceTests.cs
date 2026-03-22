@@ -79,14 +79,7 @@ public class AuthenticationServiceTests
 
 		// Act — expect it to throw on deserialization of the placeholder but the important
 		// assertion is that AuthenticateAsync on the provider is never invoked.
-		try
-		{
-			await authenticationService.AuthenticateAsync("work-account");
-		}
-		catch
-		{
-			// swallow deserialization error caused by placeholder bytes
-		}
+		await Assert.ThrowsAnyAsync<Exception>(async () => await authenticationService.AuthenticateAsync("work-account"));
 
 		// Assert
 		_mockDeviceCodeCredentialProvider.Verify(
