@@ -126,7 +126,7 @@ claw-mail-cal-cli email list <folder-name>
 Read a specific email:
 
 ```
-claw-mail-cal-cli email read <subject-name | unique-message-id>
+claw-mail-cal-cli email read <subject-name or unique-message-id>
 ```
 
 Send an email:
