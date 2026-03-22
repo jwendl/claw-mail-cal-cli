@@ -20,9 +20,9 @@ alt [label: Access token expired - refresh available, color: yellow] {
   Auth Manager > Azure Key Vault: GetSecretAsync("{account}_refresh_token")
   Azure Key Vault --> Auth Manager: Return refresh token
   Auth Manager > Entra ID: POST /oauth2/v2.0/token (refresh_token grant)
-  Entra ID --> Auth Manager: New access_token + refresh_token
-  Auth Manager > Azure Key Vault: SetSecretAsync("{account}_access_token", newToken)
-  Auth Manager > Azure Key Vault: SetSecretAsync("{account}_refresh_token", newToken)
+  Entra ID --> Auth Manager: New access_token (newAccessToken) + refresh_token (newRefreshToken)
+  Auth Manager > Azure Key Vault: SetSecretAsync("{account}_access_token", newAccessToken)
+  Auth Manager > Azure Key Vault: SetSecretAsync("{account}_refresh_token", newRefreshToken)
   Azure Key Vault --> Auth Manager: Secrets updated
   Auth Manager --> CLI: Return new access token
 }
