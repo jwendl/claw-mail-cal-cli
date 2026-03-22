@@ -36,18 +36,18 @@ options.UseSqlite($"Data Source={dbPath}"));
 // Key Vault client for OAuth token storage (not account data).
 services.AddSingleton(serviceProvider =>
 {
-var keyVaultOptions = serviceProvider.GetRequiredService<IOptions<KeyVaultOptions>>().Value;
-if (string.IsNullOrWhiteSpace(keyVaultOptions.VaultUri))
-{
-throw new InvalidOperationException("'keyVault:vaultUri' is not configured. Set this value before running any commands that require Key Vault access.");
-}
+	var keyVaultOptions = serviceProvider.GetRequiredService<IOptions<KeyVaultOptions>>().Value;
+	if (string.IsNullOrWhiteSpace(keyVaultOptions.VaultUri))
+	{
+		throw new InvalidOperationException("'keyVault:vaultUri' is not configured. Set this value before running any commands that require Key Vault access.");
+	}
 
-if (!Uri.TryCreate(keyVaultOptions.VaultUri, UriKind.Absolute, out var vaultUri))
-{
-throw new InvalidOperationException($"'keyVault:vaultUri' value '{keyVaultOptions.VaultUri}' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
-}
+	if (!Uri.TryCreate(keyVaultOptions.VaultUri, UriKind.Absolute, out var vaultUri))
+	{
+		throw new InvalidOperationException($"'keyVault:vaultUri' value '{keyVaultOptions.VaultUri}' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
+	}
 
-return new SecretClient(vaultUri, new AzureCliCredential());
+	return new SecretClient(vaultUri, new AzureCliCredential());
 });
 
 services.AddSingleton<IKeyVaultService, KeyVaultService>();
@@ -60,7 +60,7 @@ await using (var startupContext = new ApplicationDbContext(new DbContextOptionsB
 .UseSqlite($"Data Source={dbPath}")
 .Options))
 {
-await startupContext.Database.EnsureCreatedAsync();
+	await startupContext.Database.EnsureCreatedAsync();
 }
 
 var registrar = new TypeRegistrar(services);
@@ -68,29 +68,29 @@ var app = new CommandApp<DefaultCommand>(registrar);
 
 app.Configure(config =>
 {
-config.SetApplicationName("claw-mail-cal-cli");
-config.UseStrictParsing();
+	config.SetApplicationName("claw-mail-cal-cli");
+	config.UseStrictParsing();
 
-config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
+	config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
 
-config.AddBranch("account", account =>
-{
-account.AddCommand<AddAccountCommand>("add")
-.WithDescription("Add a new account.")
-.WithExample("account add myaccount user@example.com");
-account.AddCommand<ListAccountsCommand>("list")
-.WithDescription("List all accounts.");
-account.AddCommand<DeleteAccountCommand>("delete")
-.WithDescription("Delete an account.")
-.WithExample("account delete myaccount");
-account.AddCommand<SetAccountCommand>("set")
-.WithDescription("Set the default account.")
-.WithExample("account set myaccount");
-});
+	config.AddBranch("account", account =>
+	{
+		account.AddCommand<AddAccountCommand>("add")
+	.WithDescription("Add a new account.")
+	.WithExample("account add myaccount user@example.com");
+		account.AddCommand<ListAccountsCommand>("list")
+	.WithDescription("List all accounts.");
+		account.AddCommand<DeleteAccountCommand>("delete")
+	.WithDescription("Delete an account.")
+	.WithExample("account delete myaccount");
+		account.AddCommand<SetAccountCommand>("set")
+	.WithDescription("Set the default account.")
+	.WithExample("account set myaccount");
+	});
 
-config.AddCommand<LoginCommand>("login")
-.WithDescription("Authenticate an account using the Entra ID device code flow.")
-.WithExample("login", "my-account");
+	config.AddCommand<LoginCommand>("login")
+	.WithDescription("Authenticate an account using the Entra ID device code flow.")
+	.WithExample("login", "my-account");
 });
 
 return app.Run(args);
