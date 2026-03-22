@@ -18,30 +18,33 @@ internal sealed class TypeRegistrar(IServiceCollection services) : ITypeRegistra
 	/// <inheritdoc />
 	public void RegisterLazy(Type service, Func<object> factory) =>
 		services.AddSingleton(service, _ => factory());
-}
 
-/// <summary>
-/// Resolves services from a built <see cref="IServiceProvider"/>.
-/// </summary>
-internal sealed class TypeResolver(IServiceProvider serviceProvider) : ITypeResolver, IDisposable
-{
-	/// <inheritdoc />
-	public object? Resolve(Type? type)
+	/// <summary>
+	/// Resolves services from a built <see cref="IServiceProvider"/>.
+	/// </summary>
+	private sealed class TypeResolver(IServiceProvider serviceProvider)
+		: ITypeResolver, IDisposable
 	{
-		if (type is null)
+		/// <inheritdoc />
+		public object? Resolve(Type? type)
 		{
-			return null;
+			if (type is null)
+			{
+				return null;
+			}
+
+			return serviceProvider.GetService(type);
 		}
 
-		return serviceProvider.GetService(type);
-	}
-
-	/// <inheritdoc />
-	public void Dispose()
-	{
-		if (serviceProvider is IDisposable disposable)
+		/// <inheritdoc />
+		public void Dispose()
 		{
-			disposable.Dispose();
+			if (serviceProvider is IDisposable disposable)
+			{
+				disposable.Dispose();
+			}
 		}
 	}
 }
+
+// TypeResolver is now defined as a nested private class inside TypeRegistrar to comply with the one top-level class per file guideline.
