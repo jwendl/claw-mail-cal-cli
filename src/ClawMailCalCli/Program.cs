@@ -8,7 +8,7 @@ using Spectre.Console;
 
 var services = new ServiceCollection();
 
-services.AddLogging(builder => builder.AddConsole());
+services.AddLogging();
 
 var keyVaultUri = Environment.GetEnvironmentVariable("KEYVAULT_URI");
 Uri? keyVaultUriParsed = null;
