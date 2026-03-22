@@ -1,0 +1,41 @@
+# GitHub Copilot Configuration
+# Primary instructions are in .github/copilot-instructions.md
+# Path-specific instructions are in .github/instructions/
+
+agents:
+  - file: docs/architecture/agents.md
+
+instructions:
+  - file: .github/copilot-instructions.md
+  - file: docs/architecture/requirements.md
+  - file: CONTRIBUTING.md
+  - file: docs/plan/workflow.md
+  - file: .github/instructions/general.instructions.md
+  - file: .github/instructions/csharp.instructions.md
+  - file: .github/instructions/blazor.instructions.md
+  - file: .github/instructions/azure-functions.instructions.md
+  - file: .github/instructions/tests.instructions.md
+  - file: .github/instructions/nuget.instructions.md
+  - file: .github/instructions/console.instructions.md
+  - file: .github/instructions/entity-framework.instructions.md
+  - file: .github/instructions/http-client.instructions.md
+  - file: .github/instructions/bicep.instructions.md
+  - file: .github/instructions/diagrams.instructions.md
+  - file: .github/instructions/documentation.instructions.md
+  - file: .github/instructions/speech-services.instructions.md
+  - file: .github/instructions/ai-services.instructions.md
+
+context:
+  - file: README.md
+  - file: docs/architecture/architecture.md
+  - file: docs/architecture/requirements.md
+
+ignore:
+  - "**/bin/**"
+  - "**/obj/**"
+  - "**/.vs/**"
+  - "**/node_modules/**"
+  - "**/*.user"
+  - "**/appsettings.*.json"
+  - "**/local.settings.json"
+  - "**/*.trx"
