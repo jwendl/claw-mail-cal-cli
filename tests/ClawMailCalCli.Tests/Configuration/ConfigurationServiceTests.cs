@@ -116,7 +116,7 @@ public class ConfigurationServiceTests : IDisposable
 	}
 
 	[Fact]
-	public async Task ReadConfigurationAsync_WhenConfigFileContainsInvalidJson_ThrowsInvalidOperationException()
+	public async Task ReadConfigurationAsync_WhenConfigFileContainsInvalidJson_ThrowsJsonException()
 	{
 		// Arrange
 		var configFilePath = Path.Combine(_tempDirectory, "config.json");
@@ -230,7 +230,23 @@ public class ConfigurationServiceTests : IDisposable
 	}
 
 	[Fact]
-	public async Task WriteConfigurationAsync_WhenDefaultAccountIsNull_WritesConfigWithoutDefaultAccount()
+	public async Task WriteConfigurationAsync_WhenDefaultAccountIsNull_OmitsDefaultAccountFromJson()
+	{
+		// Arrange
+		var configurationService = CreateService();
+		var configuration = new ClawConfiguration("https://vault.azure.net/");
+
+		// Act
+		await configurationService.WriteConfigurationAsync(configuration);
+
+		// Assert
+		var configFilePath = Path.Combine(_tempDirectory, "config.json");
+		var json = await File.ReadAllTextAsync(configFilePath);
+		json.Should().NotContain("defaultAccount");
+	}
+
+	[Fact]
+	public async Task WriteConfigurationAsync_WhenDefaultAccountIsNull_RoundTripsToNullDefaultAccount()
 	{
 		// Arrange
 		var configurationService = CreateService();
@@ -242,5 +258,49 @@ public class ConfigurationServiceTests : IDisposable
 
 		// Assert
 		readConfiguration.DefaultAccount.Should().BeNull();
+	}
+
+	// -------------------------------------------------------------------------
+	// KeyVaultUri validation
+	// -------------------------------------------------------------------------
+
+	[Theory]
+	[InlineData("")]
+	[InlineData("   ")]
+	[InlineData("not-a-uri")]
+	[InlineData("/relative/path")]
+	[InlineData("http://insecure-vault.vault.azure.net/")]
+	[InlineData("ftp://vault.azure.net/")]
+	public async Task ReadConfigurationAsync_WhenKeyVaultUriIsInvalid_ThrowsInvalidOperationException(string invalidUri)
+	{
+		// Arrange
+		var configFilePath = Path.Combine(_tempDirectory, "config.json");
+		var json = $$"""{"keyVaultUri": "{{invalidUri}}"}""";
+		await File.WriteAllTextAsync(configFilePath, json);
+		var configurationService = CreateService();
+
+		// Act
+		var act = async () => await configurationService.ReadConfigurationAsync();
+
+		// Assert
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*keyVaultUri*");
+	}
+
+	[Fact]
+	public async Task ReadConfigurationAsync_WhenKeyVaultUriIsNull_ThrowsInvalidOperationException()
+	{
+		// Arrange
+		var configFilePath = Path.Combine(_tempDirectory, "config.json");
+		var json = """{"keyVaultUri": null}""";
+		await File.WriteAllTextAsync(configFilePath, json);
+		var configurationService = CreateService();
+
+		// Act
+		var act = async () => await configurationService.ReadConfigurationAsync();
+
+		// Assert
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*keyVaultUri*");
 	}
 }

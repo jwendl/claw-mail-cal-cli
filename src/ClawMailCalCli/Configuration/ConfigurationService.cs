@@ -17,6 +17,7 @@ public class ConfigurationService
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		WriteIndented = true,
+		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
 	};
 
 	private readonly string _configDirectory;
@@ -61,6 +62,16 @@ public class ConfigurationService
 			throw new InvalidOperationException(
 				$"Configuration file at '{_configFilePath}' could not be parsed. " +
 				$"Ensure it contains a valid JSON object with a 'keyVaultUri' property.");
+		}
+
+		if (string.IsNullOrWhiteSpace(configuration.KeyVaultUri) ||
+			!Uri.TryCreate(configuration.KeyVaultUri, UriKind.Absolute, out var keyVaultUri) ||
+			!string.Equals(keyVaultUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
+		{
+			throw new InvalidOperationException(
+				$"Configuration file at '{_configFilePath}' contains an invalid 'keyVaultUri' value. " +
+				$"The value must be an absolute HTTPS URI. " +
+				$"Example: {{\"keyVaultUri\": \"https://my-keyvault.vault.azure.net/\"}}");
 		}
 
 		return configuration;
