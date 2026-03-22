@@ -4,21 +4,28 @@ using ClawMailCalCli.Commands.Account;
 using ClawMailCalCli.Services;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Spectre.Console;
 
 var services = new ServiceCollection();
 
 services.AddLogging(builder => builder.AddConsole());
 
 var keyVaultUri = Environment.GetEnvironmentVariable("KEYVAULT_URI");
+Uri? keyVaultUriParsed = null;
+
 if (!string.IsNullOrWhiteSpace(keyVaultUri))
 {
-	services.AddSingleton(_ => new SecretClient(new Uri(keyVaultUri), new Azure.Identity.DefaultAzureCredential()));
-}
-else
-{
-	services.AddSingleton(_ => new SecretClient(new Uri("https://placeholder.vault.azure.net/"), new Azure.Identity.DefaultAzureCredential()));
+	if (!Uri.TryCreate(keyVaultUri, UriKind.Absolute, out keyVaultUriParsed))
+	{
+		AnsiConsole.MarkupLine("[red]✗ Invalid KEYVAULT_URI environment variable value: '{0}'[/]", keyVaultUri);
+		AnsiConsole.MarkupLine("[yellow]- Please provide a valid absolute URI or unset KEYVAULT_URI to use the placeholder vault.[/]");
+		return 1;
+	}
 }
 
+var keyVaultUriToUse = keyVaultUriParsed ?? new Uri("https://placeholder.vault.azure.net/");
+
+services.AddSingleton(_ => new SecretClient(keyVaultUriToUse, new Azure.Identity.DefaultAzureCredential()));
 services.AddSingleton<ISecretStore, KeyVaultSecretStore>();
 services.AddScoped<IAccountService, AccountService>();
 
