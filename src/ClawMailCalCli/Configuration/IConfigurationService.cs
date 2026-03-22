@@ -9,7 +9,8 @@ public interface IConfigurationService
 	/// Reads the configuration from the user's home directory.
 	/// </summary>
 	/// <returns>The loaded <see cref="ClawConfiguration"/>.</returns>
-	/// <exception cref="InvalidOperationException">Thrown when the configuration file does not exist.</exception>
+	/// <exception cref="InvalidOperationException">Thrown when the configuration file does not exist or when the configuration content cannot be deserialized into a valid <see cref="ClawConfiguration"/> instance.</exception>
+	/// <exception cref="System.Text.Json.JsonException">Thrown when the configuration file contains invalid JSON.</exception>
 	Task<ClawConfiguration> ReadConfigurationAsync();
 
 	/// <summary>
