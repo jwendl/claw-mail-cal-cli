@@ -1,3 +1,5 @@
+using ClawMailCalCli.Models;
+
 namespace ClawMailCalCli.Data;
 
 /// <summary>
@@ -19,6 +21,11 @@ public class AccountEntity
 	/// The email address associated with the account.
 	/// </summary>
 	public required string Email { get; set; }
+
+	/// <summary>
+	/// Whether this is a personal (MSA) or work/school (Entra) account.
+	/// </summary>
+	public AccountType Type { get; set; }
 
 	/// <summary>
 	/// Whether this account is set as the default.

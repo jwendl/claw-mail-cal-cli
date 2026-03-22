@@ -21,10 +21,11 @@ internal sealed class ListAccountsCommand(IAccountService accountService)
 		var table = new Table();
 		table.AddColumn("Name");
 		table.AddColumn("Email");
+		table.AddColumn("Type");
 
 		foreach (var account in accounts)
 		{
-			table.AddRow(new Text(account.Name), new Text(account.Email));
+			table.AddRow(new Text(account.Name), new Text(account.Email), new Text(account.Type.ToString()));
 		}
 
 		AnsiConsole.Write(table);

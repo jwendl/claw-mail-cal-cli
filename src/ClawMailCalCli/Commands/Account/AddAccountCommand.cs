@@ -12,7 +12,7 @@ internal sealed class AddAccountCommand(IAccountService accountService)
 	/// <inheritdoc />
 	public override async Task<int> ExecuteAsync(CommandContext context, AddAccountSettings settings, CancellationToken cancellationToken)
 	{
-		var added = await accountService.AddAccountAsync(settings.Name, settings.Email, cancellationToken);
+		var added = await accountService.AddAccountAsync(settings.Name, settings.Email, cancellationToken: cancellationToken);
 		if (!added)
 		{
 			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");

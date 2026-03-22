@@ -1,71 +1,66 @@
+using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
-using ClawMailCalCli.Commands.Account;
 using ClawMailCalCli.Data;
+using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using Spectre.Console;
+using Microsoft.Extensions.Options;
+
+var configuration = new ConfigurationBuilder()
+.SetBasePath(AppContext.BaseDirectory)
+.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+.AddEnvironmentVariables()
+.Build();
 
 var services = new ServiceCollection();
 
+services.Configure<EntraOptions>(configuration.GetSection("entra"));
+services.Configure<KeyVaultOptions>(configuration.GetSection("keyVault"));
+
 services.AddLogging();
-services.AddSingleton<IConfigurationService, ConfigurationService>();
-
-// Resolve Key Vault URI: config file takes precedence, KEYVAULT_URI env var is the fallback.
-Uri keyVaultUriToUse;
-
-var configurationService = new ConfigurationService();
-try
-{
-	var clawConfiguration = await configurationService.ReadConfigurationAsync();
-	keyVaultUriToUse = new Uri(clawConfiguration.KeyVaultUri);
-}
-catch (Exception exception) when (exception is InvalidOperationException or System.Text.Json.JsonException)
-{
-	var keyVaultUri = Environment.GetEnvironmentVariable("KEYVAULT_URI");
-
-	if (string.IsNullOrWhiteSpace(keyVaultUri))
-	{
-		AnsiConsole.MarkupLine("[red]✗ No Key Vault URI configured.[/]");
-		AnsiConsole.MarkupLine("[yellow]- Create ~/.claw-mail-cal-cli/config.json with a 'keyVaultUri' entry, or set the KEYVAULT_URI environment variable.[/]");
-		return 1;
-	}
-
-	if (!Uri.TryCreate(keyVaultUri, UriKind.Absolute, out var keyVaultUriParsed))
-	{
-		AnsiConsole.MarkupLine("[red]✗ Invalid KEYVAULT_URI environment variable value: '{0}'[/]", Markup.Escape(keyVaultUri));
-		AnsiConsole.MarkupLine("[yellow]- Provide a valid absolute URI or configure ~/.claw-mail-cal-cli/config.json with a 'keyVaultUri' entry.[/]");
-		return 1;
-	}
-
-	keyVaultUriToUse = keyVaultUriParsed;
-}
 
 // SQLite database for account data (names, emails, default selection).
 // Key Vault is reserved for secrets such as OAuth tokens.
 var dbDirectory = Path.Combine(
-	Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-	".claw-mail-cal-cli");
+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+".claw-mail-cal-cli");
 Directory.CreateDirectory(dbDirectory);
 var dbPath = Path.Combine(dbDirectory, "accounts.db");
 
 services.AddDbContextFactory<ApplicationDbContext>(options =>
-	options.UseSqlite($"Data Source={dbPath}"));
+options.UseSqlite($"Data Source={dbPath}"));
 
-// Key Vault client for future OAuth token storage.
-services.AddSingleton(_ => new SecretClient(keyVaultUriToUse, new Azure.Identity.DefaultAzureCredential()));
-services.AddSingleton<ISecretStore, KeyVaultSecretStore>();
+// Key Vault client for OAuth token storage (not account data).
+services.AddSingleton(serviceProvider =>
+{
+var keyVaultOptions = serviceProvider.GetRequiredService<IOptions<KeyVaultOptions>>().Value;
+if (string.IsNullOrWhiteSpace(keyVaultOptions.VaultUri))
+{
+throw new InvalidOperationException("'keyVault:vaultUri' is not configured. Set this value before running any commands that require Key Vault access.");
+}
+
+if (!Uri.TryCreate(keyVaultOptions.VaultUri, UriKind.Absolute, out var vaultUri))
+{
+throw new InvalidOperationException($"'keyVault:vaultUri' value '{keyVaultOptions.VaultUri}' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
+}
+
+return new SecretClient(vaultUri, new AzureCliCredential());
+});
+
+services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
+services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
+services.AddSingleton<IAuthenticationService, AuthenticationService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
-// Use direct DbContext instantiation to avoid building a second service provider.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-	.UseSqlite($"Data Source={dbPath}")
-	.Options))
+.UseSqlite($"Data Source={dbPath}")
+.Options))
 {
-	await startupContext.Database.EnsureCreatedAsync();
+await startupContext.Database.EnsureCreatedAsync();
 }
 
 var registrar = new TypeRegistrar(services);
@@ -73,23 +68,29 @@ var app = new CommandApp<DefaultCommand>(registrar);
 
 app.Configure(config =>
 {
-	config.SetApplicationName("claw-mail-cal-cli");
-	config.UseStrictParsing();
+config.SetApplicationName("claw-mail-cal-cli");
+config.UseStrictParsing();
 
-	config.AddBranch("account", account =>
-	{
-		account.AddCommand<AddAccountCommand>("add")
-			.WithDescription("Add a new account.")
-			.WithExample("account add myaccount user@example.com");
-		account.AddCommand<ListAccountsCommand>("list")
-			.WithDescription("List all accounts.");
-		account.AddCommand<DeleteAccountCommand>("delete")
-			.WithDescription("Delete an account.")
-			.WithExample("account delete myaccount");
-		account.AddCommand<SetAccountCommand>("set")
-			.WithDescription("Set the default account.")
-			.WithExample("account set myaccount");
-	});
+config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
+
+config.AddBranch("account", account =>
+{
+account.AddCommand<AddAccountCommand>("add")
+.WithDescription("Add a new account.")
+.WithExample("account add myaccount user@example.com");
+account.AddCommand<ListAccountsCommand>("list")
+.WithDescription("List all accounts.");
+account.AddCommand<DeleteAccountCommand>("delete")
+.WithDescription("Delete an account.")
+.WithExample("account delete myaccount");
+account.AddCommand<SetAccountCommand>("set")
+.WithDescription("Set the default account.")
+.WithExample("account set myaccount");
+});
+
+config.AddCommand<LoginCommand>("login")
+.WithDescription("Authenticate an account using the Entra ID device code flow.")
+.WithExample("login", "my-account");
 });
 
 return app.Run(args);
