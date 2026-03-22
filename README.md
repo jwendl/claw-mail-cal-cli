@@ -148,7 +148,7 @@ claw-mail-cal-cli calendar list
 Read a specific calendar event:
 
 ```
-claw-mail-cal-cli calendar read <title | unique-calendar-item-id>
+claw-mail-cal-cli calendar read <title-or-unique-calendar-item-id>
 ```
 
 Create a calendar event:
