@@ -10,7 +10,11 @@ namespace ClawMailCalCli.Services;
 public class AccountService(IKeyVaultService keyVaultService)
 	: IAccountService
 {
-	private static string SecretName(string accountName) => $"account-{accountName}";
+	private static string SecretName(string accountName)
+	{
+		KeyVaultNameValidator.EnsureValid(accountName);
+		return $"account-{accountName}";
+	}
 
 	/// <inheritdoc />
 	public async Task<Account?> GetAccountAsync(string accountName, CancellationToken cancellationToken = default)

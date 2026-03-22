@@ -114,8 +114,9 @@ public class AccountServiceTests
 		// Act
 		await accountService.SaveAccountAsync(account);
 
-		// Assert — the serialized JSON must include AccountType.Work (value 1)
+		// Assert — deserialize the captured JSON and verify the Type is correctly stored as Work
 		capturedValue.Should().NotBeNullOrWhiteSpace();
-		capturedValue!.Should().Contain("contoso.com");
+		var deserializedAccount = System.Text.Json.JsonSerializer.Deserialize<Account>(capturedValue!);
+		deserializedAccount!.Type.Should().Be(AccountType.Work);
 	}
 }

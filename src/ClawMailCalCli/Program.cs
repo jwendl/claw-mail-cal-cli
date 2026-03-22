@@ -23,7 +23,16 @@ services.AddLogging();
 services.AddSingleton(serviceProvider =>
 {
 	var keyVaultOptions = serviceProvider.GetRequiredService<IOptions<KeyVaultOptions>>().Value;
-	var vaultUri = new Uri(keyVaultOptions.VaultUri);
+	if (string.IsNullOrWhiteSpace(keyVaultOptions.VaultUri))
+	{
+		throw new InvalidOperationException("'keyVault:vaultUri' is not configured. Set this value before running any commands that require Key Vault access.");
+	}
+
+	if (!Uri.TryCreate(keyVaultOptions.VaultUri, UriKind.Absolute, out var vaultUri))
+	{
+		throw new InvalidOperationException($"'keyVault:vaultUri' value '{keyVaultOptions.VaultUri}' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
+	}
+
 	return new SecretClient(vaultUri, new AzureCliCredential());
 });
 
@@ -33,12 +42,11 @@ services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvide
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
 
 var registrar = new TypeRegistrar(services);
-var app = new CommandApp(registrar);
+var app = new CommandApp<DefaultCommand>(registrar);
 
 app.Configure(config =>
 {
 	config.SetApplicationName("claw-mail-cal-cli");
-	config.SetDefaultCommand<DefaultCommand>();
 	config.AddCommand<LoginCommand>("login")
 		.WithDescription("Authenticate an account using the Entra ID device code flow.")
 		.WithExample("login", "my-account");

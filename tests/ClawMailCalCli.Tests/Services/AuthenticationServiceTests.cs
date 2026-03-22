@@ -68,20 +68,23 @@ public class AuthenticationServiceTests
 			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(account);
 
-		// Return a non-empty base64 value to simulate a cached record existing.
-		// We use a non-empty placeholder; the actual deserialisation will fail, but we are
-		// testing only that the device code flow is skipped when a secret is present.
+		// Serialize a valid AuthenticationRecord and store it as a base64 secret,
+		// exactly as the real service would after a successful first login.
+		var validRecord = BuildFakeAuthenticationRecord();
+		using var recordStream = new MemoryStream();
+		await validRecord.SerializeAsync(recordStream);
+		var base64Record = Convert.ToBase64String(recordStream.ToArray());
+
 		_mockKeyVaultService
 			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-work-account", It.IsAny<CancellationToken>()))
-			.ReturnsAsync(Convert.ToBase64String("cached-record-placeholder"u8.ToArray()));
+			.ReturnsAsync(base64Record);
 
 		var authenticationService = CreateAuthenticationService();
 
-		// Act — expect it to throw on deserialization of the placeholder but the important
-		// assertion is that AuthenticateAsync on the provider is never invoked.
-		await Assert.ThrowsAnyAsync<Exception>(async () => await authenticationService.AuthenticateAsync("work-account"));
+		// Act
+		await authenticationService.AuthenticateAsync("work-account");
 
-		// Assert
+		// Assert — the cached record was found so the device code flow should not be triggered
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
 			Times.Never);

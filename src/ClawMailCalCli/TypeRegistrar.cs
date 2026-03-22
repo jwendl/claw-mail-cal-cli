@@ -46,5 +46,3 @@ internal sealed class TypeRegistrar(IServiceCollection services) : ITypeRegistra
 		}
 	}
 }
-
-// TypeResolver is now defined as a nested private class inside TypeRegistrar to comply with the one top-level class per file guideline.

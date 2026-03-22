@@ -23,7 +23,11 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		"https://graph.microsoft.com/User.Read",
 	];
 
-	private static string AuthRecordSecretName(string accountName) => $"auth-record-{accountName}";
+	private static string AuthRecordSecretName(string accountName)
+	{
+		KeyVaultNameValidator.EnsureValid(accountName);
+		return $"auth-record-{accountName}";
+	}
 
 	/// <inheritdoc />
 	public async Task AuthenticateAsync(string accountName, CancellationToken cancellationToken = default)
@@ -46,7 +50,7 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			ClientId = options.ClientId,
 			TenantId = tenantId,
 			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
-			DeviceCodeCallback = (deviceCodeInfo, token) =>
+			DeviceCodeCallback = (deviceCodeInfo, _) =>
 			{
 				AnsiConsole.MarkupLine($"[bold]Authenticating account:[/] {accountName}");
 				AnsiConsole.MarkupLine(deviceCodeInfo.Message);
