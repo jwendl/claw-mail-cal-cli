@@ -1,3 +1,4 @@
+using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Services;
 
 namespace ClawMailCalCli.Commands.Account;
@@ -6,29 +7,10 @@ namespace ClawMailCalCli.Commands.Account;
 /// Adds a new account to the store.
 /// </summary>
 internal sealed class AddAccountCommand(IAccountService accountService)
-	: AsyncCommand<AddAccountCommand.Settings>
+	: AsyncCommand<AddAccountSettings>
 {
-	/// <summary>
-	/// Settings for the <see cref="AddAccountCommand"/>.
-	/// </summary>
-	internal sealed class Settings
-		: CommandSettings
-	{
-		/// <summary>
-		/// The name of the account to add.
-		/// </summary>
-		[CommandArgument(0, "<name>")]
-		public required string Name { get; init; }
-
-		/// <summary>
-		/// The email address for the account.
-		/// </summary>
-		[CommandArgument(1, "<email>")]
-		public required string Email { get; init; }
-	}
-
 	/// <inheritdoc />
-	public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+	public override async Task<int> ExecuteAsync(CommandContext context, AddAccountSettings settings, CancellationToken cancellationToken)
 	{
 		var added = await accountService.AddAccountAsync(settings.Name, settings.Email, cancellationToken);
 		if (!added)

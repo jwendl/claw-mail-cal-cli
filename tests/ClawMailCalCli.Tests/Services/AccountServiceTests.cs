@@ -1,5 +1,7 @@
+using ClawMailCalCli.Data;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Tests.Services;
@@ -8,113 +10,126 @@ namespace ClawMailCalCli.Tests.Services;
 /// Unit tests for <see cref="AccountService"/>.
 /// </summary>
 [Trait("Category", "Unit")]
-public class AccountServiceTests
+public class AccountServiceTests : IAsyncLifetime
 {
-	private readonly Mock<ISecretStore> _mockSecretStore;
+	private readonly IDbContextFactory<ApplicationDbContext> _dbContextFactory;
 	private readonly AccountService _accountService;
 
 	/// <summary>
-	/// Initializes a new instance of <see cref="AccountServiceTests"/>.
+	/// Initializes a new instance of <see cref="AccountServiceTests"/> with an in-memory SQLite database.
 	/// </summary>
 	public AccountServiceTests()
 	{
-		_mockSecretStore = new Mock<ISecretStore>();
-		_accountService = new AccountService(_mockSecretStore.Object, Mock.Of<ILogger<AccountService>>());
+		var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+			.UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+			.Options;
+		_dbContextFactory = new TestDbContextFactory(options);
+		_accountService = new AccountService(_dbContextFactory, Mock.Of<ILogger<AccountService>>());
+	}
+
+	/// <inheritdoc />
+	public async Task InitializeAsync()
+	{
+		await using var context = await _dbContextFactory.CreateDbContextAsync();
+		await context.Database.EnsureCreatedAsync();
+	}
+
+	/// <inheritdoc />
+	public async Task DisposeAsync()
+	{
+		await using var context = await _dbContextFactory.CreateDbContextAsync();
+		await context.Database.EnsureDeletedAsync();
 	}
 
 	[Fact]
 	public async Task AddAccountAsync_WithNameContainingComma_ReturnsFalse()
 	{
-		// Arrange (no secret store setup needed — validation fails before any IO)
+		// Arrange (no DB interaction expected — validation fails before any IO)
 
 		// Act
 		var result = await _accountService.AddAccountAsync("bad,name", "user@example.com");
 
 		// Assert
 		result.Should().BeFalse();
-		_mockSecretStore.Verify(s => s.SetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+
+		using var context = _dbContextFactory.CreateDbContext();
+		var accountCount = await context.Accounts.CountAsync();
+		accountCount.Should().Be(0);
 	}
 
 	[Fact]
 	public async Task AddAccountAsync_WithEmptyName_ReturnsFalse()
 	{
-		// Arrange (no secret store setup needed — validation fails before any IO)
+		// Arrange (no DB interaction expected — validation fails before any IO)
 
 		// Act
 		var result = await _accountService.AddAccountAsync("   ", "user@example.com");
 
 		// Assert
 		result.Should().BeFalse();
-		_mockSecretStore.Verify(s => s.SetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+
+		using var context = _dbContextFactory.CreateDbContext();
+		var accountCount = await context.Accounts.CountAsync();
+		accountCount.Should().Be(0);
 	}
 
 	[Fact]
 	public async Task AddAccountAsync_WithMixedCaseName_NormalizesToLowercase()
 	{
-		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync((string?)null);
+		// Arrange (empty database)
 
 		// Act
 		await _accountService.AddAccountAsync("MyAccount", "user@example.com");
 
-		// Assert — secret key uses the normalized (lowercase) name
-		_mockSecretStore.Verify(
-			s => s.SetSecretValueAsync("account-myaccount-email", "user@example.com", It.IsAny<CancellationToken>()),
-			Times.Once);
+		// Assert — stored with normalized (lowercase) name
+		using var context = _dbContextFactory.CreateDbContext();
+		var storedAccount = await context.Accounts.SingleOrDefaultAsync(a => a.Name == "myaccount");
+		storedAccount.Should().NotBeNull();
+		storedAccount!.Email.Should().Be("user@example.com");
 	}
 
 	[Fact]
 	public async Task AddAccountAsync_WithNameWithLeadingTrailingWhitespace_NormalizesName()
 	{
-		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync((string?)null);
+		// Arrange (empty database)
 
 		// Act
 		await _accountService.AddAccountAsync("  myaccount  ", "user@example.com");
 
 		// Assert — stored with trimmed name
-		_mockSecretStore.Verify(
-			s => s.SetSecretValueAsync("account-myaccount-email", "user@example.com", It.IsAny<CancellationToken>()),
-			Times.Once);
+		using var context = _dbContextFactory.CreateDbContext();
+		var storedAccount = await context.Accounts.SingleOrDefaultAsync(a => a.Name == "myaccount");
+		storedAccount.Should().NotBeNull();
 	}
 
 	[Fact]
 	public async Task DeleteAccountAsync_WithNameContainingComma_ReturnsFalse()
 	{
-		// Arrange (no secret store setup needed — validation fails before any IO)
+		// Arrange (no DB interaction expected — validation fails before any IO)
 
 		// Act
 		var result = await _accountService.DeleteAccountAsync("bad,name");
 
 		// Assert
 		result.Should().BeFalse();
-		_mockSecretStore.Verify(s => s.DeleteSecretAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 	}
 
 	[Fact]
 	public async Task SetDefaultAccountAsync_WithNameContainingComma_ReturnsFalse()
 	{
-		// Arrange (no secret store setup needed — validation fails before any IO)
+		// Arrange (no DB interaction expected — validation fails before any IO)
 
 		// Act
 		var result = await _accountService.SetDefaultAccountAsync("bad,name");
 
 		// Assert
 		result.Should().BeFalse();
-		_mockSecretStore.Verify(s => s.SetSecretValueAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
 	}
 
 	[Fact]
 	public async Task AddAccountAsync_WithNewAccount_ReturnsTrue()
 	{
-		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync((string?)null);
+		// Arrange (empty database)
 
 		// Act
 		var result = await _accountService.AddAccountAsync("myaccount", "user@example.com");
@@ -127,58 +142,59 @@ public class AccountServiceTests
 	public async Task AddAccountAsync_WithDuplicateAccountName_ReturnsFalse()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("myaccount");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "myaccount", Email = "user@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
-		var result = await _accountService.AddAccountAsync("myaccount", "user@example.com");
+		var result = await _accountService.AddAccountAsync("myaccount", "other@example.com");
 
 		// Assert
 		result.Should().BeFalse();
 	}
 
 	[Fact]
-	public async Task AddAccountAsync_WithNewAccount_StoresEmailSecret()
+	public async Task AddAccountAsync_WithNewAccount_StoresEmailInDatabase()
 	{
-		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync((string?)null);
+		// Arrange (empty database)
 
 		// Act
 		await _accountService.AddAccountAsync("newaccount", "new@example.com");
 
 		// Assert
-		_mockSecretStore.Verify(
-			s => s.SetSecretValueAsync("account-newaccount-email", "new@example.com", It.IsAny<CancellationToken>()),
-			Times.Once);
+		using var context = _dbContextFactory.CreateDbContext();
+		var storedAccount = await context.Accounts.SingleOrDefaultAsync(a => a.Name == "newaccount");
+		storedAccount.Should().NotBeNull();
+		storedAccount!.Email.Should().Be("new@example.com");
 	}
 
 	[Fact]
-	public async Task AddAccountAsync_WithExistingAccounts_UpdatesAccountNamesList()
+	public async Task AddAccountAsync_WithExistingAccounts_AddsNewAccountAlongside()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("existing");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "existing", Email = "existing@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		await _accountService.AddAccountAsync("newaccount", "new@example.com");
 
 		// Assert
-		_mockSecretStore.Verify(
-			s => s.SetSecretValueAsync("account-names", It.Is<string>(v => v.Contains("existing") && v.Contains("newaccount")), It.IsAny<CancellationToken>()),
-			Times.Once);
+		using var verifyContext = _dbContextFactory.CreateDbContext();
+		var allAccounts = await verifyContext.Accounts.ToListAsync();
+		allAccounts.Should().HaveCount(2);
+		allAccounts.Should().Contain(a => a.Name == "existing");
+		allAccounts.Should().Contain(a => a.Name == "newaccount");
 	}
 
 	[Fact]
-	public async Task ListAccountsAsync_WithNoAccountsSecret_ReturnsEmptyList()
+	public async Task ListAccountsAsync_WithNoAccounts_ReturnsEmptyList()
 	{
-		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync((string?)null);
+		// Arrange (empty database)
 
 		// Act
 		var accounts = await _accountService.ListAccountsAsync();
@@ -191,15 +207,12 @@ public class AccountServiceTests
 	public async Task ListAccountsAsync_WithStoredAccounts_ReturnsAllAccounts()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("alice,bob");
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-alice-email", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("alice@example.com");
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-bob-email", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("bob@example.com");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "alice", Email = "alice@example.com" });
+			context.Accounts.Add(new AccountEntity { Name = "bob", Email = "bob@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		var accounts = await _accountService.ListAccountsAsync();
@@ -211,27 +224,32 @@ public class AccountServiceTests
 	}
 
 	[Fact]
-	public async Task ListAccountsAsync_WithEmptyAccountNames_ReturnsEmptyList()
+	public async Task ListAccountsAsync_WithSingleAccount_ReturnsSingleAccount()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync(string.Empty);
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "alice", Email = "alice@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		var accounts = await _accountService.ListAccountsAsync();
 
 		// Assert
-		accounts.Should().BeEmpty();
+		accounts.Should().HaveCount(1);
+		accounts[0].Name.Should().Be("alice");
 	}
 
 	[Fact]
 	public async Task DeleteAccountAsync_WithExistingAccount_ReturnsTrue()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("myaccount");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "myaccount", Email = "user@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		var result = await _accountService.DeleteAccountAsync("myaccount");
@@ -244,9 +262,11 @@ public class AccountServiceTests
 	public async Task DeleteAccountAsync_WithNonExistentAccount_ReturnsFalse()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("otheraccount");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "otheraccount", Email = "other@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		var result = await _accountService.DeleteAccountAsync("nonexistent");
@@ -256,46 +276,56 @@ public class AccountServiceTests
 	}
 
 	[Fact]
-	public async Task DeleteAccountAsync_WithExistingAccount_DeletesEmailSecret()
+	public async Task DeleteAccountAsync_WithExistingAccount_RemovesFromDatabase()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("alice,bob");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "alice", Email = "alice@example.com" });
+			context.Accounts.Add(new AccountEntity { Name = "bob", Email = "bob@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		await _accountService.DeleteAccountAsync("alice");
 
 		// Assert
-		_mockSecretStore.Verify(
-			s => s.DeleteSecretAsync("account-alice-email", It.IsAny<CancellationToken>()),
-			Times.Once);
+		using var verifyContext = _dbContextFactory.CreateDbContext();
+		var allAccounts = await verifyContext.Accounts.ToListAsync();
+		allAccounts.Should().HaveCount(1);
+		allAccounts.Should().NotContain(a => a.Name == "alice");
+		allAccounts.Should().Contain(a => a.Name == "bob");
 	}
 
 	[Fact]
-	public async Task DeleteAccountAsync_WithExistingAccount_RemovesFromNamesList()
+	public async Task DeleteAccountAsync_WithExistingAccount_LeavesOtherAccountsIntact()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("alice,bob");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "alice", Email = "alice@example.com" });
+			context.Accounts.Add(new AccountEntity { Name = "bob", Email = "bob@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		await _accountService.DeleteAccountAsync("alice");
 
 		// Assert
-		_mockSecretStore.Verify(
-			s => s.SetSecretValueAsync("account-names", It.Is<string>(v => !v.Contains("alice") && v.Contains("bob")), It.IsAny<CancellationToken>()),
-			Times.Once);
+		using var verifyContext = _dbContextFactory.CreateDbContext();
+		var remainingAccount = await verifyContext.Accounts.SingleOrDefaultAsync(a => a.Name == "bob");
+		remainingAccount.Should().NotBeNull();
 	}
 
 	[Fact]
 	public async Task SetDefaultAccountAsync_WithExistingAccount_ReturnsTrue()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("myaccount");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "myaccount", Email = "user@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		var result = await _accountService.SetDefaultAccountAsync("myaccount");
@@ -308,9 +338,11 @@ public class AccountServiceTests
 	public async Task SetDefaultAccountAsync_WithNonExistentAccount_ReturnsFalse()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("otheraccount");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "otheraccount", Email = "other@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		var result = await _accountService.SetDefaultAccountAsync("nonexistent");
@@ -320,20 +352,56 @@ public class AccountServiceTests
 	}
 
 	[Fact]
-	public async Task SetDefaultAccountAsync_WithExistingAccount_StoresDefaultAccountSecret()
+	public async Task SetDefaultAccountAsync_WithExistingAccount_SetsIsDefaultTrue()
 	{
 		// Arrange
-		_mockSecretStore
-			.Setup(s => s.GetSecretValueAsync("account-names", It.IsAny<CancellationToken>()))
-			.ReturnsAsync("myaccount");
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "myaccount", Email = "user@example.com" });
+			await context.SaveChangesAsync();
+		}
 
 		// Act
 		await _accountService.SetDefaultAccountAsync("myaccount");
 
 		// Assert
-		_mockSecretStore.Verify(
-			s => s.SetSecretValueAsync("default-account", "myaccount", It.IsAny<CancellationToken>()),
-			Times.Once);
+		using var verifyContext = _dbContextFactory.CreateDbContext();
+		var account = await verifyContext.Accounts.SingleOrDefaultAsync(a => a.Name == "myaccount");
+		account.Should().NotBeNull();
+		account!.IsDefault.Should().BeTrue();
+	}
+
+	[Fact]
+	public async Task SetDefaultAccountAsync_WhenAnotherAccountIsDefault_ClearsOldDefault()
+	{
+		// Arrange
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "alice", Email = "alice@example.com", IsDefault = true });
+			context.Accounts.Add(new AccountEntity { Name = "bob", Email = "bob@example.com" });
+			await context.SaveChangesAsync();
+		}
+
+		// Act
+		await _accountService.SetDefaultAccountAsync("bob");
+
+		// Assert — alice should no longer be default, bob should be
+		using var verifyContext = _dbContextFactory.CreateDbContext();
+		var alice = await verifyContext.Accounts.SingleOrDefaultAsync(a => a.Name == "alice");
+		var bob = await verifyContext.Accounts.SingleOrDefaultAsync(a => a.Name == "bob");
+		alice!.IsDefault.Should().BeFalse();
+		bob!.IsDefault.Should().BeTrue();
+	}
+
+	/// <summary>
+	/// A simple <see cref="IDbContextFactory{TContext}"/> implementation for testing.
+	/// </summary>
+	private sealed class TestDbContextFactory(DbContextOptions<ApplicationDbContext> options)
+		: IDbContextFactory<ApplicationDbContext>
+	{
+		/// <inheritdoc />
+		public ApplicationDbContext CreateDbContext() => new(options);
 	}
 }
+
 

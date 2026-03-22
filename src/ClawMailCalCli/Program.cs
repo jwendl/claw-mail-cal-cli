@@ -1,7 +1,9 @@
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
 using ClawMailCalCli.Commands.Account;
+using ClawMailCalCli.Data;
 using ClawMailCalCli.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Spectre.Console;
@@ -41,9 +43,30 @@ catch (Exception exception) when (exception is InvalidOperationException or Syst
 	keyVaultUriToUse = keyVaultUriParsed;
 }
 
+// SQLite database for account data (names, emails, default selection).
+// Key Vault is reserved for secrets such as OAuth tokens.
+var dbDirectory = Path.Combine(
+	Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+	".claw-mail-cal-cli");
+Directory.CreateDirectory(dbDirectory);
+var dbPath = Path.Combine(dbDirectory, "accounts.db");
+
+services.AddDbContextFactory<ApplicationDbContext>(options =>
+	options.UseSqlite($"Data Source={dbPath}"));
+
+// Key Vault client for future OAuth token storage.
 services.AddSingleton(_ => new SecretClient(keyVaultUriToUse, new Azure.Identity.DefaultAzureCredential()));
 services.AddSingleton<ISecretStore, KeyVaultSecretStore>();
-services.AddScoped<IAccountService, AccountService>();
+services.AddTransient<IAccountService, AccountService>();
+
+// Ensure the SQLite schema is up to date before running any commands.
+// Use direct DbContext instantiation to avoid building a second service provider.
+await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+	.UseSqlite($"Data Source={dbPath}")
+	.Options))
+{
+	await startupContext.Database.EnsureCreatedAsync();
+}
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp<DefaultCommand>(registrar);

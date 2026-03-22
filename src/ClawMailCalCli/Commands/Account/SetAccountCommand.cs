@@ -1,3 +1,4 @@
+using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Services;
 
 namespace ClawMailCalCli.Commands.Account;
@@ -6,23 +7,10 @@ namespace ClawMailCalCli.Commands.Account;
 /// Sets the default account.
 /// </summary>
 internal sealed class SetAccountCommand(IAccountService accountService)
-	: AsyncCommand<SetAccountCommand.Settings>
+	: AsyncCommand<SetAccountSettings>
 {
-	/// <summary>
-	/// Settings for the <see cref="SetAccountCommand"/>.
-	/// </summary>
-	internal sealed class Settings
-		: CommandSettings
-	{
-		/// <summary>
-		/// The name of the account to set as default.
-		/// </summary>
-		[CommandArgument(0, "<name>")]
-		public required string Name { get; init; }
-	}
-
 	/// <inheritdoc />
-	public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+	public override async Task<int> ExecuteAsync(CommandContext context, SetAccountSettings settings, CancellationToken cancellationToken)
 	{
 		var set = await accountService.SetDefaultAccountAsync(settings.Name, cancellationToken);
 		if (!set)

@@ -1,16 +1,16 @@
+using ClawMailCalCli.Data;
 using ClawMailCalCli.Models;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Services;
 
 /// <summary>
-/// Manages email/calendar accounts using a secret store as backing storage.
+/// Manages email/calendar accounts using a local SQLite database as backing storage.
 /// </summary>
-public class AccountService(ISecretStore secretStore, ILogger<AccountService> logger)
+public class AccountService(IDbContextFactory<ApplicationDbContext> dbContextFactory, ILogger<AccountService> logger)
 	: IAccountService
 {
-	private const string AccountNamesSecret = "account-names";
-
 	/// <inheritdoc />
 	public async Task<bool> AddAccountAsync(string name, string email, CancellationToken cancellationToken = default)
 	{
@@ -24,8 +24,10 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 			return false;
 		}
 
-		var existingNames = await GetAccountNamesAsync(cancellationToken);
-		if (existingNames.Contains(normalizedName, StringComparer.OrdinalIgnoreCase))
+		await using var context = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+		var exists = await context.Accounts.AnyAsync(a => a.Name == normalizedName, cancellationToken);
+		if (exists)
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
@@ -35,10 +37,8 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 			return false;
 		}
 
-		await secretStore.SetSecretValueAsync($"account-{normalizedName}-email", email, cancellationToken);
-
-		var updatedNames = existingNames.Append(normalizedName).ToList();
-		await secretStore.SetSecretValueAsync(AccountNamesSecret, string.Join(",", updatedNames), cancellationToken);
+		context.Accounts.Add(new AccountEntity { Name = normalizedName, Email = email });
+		await context.SaveChangesAsync(cancellationToken);
 
 		if (logger.IsEnabled(LogLevel.Information))
 		{
@@ -51,26 +51,13 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 	/// <inheritdoc />
 	public async Task<IReadOnlyList<Account>> ListAccountsAsync(CancellationToken cancellationToken = default)
 	{
-		var names = await GetAccountNamesAsync(cancellationToken);
-		var accounts = new List<Account>();
+		await using var context = await dbContextFactory.CreateDbContextAsync(cancellationToken);
 
-		foreach (var name in names)
-		{
-			var email = await secretStore.GetSecretValueAsync($"account-{name}-email", cancellationToken);
-			if (!string.IsNullOrWhiteSpace(email))
-			{
-				accounts.Add(new Account(name, email));
-			}
-			else
-			{
-				if (logger.IsEnabled(LogLevel.Warning))
-				{
-					logger.LogWarning("Could not retrieve email for account '{Name}'.", name);
-				}
-			}
-		}
+		var entities = await context.Accounts
+			.OrderBy(a => a.Name)
+			.ToListAsync(cancellationToken);
 
-		return accounts;
+		return entities.Select(e => new Account(e.Name, e.Email)).ToList();
 	}
 
 	/// <inheritdoc />
@@ -86,8 +73,10 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 			return false;
 		}
 
-		var existingNames = await GetAccountNamesAsync(cancellationToken);
-		if (!existingNames.Contains(normalizedName, StringComparer.OrdinalIgnoreCase))
+		await using var context = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+		var entity = await context.Accounts.FirstOrDefaultAsync(a => a.Name == normalizedName, cancellationToken);
+		if (entity is null)
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
@@ -97,13 +86,8 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 			return false;
 		}
 
-		await secretStore.DeleteSecretAsync($"account-{normalizedName}-email", cancellationToken);
-
-		var updatedNames = existingNames
-			.Where(n => !string.Equals(n, normalizedName, StringComparison.OrdinalIgnoreCase))
-			.ToList();
-
-		await secretStore.SetSecretValueAsync(AccountNamesSecret, string.Join(",", updatedNames), cancellationToken);
+		context.Accounts.Remove(entity);
+		await context.SaveChangesAsync(cancellationToken);
 
 		if (logger.IsEnabled(LogLevel.Information))
 		{
@@ -126,8 +110,10 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 			return false;
 		}
 
-		var existingNames = await GetAccountNamesAsync(cancellationToken);
-		if (!existingNames.Contains(normalizedName, StringComparer.OrdinalIgnoreCase))
+		await using var context = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+		var entity = await context.Accounts.FirstOrDefaultAsync(a => a.Name == normalizedName, cancellationToken);
+		if (entity is null)
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
@@ -137,7 +123,17 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 			return false;
 		}
 
-		await secretStore.SetSecretValueAsync("default-account", normalizedName, cancellationToken);
+		var existingDefaults = await context.Accounts
+			.Where(a => a.IsDefault)
+			.ToListAsync(cancellationToken);
+
+		foreach (var defaultAccount in existingDefaults)
+		{
+			defaultAccount.IsDefault = false;
+		}
+
+		entity.IsDefault = true;
+		await context.SaveChangesAsync(cancellationToken);
 
 		if (logger.IsEnabled(LogLevel.Information))
 		{
@@ -145,17 +141,6 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 		}
 
 		return true;
-	}
-
-	private async Task<IReadOnlyList<string>> GetAccountNamesAsync(CancellationToken cancellationToken)
-	{
-		var value = await secretStore.GetSecretValueAsync(AccountNamesSecret, cancellationToken);
-		if (string.IsNullOrWhiteSpace(value))
-		{
-			return [];
-		}
-
-		return value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 	}
 
 	private static bool TryNormalizeName(string name, out string normalizedName)
@@ -171,3 +156,4 @@ public class AccountService(ISecretStore secretStore, ILogger<AccountService> lo
 		return true;
 	}
 }
+
