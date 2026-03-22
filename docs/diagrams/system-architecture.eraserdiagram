@@ -1,0 +1,25 @@
+cloud-architecture-diagram
+
+title claw-mail-cal-cli System Architecture
+
+User [icon: user, color: blue]
+
+CLI Tool [icon: terminal, color: green] {
+  Commands [icon: code]
+  Auth Manager [icon: lock]
+  Graph Client [icon: api]
+}
+
+Azure [icon: azure] {
+  Entra ID [icon: azure-active-directory, color: blue]
+  Microsoft Graph API [icon: azure-api-management, color: green]
+  Azure Key Vault [icon: azure-key-vault, color: orange]
+}
+
+User > CLI Tool: Run command (email, calendar, account)
+CLI Tool > Entra ID: Device code flow authentication
+Entra ID --> CLI Tool: Access token + refresh token
+CLI Tool > Azure Key Vault: Store and retrieve tokens
+CLI Tool > Microsoft Graph API: Call API (mail, calendar, people)
+Microsoft Graph API --> CLI Tool: Response data
+CLI Tool > User: Display formatted results

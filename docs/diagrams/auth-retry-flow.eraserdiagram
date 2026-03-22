@@ -1,0 +1,31 @@
+flow-chart
+
+title 401 Unauthorized Auto-Login Retry Flow
+direction down
+
+Start [shape: oval, icon: play]
+Execute Command [icon: terminal]
+Call Graph API [icon: azure-api-management]
+Check Response [shape: diamond]
+Is 401 Error [shape: diamond, icon: help-circle]
+Check Retry Count [shape: diamond, icon: help-circle]
+Trigger Device Code Login [icon: lock, color: blue]
+Login Succeeded [shape: diamond, icon: help-circle]
+Display Result [icon: check, color: green]
+Display Error [icon: alert-triangle, color: red]
+End [shape: oval, icon: stop-circle]
+
+Start > Execute Command
+Execute Command > Call Graph API
+Call Graph API > Check Response
+Check Response > Display Result: Success (2xx)
+Display Result > End
+Check Response > Is 401 Error: Error
+Is 401 Error > Check Retry Count: Yes (401 Unauthorized)
+Is 401 Error > Display Error: No (other error)
+Check Retry Count > Trigger Device Code Login: Retries < 3
+Check Retry Count > Display Error: Retries >= 3
+Trigger Device Code Login > Login Succeeded
+Login Succeeded > Call Graph API: Yes
+Login Succeeded > Display Error: No (login failed)
+Display Error > End
