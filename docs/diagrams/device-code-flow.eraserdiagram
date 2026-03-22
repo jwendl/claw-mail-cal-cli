@@ -1,0 +1,26 @@
+sequence-diagram
+
+title Device Code Flow Login Process
+
+User [icon: user, color: blue]
+CLI [icon: terminal, color: green]
+Entra ID [icon: azure-active-directory, color: blue]
+Azure Key Vault [icon: azure-key-vault, color: orange]
+
+User > CLI: claw-mail-cal-cli login <account-name>
+CLI > Entra ID: POST /oauth2/v2.0/devicecode (ClientId, Scopes)
+Entra ID --> CLI: device_code, user_code, verification_uri
+CLI > User: Display verification URL and user code
+User > Entra ID: Navigate to URL and enter user code
+Entra ID > Entra ID: Validate device code and user consent
+
+loop [label: Poll until token received, color: blue] {
+  CLI > Entra ID: POST /oauth2/v2.0/token (device_code, polling)
+  Entra ID --> CLI: authorization_pending or token response
+}
+
+Entra ID --> CLI: access_token, refresh_token, id_token
+CLI > Azure Key Vault: Set secret "{account}_access_token"
+CLI > Azure Key Vault: Set secret "{account}_refresh_token"
+Azure Key Vault --> CLI: Secrets stored successfully
+CLI > User: Login successful

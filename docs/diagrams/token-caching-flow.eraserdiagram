@@ -1,0 +1,34 @@
+sequence-diagram
+
+title Token Caching and Retrieval Flow with Azure Key Vault
+
+CLI [icon: terminal, color: green]
+Auth Manager [icon: lock, color: orange]
+Azure Key Vault [icon: azure-key-vault, color: orange]
+Entra ID [icon: azure-active-directory, color: blue]
+
+CLI > Auth Manager: GetAccessTokenAsync(accountName)
+Auth Manager > Azure Key Vault: GetSecretAsync("{account}_access_token")
+
+alt [label: Valid cached token exists, color: green] {
+  Azure Key Vault --> Auth Manager: Return access token
+  Auth Manager --> CLI: Return access token
+}
+
+alt [label: Access token expired - refresh available, color: yellow] {
+  Azure Key Vault --> Auth Manager: Token expired
+  Auth Manager > Azure Key Vault: GetSecretAsync("{account}_refresh_token")
+  Azure Key Vault --> Auth Manager: Return refresh token
+  Auth Manager > Entra ID: POST /oauth2/v2.0/token (refresh_token grant)
+  Entra ID --> Auth Manager: New access_token + refresh_token
+  Auth Manager > Azure Key Vault: SetSecretAsync("{account}_access_token", newToken)
+  Auth Manager > Azure Key Vault: SetSecretAsync("{account}_refresh_token", newToken)
+  Azure Key Vault --> Auth Manager: Secrets updated
+  Auth Manager --> CLI: Return new access token
+}
+
+alt [label: No cached token - login required, color: red] {
+  Azure Key Vault --> Auth Manager: Secret not found
+  Auth Manager --> CLI: LoginRequiredException
+  CLI > CLI: Trigger device code flow login
+}

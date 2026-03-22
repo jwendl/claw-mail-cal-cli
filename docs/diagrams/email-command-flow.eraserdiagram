@@ -1,0 +1,21 @@
+sequence-diagram
+
+title Email List Command Execution Flow
+
+User [icon: user, color: blue]
+CLI [icon: terminal, color: green]
+Auth Manager [icon: lock, color: orange]
+Azure Key Vault [icon: azure-key-vault, color: orange]
+Graph Client [icon: api, color: purple]
+Microsoft Graph API [icon: azure-api-management, color: blue]
+
+User > CLI: claw-mail-cal-cli email list
+CLI > Auth Manager: GetAccessTokenAsync(currentAccount)
+Auth Manager > Azure Key Vault: GetSecretAsync("{account}_access_token")
+Azure Key Vault --> Auth Manager: Cached access token
+Auth Manager --> CLI: Access token
+CLI > Graph Client: BuildGraphServiceClient(accessToken)
+Graph Client > Microsoft Graph API: GET /me/messages?$top=50&$orderby=receivedDateTime desc
+Microsoft Graph API --> Graph Client: Message collection JSON
+Graph Client --> CLI: Parsed Message list
+CLI > User: Render formatted table (Spectre.Console)
