@@ -22,13 +22,13 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore src/ClawMailCalCli/ClawMailCalCli.csproj
+        run: dotnet restore claw-mail-cal-cli.slnx
 
       - name: Build
-        run: dotnet build src/ClawMailCalCli/ClawMailCalCli.csproj --configuration Release --no-restore
+        run: dotnet build claw-mail-cal-cli.slnx --configuration Release --no-restore
 
       - name: Run tests
-        run: dotnet test tests/ --configuration Release --no-build --verbosity normal
+        run: dotnet test tests/ClawMailCalCli.Tests/ClawMailCalCli.Tests.csproj --configuration Release --no-build --verbosity normal
 
       - name: Check formatting
         run: dotnet format src/ --verify-no-changes
