@@ -215,7 +215,7 @@ See [`docs/architecture/requirements.md`](docs/architecture/requirements.md) for
 
 ## Contributing
 
-Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to contribute, including branch naming conventions, coding standards, and the pull request process.
+Contributions are welcome! Contribution guidelines specific to this repository are being documented; in the meantime, please open an issue to discuss substantial changes before submitting a pull request.
 
 ## License
 
