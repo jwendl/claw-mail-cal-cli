@@ -1,5 +1,7 @@
 # claw-mail-cal-cli
 
+[![CI](https://github.com/jwendl/claw-mail-cal-cli/actions/workflows/ci.yaml/badge.svg)](https://github.com/jwendl/claw-mail-cal-cli/actions/workflows/ci.yaml)
+
 An experimental command-line interface intended to provide access to email, people, and calendar items via Microsoft Graph. Designed for use by [OpenClaw](https://github.com/openclaw/openclaw) to provide mail and calendar capabilities without the complexity of MCP server authentication.
 
 Planned authentication will use Entra ID's **device code flow**, with OAuth tokens stored securely in **Azure Key Vault** for subsequent reuse. These capabilities are under active development; see the [project roadmap](docs/roadmap.md) for current status.
