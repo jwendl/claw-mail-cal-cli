@@ -31,7 +31,7 @@ jobs:
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
           -o ./publish/win-x64
 
-      - name: Publish Ubuntu x64
+      - name: Publish Linux x64
         run: >
           dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj --no-restore
           -c Release -r linux-x64 --self-contained true
