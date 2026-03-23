@@ -18,7 +18,11 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 		"https://graph.microsoft.com/Mail.Read",
 	];
 
-	private static string AuthRecordSecretName(string accountName) => $"auth-record-{accountName}";
+	private static string AuthRecordSecretName(string accountName)
+	{
+		KeyVaultNameValidator.EnsureValid(accountName);
+		return $"auth-record-{accountName}";
+	}
 
 	/// <inheritdoc />
 	public async Task<GraphServiceClient> GetClientAsync(string accountName, CancellationToken cancellationToken = default)
