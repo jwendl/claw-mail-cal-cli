@@ -2,6 +2,7 @@ using ClawMailCalCli.Models;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Services;
 
@@ -34,12 +35,24 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 				logger.LogDebug("Fetching email by ID for account '{AccountName}'.", accountName);
 			}
 
-			var message = await graphClient.Me.Messages[subjectOrId].GetAsync(config =>
+			try
 			{
-				config.QueryParameters.Select = MessageSelect;
-			}, cancellationToken);
+				var message = await graphClient.Me.Messages[subjectOrId].GetAsync(config =>
+				{
+					config.QueryParameters.Select = MessageSelect;
+				}, cancellationToken);
 
-			return message is null ? null : MapToEmailMessage(message);
+				return message is null ? null : MapToEmailMessage(message);
+			}
+			catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
+			{
+				if (logger.IsEnabled(LogLevel.Debug))
+				{
+					logger.LogDebug("Message with ID '{MessageId}' not found for account '{AccountName}'.", subjectOrId, accountName);
+				}
+
+				return null;
+			}
 		}
 		else
 		{

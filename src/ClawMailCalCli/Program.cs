@@ -98,7 +98,7 @@ app.Configure(config =>
 	{
 		email.AddCommand<ReadEmailCommand>("read")
 		.WithDescription("Read an email by subject or message ID.")
-		.WithExample("email read my-account", "Meeting notes");
+		.WithExample("email", "read", "my-account", "Meeting notes");
 	});
 });
 
