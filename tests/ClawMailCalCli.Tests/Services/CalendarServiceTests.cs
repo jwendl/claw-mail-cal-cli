@@ -3,6 +3,7 @@ using ClawMailCalCli.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Tests.Services;
 
@@ -591,6 +592,115 @@ public class CalendarServiceTests
 		result.Should().HaveCount(1);
 		result![0].Start.Offset.Should().Be(TimeSpan.Zero);
 		result[0].Start.Hour.Should().Be(9);
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenGraphReturnsEvent_ReturnsEventId()
+	{
+		// Arrange
+		var createdEvent = new Event { Id = "new-event-id-12345", Subject = "Team Meeting" };
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(createdEvent);
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+
+		// Assert
+		result.Should().Be("new-event-id-12345");
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenGraphReturnsNull_ReturnsNull()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync((Event?)null);
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenInvalidOperationExceptionThrown_ReturnsNull()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("No default account configured."));
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenODataErrorThrown_ReturnsNull()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new ODataError { ResponseStatusCode = 400 });
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_CallsExecuteWithRetryAsyncOnce()
+	{
+		// Arrange
+		var createdEvent = new Event { Id = "event-abc" };
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(createdEvent);
+
+		// Act
+		await _calendarService.CreateEventAsync("Budget Review", "2026-04-01T10:00:00", "2026-04-01T11:00:00", "Q2 budget sync");
+
+		// Assert
+		_mockGraphClientService.Verify(
+			graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenEventHasNullId_ReturnsNull()
+	{
+		// Arrange
+		var createdEvent = new Event { Id = null, Subject = "Team Meeting" };
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(createdEvent);
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
 	}
 
 	private static CalendarEvent CreateTestCalendarEvent(string id, string subject) =>

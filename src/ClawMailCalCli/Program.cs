@@ -101,6 +101,9 @@ app.Configure(config =>
 		calendar.AddCommand<ListCalendarCommand>("list")
 			.WithDescription("List the next 20 upcoming calendar events.")
 			.WithExample("calendar list");
+		calendar.AddCommand<CreateCalendarCommand>("create")
+			.WithDescription("Create a new calendar event.")
+			.WithExample("calendar create \"Team Meeting\" \"2026-03-25T09:00:00\" \"2026-03-25T09:30:00\" \"Weekly team sync\"");
 	});
 
 	config.AddCommand<LoginCommand>("login")
