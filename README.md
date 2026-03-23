@@ -101,7 +101,7 @@ The CLI reads startup settings from `~/.claw-mail-cal-cli/config.json`. Create t
 | Field | Required | Description |
 |-------|----------|-------------|
 | `keyVaultUri` | **Yes** | The HTTPS URI of your Azure Key Vault (e.g. `https://my-vault.vault.azure.net/`). |
-| `defaultAccount` | No | The name of the account used when `--account` is not specified. |
+| `defaultAccount` | No | Account name used by the `calendar read` command when its `--account` option is not specified. Other commands use the default account set via `account set`. |
 
 ### Azure Key Vault Setup
 
