@@ -36,4 +36,8 @@ public interface IAccountService
 	/// Sets the default account by name. Returns false if the account does not exist.
 	/// </summary>
 	Task<bool> SetDefaultAccountAsync(string name, CancellationToken cancellationToken = default);
+
+	/// <summary>Returns the account that is currently set as the default, or <see langword="null"/> if no default account is set.</summary>
+	/// <param name="cancellationToken">Cancellation token.</param>
+	Task<Account?> GetDefaultAccountAsync(CancellationToken cancellationToken = default);
 }
