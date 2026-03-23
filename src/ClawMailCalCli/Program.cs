@@ -97,6 +97,10 @@ app.Configure(config =>
 
 	config.AddBranch("email", email =>
 	{
+		email.AddCommand<ListEmailCommand>("list")
+		.WithDescription("List the 20 most recent messages from the inbox or a named folder.")
+		.WithExample("email list")
+		.WithExample("email list", "sentitems");
 		email.AddCommand<ReadEmailCommand>("read")
 		.WithDescription("Read an email by subject or message ID.")
 		.WithExample("email", "read", "my-account", "Meeting notes");
