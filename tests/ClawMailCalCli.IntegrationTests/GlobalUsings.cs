@@ -1,0 +1,11 @@
+global using ClawMailCalCli.Data;
+global using ClawMailCalCli.IntegrationTests.Fakes;
+global using ClawMailCalCli.IntegrationTests.TestHelpers;
+global using ClawMailCalCli.Models;
+global using ClawMailCalCli.Services;
+global using FluentAssertions;
+global using Microsoft.EntityFrameworkCore;
+global using Microsoft.Extensions.Logging.Abstractions;
+global using Moq;
+global using Xunit;
+global using CalendarEvent = ClawMailCalCli.Models.CalendarEvent;
