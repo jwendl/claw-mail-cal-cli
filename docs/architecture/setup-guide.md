@@ -176,6 +176,9 @@ Create `~/.claw-mail-cal-cli/config.json` with the following content, replacing 
 
 ## Step 7 — Configure `appsettings.json`
 
+> **Why is this step needed when using Azure CLI?**  
+> Azure CLI handles the *credential* — it proves who you are to Azure. The app still needs to know *where* to connect (the Key Vault URI) and *which Entra app* to use for Microsoft Graph access (tenant ID and client ID). These values are not derived from Azure CLI login state; they must be explicitly configured.
+
 Open `src/ClawMailCalCli/appsettings.json` and update the `entra` and `keyVault` sections with your Entra app registration details:
 
 ```json
@@ -202,18 +205,54 @@ export keyVault__vaultUri="https://<your-unique-vault-name>.vault.azure.net/"
 
 ---
 
-## Step 8 — Build and Run the Doctor Check
+## Step 8 — Publish a Portable Executable
 
-Build the project to confirm everything compiles:
+Instead of using `dotnet run`, publish a self-contained, portable executable so you can run the tool directly without the .NET SDK present at runtime.
+
+**Linux x64:**
 
 ```bash
-dotnet build src/ClawMailCalCli/ClawMailCalCli.csproj --configuration Release
+dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj \
+  --configuration Release \
+  --runtime linux-x64 \
+  --self-contained true \
+  --output ./publish/linux-x64
 ```
+
+The executable is at `./publish/linux-x64/ClawMailCalCli`. Make it runnable:
+
+```bash
+chmod +x ./publish/linux-x64/ClawMailCalCli
+```
+
+**Windows x64:**
+
+```powershell
+dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj `
+  --configuration Release `
+  --runtime win-x64 `
+  --self-contained true `
+  --output .\publish\win-x64
+```
+
+The executable is at `.\publish\win-x64\ClawMailCalCli.exe`.
+
+---
+
+> **Tip:** Add the published directory to your `PATH` (or create a shell alias) so you can call `ClawMailCalCli` from any directory.
+
+---
 
 Run the `doctor` command to verify your environment:
 
+**Linux:**
 ```bash
-dotnet run --project src/ClawMailCalCli/ClawMailCalCli.csproj -- doctor
+./publish/linux-x64/ClawMailCalCli doctor
+```
+
+**Windows:**
+```powershell
+.\publish\win-x64\ClawMailCalCli.exe doctor
 ```
 
 Expected output when all checks pass:
@@ -236,16 +275,18 @@ If any check fails, the output includes a **Fix** hint explaining the corrective
 
 ## Step 9 — Add an Account and Log In
 
+The examples below use the Linux executable path. Replace `./publish/linux-x64/ClawMailCalCli` with `.\publish\win-x64\ClawMailCalCli.exe` on Windows.
+
 Add a named account (this stores the account name and email in a local SQLite database):
 
 ```bash
-dotnet run --project src/ClawMailCalCli/ClawMailCalCli.csproj -- account add myaccount user@example.com
+./publish/linux-x64/ClawMailCalCli account add myaccount user@example.com
 ```
 
 Authenticate the account using the device code flow:
 
 ```bash
-dotnet run --project src/ClawMailCalCli/ClawMailCalCli.csproj -- login myaccount
+./publish/linux-x64/ClawMailCalCli login myaccount
 ```
 
 Follow the prompt to open the displayed URL in a browser and enter the code.
@@ -253,7 +294,7 @@ Follow the prompt to open the displayed URL in a browser and enter the code.
 Set the account as the default so commands use it automatically:
 
 ```bash
-dotnet run --project src/ClawMailCalCli/ClawMailCalCli.csproj -- account set myaccount
+./publish/linux-x64/ClawMailCalCli account set myaccount
 ```
 
 ---
@@ -283,6 +324,8 @@ dotnet test tests/ClawMailCalCli.Tests/ --configuration Release --filter "Catego
 
 ## Next Steps
 
-- Explore available commands: `claw-mail-cal-cli --help`
-- Read calendar events: `claw-mail-cal-cli calendar list`
-- Send an email: `claw-mail-cal-cli email send user@example.com "Subject" "Body"`
+Once the executable is on your `PATH` (or aliased), use it directly:
+
+- Explore available commands: `ClawMailCalCli --help`
+- Read calendar events: `ClawMailCalCli calendar list`
+- Send an email: `ClawMailCalCli email send user@example.com "Subject" "Body"`
