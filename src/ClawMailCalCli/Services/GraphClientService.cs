@@ -24,7 +24,7 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 		var graphClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
 		if (graphClient is null)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[bold]{defaultAccount.Name}[/]' is not authenticated. Run [bold]login {defaultAccount.Name}[/] first.");
+			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[bold]{Markup.Escape(defaultAccount.Name)}[/]' is not authenticated. Run [bold]login {Markup.Escape(defaultAccount.Name)}[/] first.");
 			throw new InvalidOperationException($"Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
 		}
 
@@ -39,7 +39,7 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 				logger.LogInformation("Received 401 Unauthorized for account '{AccountName}'. Triggering re-authentication.", defaultAccount.Name);
 			}
 
-			AnsiConsole.MarkupLine($"[yellow]Session expired for account '[bold]{defaultAccount.Name}[/]'. Re-authenticating...[/]");
+			AnsiConsole.MarkupLine($"[yellow]Session expired for account '[bold]{Markup.Escape(defaultAccount.Name)}[/]'. Re-authenticating...[/]");
 			await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken);
 
 			var retryClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);

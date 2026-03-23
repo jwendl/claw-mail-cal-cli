@@ -23,7 +23,11 @@ public class GraphServiceClientBuilder(IKeyVaultService keyVaultService, IOption
 		"https://graph.microsoft.com/User.Read",
 	];
 
-	private static string AuthRecordSecretName(string accountName) => $"auth-record-{accountName}";
+	private static string AuthRecordSecretName(string accountName)
+	{
+		KeyVaultNameValidator.EnsureValid(accountName);
+		return $"auth-record-{accountName}";
+	}
 
 	/// <inheritdoc />
 	public async Task<GraphServiceClient?> BuildAsync(Account account, CancellationToken cancellationToken = default)
