@@ -36,7 +36,7 @@ internal sealed class CreateCalendarCommand(ICalendarService calendarService)
 
 		if (eventId is null)
 		{
-			AnsiConsole.MarkupLine($"[red]✗[/] Failed to create event: operation did not return an event ID. Ensure you are authenticated and have a default account set.");
+			AnsiConsole.MarkupLine("[red]✗[/] Failed to create event: the operation did not complete successfully. See any previous error messages for more details.");
 			return 1;
 		}
 
