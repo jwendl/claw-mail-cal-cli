@@ -13,11 +13,23 @@ public class DoctorService(IProcessRunner processRunner, IConfigurationService c
 	/// <inheritdoc />
 	public async Task<IReadOnlyList<DoctorCheckResult>> RunAllChecksAsync(CancellationToken cancellationToken = default)
 	{
-		var results = new List<DoctorCheckResult>
+		var results = new List<DoctorCheckResult>();
+
+		var azureCliInstalledResult = await CheckAzureCliInstalledAsync(cancellationToken);
+		results.Add(azureCliInstalledResult);
+
+		if (azureCliInstalledResult.IsSuccess)
 		{
-			await CheckAzureCliInstalledAsync(cancellationToken),
-			await CheckAzureCliLoggedInAsync(cancellationToken),
-		};
+			results.Add(await CheckAzureCliLoggedInAsync(cancellationToken));
+		}
+		else
+		{
+			results.Add(new DoctorCheckResult(
+				"Azure CLI logged in",
+				false,
+				"Skipped (Azure CLI not installed)",
+				"Install Azure CLI to enable login: https://learn.microsoft.com/en-us/cli/azure/install-azure-cli"));
+		}
 
 		ClawConfiguration? configuration = null;
 		try
