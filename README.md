@@ -124,14 +124,26 @@ The CLI reads startup settings from `~/.claw-mail-cal-cli/config.json`. Create t
 
 ### Entra ID App Registration
 
-The CLI requires a Microsoft Entra ID app registration to perform delegated authentication. Configure the app registration's client ID and tenant IDs either via user secrets (for local development) or environment variables:
+The CLI requires a Microsoft Entra ID app registration to perform delegated authentication. Configure the app registration's client ID and tenant IDs using one of the following approaches.
+
+**Environment variables (any platform):**
 
 ```bash
-# Environment variables
 export keyVault__vaultUri="https://my-keyvault.vault.azure.net/"
 export entra__clientId="<your-app-registration-client-id>"
 export entra__workTenantId="<your-tenant-id>"   # For work/school accounts
 ```
+
+**User secrets (local development with .NET):**
+
+```bash
+cd src/ClawMailCalCli
+dotnet user-secrets set "keyVault:vaultUri" "https://my-keyvault.vault.azure.net/"
+dotnet user-secrets set "entra:clientId" "<your-app-registration-client-id>"
+dotnet user-secrets set "entra:workTenantId" "<your-tenant-id>"
+```
+
+> **Note:** Environment variables and user secrets take precedence over `appsettings.json`. The `~/.claw-mail-cal-cli/config.json` file is read by specific commands (such as `calendar read`) for account-scoped settings like `keyVaultUri` and `defaultAccount`.
 
 The app registration requires the following **delegated** Microsoft Graph permissions:
 
