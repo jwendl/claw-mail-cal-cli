@@ -62,8 +62,40 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 		return new GraphServiceClient(credential, GraphScopes);
 	}
 
+	private static bool IsValidKeyVaultSecretNameComponent(string name)
+	{
+		if (string.IsNullOrWhiteSpace(name))
+		{
+			return false;
+		}
+
+		if (name.Length > 127)
+		{
+			return false;
+		}
+
+		foreach (var character in name)
+		{
+			if (!char.IsLetterOrDigit(character) && character != '-')
+			{
+				return false;
+			}
+		}
+
+		return true;
+	}
+
 	private async Task<AuthenticationRecord?> LoadAuthenticationRecordAsync(string accountName, CancellationToken cancellationToken)
 	{
+		if (!IsValidKeyVaultSecretNameComponent(accountName))
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("Account name '{AccountName}' is not valid for use in a Key Vault secret name.", accountName);
+			}
+
+			return null;
+		}
 		var secretName = $"auth-record-{accountName}";
 		var secretValue = await keyVaultService.GetSecretAsync(secretName, cancellationToken);
 		if (string.IsNullOrWhiteSpace(secretValue))
