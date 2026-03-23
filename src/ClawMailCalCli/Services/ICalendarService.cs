@@ -34,12 +34,12 @@ public interface ICalendarService
 	/// Creates a new calendar event in the default account's primary calendar.
 	/// </summary>
 	/// <param name="title">The subject of the event.</param>
-	/// <param name="startDateTime">The event start date and time in ISO 8601 format (e.g., <c>2026-03-25T09:00:00</c>).</param>
-	/// <param name="endDateTime">The event end date and time in ISO 8601 format (e.g., <c>2026-03-25T09:30:00</c>).</param>
+	/// <param name="startDateTime">The event start date and time as a <see cref="DateTimeOffset"/>, preferably in UTC.</param>
+	/// <param name="endDateTime">The event end date and time as a <see cref="DateTimeOffset"/>, preferably in UTC.</param>
 	/// <param name="content">The plain-text body content of the event.</param>
 	/// <param name="cancellationToken">Cancellation token.</param>
 	/// <returns>
 	/// The Graph event ID of the created event, or <see langword="null"/> if creation failed.
 	/// </returns>
-	Task<string?> CreateEventAsync(string title, string startDateTime, string endDateTime, string content, CancellationToken cancellationToken = default);
+	Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default);
 }
