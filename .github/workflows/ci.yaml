@@ -2,29 +2,36 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up .NET
+      - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '10.x'
+          dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore src/ClawMailCalCli/ClawMailCalCli.csproj
+        run: dotnet restore claw-mail-cal-cli.slnx
 
       - name: Build
-        run: dotnet build src/ClawMailCalCli/ClawMailCalCli.csproj --configuration Release --no-restore
+        run: dotnet build claw-mail-cal-cli.slnx --configuration Release --no-restore
 
-      - name: Test
-        run: dotnet test tests/ --configuration Release --verbosity normal
+      - name: Run tests
+        run: dotnet test tests/ClawMailCalCli.Tests/ClawMailCalCli.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      - name: Check formatting
+        run: dotnet format claw-mail-cal-cli.slnx --verify-no-changes

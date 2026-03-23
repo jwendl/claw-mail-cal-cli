@@ -15,6 +15,7 @@ The project uses Entra ID's **device code flow** to authenticate users with dele
 | Graph Access | Microsoft Graph SDK (C#) |
 | Authentication | Azure Identity (`DeviceCodeCredential`) |
 | Token Storage | Azure Key Vault (via Azure CLI Credential) |
+| Account Data Storage | SQLite via Entity Framework Core 10 |
 | Output Formatting | Spectre.Console |
 | Target Platforms | Windows x64, Ubuntu x64 |
 
@@ -39,6 +40,11 @@ Builds a `GraphServiceClient` using the access token provided by the Auth Manage
 
 ### Azure Key Vault
 Stores OAuth tokens (access token and refresh token) per account. Access to Key Vault uses the **Azure CLI Credential**, which means `az login` must be performed on the machine running the CLI.
+
+> **Note:** Account metadata (name, email address, and default selection) is **not** stored in Key Vault. Only secrets — specifically OAuth tokens — are stored there. Account data lives in a local SQLite database at `~/.claw-mail-cal-cli/accounts.db`.
+
+### Local SQLite Database
+Stores account metadata (normalized name, email address, and which account is currently set as default) in `~/.claw-mail-cal-cli/accounts.db`. Access is managed via Entity Framework Core 10. The database schema is created automatically on first run using `EnsureCreated`.
 
 ### Entra ID
 Provides OAuth 2.0 device code flow authentication with delegated permissions for Microsoft Graph (Mail.ReadWrite, Calendars.ReadWrite, People.Read).
