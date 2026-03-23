@@ -1,10 +1,11 @@
 # claw-mail-cal-cli
 
 [![CI](https://github.com/jwendl/claw-mail-cal-cli/actions/workflows/ci.yaml/badge.svg)](https://github.com/jwendl/claw-mail-cal-cli/actions/workflows/ci.yaml)
+[![License](https://img.shields.io/github/license/jwendl/claw-mail-cal-cli)](LICENSE)
 
-An experimental command-line interface intended to provide access to email, people, and calendar items via Microsoft Graph. Designed for use by [OpenClaw](https://github.com/openclaw/openclaw) to provide mail and calendar capabilities without the complexity of MCP server authentication.
+A command-line interface that provides access to email and calendar items via Microsoft Graph. Designed for use by [OpenClaw](https://github.com/openclaw/openclaw) to provide mail and calendar capabilities without the complexity of MCP server authentication.
 
-Planned authentication will use Entra ID's **device code flow**, with OAuth tokens stored securely in **Azure Key Vault** for subsequent reuse. These capabilities are under active development; see the [project roadmap](docs/roadmap.md) for current status.
+Authentication uses Entra ID's **device code flow**, with OAuth tokens stored securely in **Azure Key Vault** for subsequent reuse.
 
 ## Table of Contents
 
@@ -33,6 +34,19 @@ Planned authentication will use Entra ID's **device code flow**, with OAuth toke
   - `People.Read`
 
 ## Installation
+
+### Download Binary
+
+Pre-built self-contained binaries for Windows and Ubuntu are available on the [GitHub Releases](https://github.com/jwendl/claw-mail-cal-cli/releases) page.
+
+1. Go to the [Releases](https://github.com/jwendl/claw-mail-cal-cli/releases) page and download the archive for your platform:
+   - `claw-mail-cal-cli-win-x64.zip` — Windows x64
+   - `claw-mail-cal-cli-linux-x64.tar.gz` — Ubuntu / Linux x64
+2. Extract the archive and place the binary somewhere on your `PATH` (for example `~/.local/bin` on Linux or `C:\tools` on Windows).
+3. Verify the installation:
+   ```bash
+   claw-mail-cal-cli --version
+   ```
 
 ### Build from Source
 
@@ -71,7 +85,59 @@ dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj \
 
 ## Configuration
 
-The CLI requires access to an Azure Key Vault to store and retrieve OAuth tokens. Configure the Key Vault URL before first use. Access to Key Vault is provided via the **Azure CLI Credential**, so you must run `az login` prior to using the tool.
+The CLI requires access to an Azure Key Vault to store and retrieve OAuth tokens. Access to Key Vault is provided via the **Azure CLI Credential**, so you must run `az login` prior to using any command that requires authentication.
+
+### Configuration File
+
+The CLI reads startup settings from `~/.claw-mail-cal-cli/config.json`. Create this file before running your first command:
+
+```json
+{
+  "keyVaultUri": "https://my-keyvault.vault.azure.net/",
+  "defaultAccount": "myaccount"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `keyVaultUri` | **Yes** | The HTTPS URI of your Azure Key Vault (e.g. `https://my-vault.vault.azure.net/`). |
+| `defaultAccount` | No | The name of the account used when `--account` is not specified. |
+
+### Azure Key Vault Setup
+
+1. Create an Azure Key Vault in the [Azure Portal](https://portal.azure.com) or with the Azure CLI:
+   ```bash
+   az keyvault create --name my-keyvault --resource-group my-rg --location eastus
+   ```
+2. Grant yourself the **Key Vault Secrets Officer** role (or at minimum **Key Vault Secrets User**):
+   ```bash
+   az role assignment create \
+     --role "Key Vault Secrets Officer" \
+     --assignee $(az ad signed-in-user show --query id -o tsv) \
+     --scope $(az keyvault show --name my-keyvault --query id -o tsv)
+   ```
+3. Log in with the Azure CLI:
+   ```bash
+   az login
+   ```
+4. Set the `keyVaultUri` in `~/.claw-mail-cal-cli/config.json` to your vault's URI.
+
+### Entra ID App Registration
+
+The CLI requires a Microsoft Entra ID app registration to perform delegated authentication. Configure the app registration's client ID and tenant IDs either via user secrets (for local development) or environment variables:
+
+```bash
+# Environment variables
+export keyVault__vaultUri="https://my-keyvault.vault.azure.net/"
+export entra__clientId="<your-app-registration-client-id>"
+export entra__workTenantId="<your-tenant-id>"   # For work/school accounts
+```
+
+The app registration requires the following **delegated** Microsoft Graph permissions:
+
+- `Mail.ReadWrite`
+- `Calendars.ReadWrite`
+- `People.Read`
 
 ## Usage
 
@@ -128,7 +194,7 @@ claw-mail-cal-cli email list <folder-name>
 Read a specific email:
 
 ```
-claw-mail-cal-cli email read <subject-name or unique-message-id>
+claw-mail-cal-cli email read <account-name> <subject-or-id>
 ```
 
 Send an email:
@@ -158,6 +224,8 @@ Create a calendar event:
 ```
 claw-mail-cal-cli calendar create <title> <start-date-time> <end-date-time> <content>
 ```
+
+> **Note:** `calendar create` is planned and will be available in a future release.
 
 ## Authentication Flow
 
@@ -217,7 +285,7 @@ See [`docs/architecture/requirements.md`](docs/architecture/requirements.md) for
 
 ## Contributing
 
-Contributions are welcome! Contribution guidelines specific to this repository are being documented; in the meantime, please open an issue to discuss substantial changes before submitting a pull request.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on branching, coding standards, testing requirements, and the pull request process.
 
 ## License
 
