@@ -14,13 +14,13 @@ internal sealed class CreateCalendarCommand(ICalendarService calendarService)
 	/// <inheritdoc />
 	public override async Task<int> ExecuteAsync(CommandContext context, CreateCalendarSettings settings, CancellationToken cancellationToken)
 	{
-		if (!DateTime.TryParse(settings.StartDateTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsedStart))
+		if (!DateTimeOffset.TryParseExact(settings.StartDateTime, ["yyyy-MM-ddTHH:mm:ss", "yyyy-MM-ddTHH:mm:sszzz", "yyyy-MM-ddTHH:mm:ssZ"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedStart))
 		{
 			AnsiConsole.MarkupLine($"[red]✗[/] Failed to create event: invalid start date/time format '{Markup.Escape(settings.StartDateTime)}'. Use ISO 8601 format, e.g. 2026-03-25T09:00:00");
 			return 1;
 		}
 
-		if (!DateTime.TryParse(settings.EndDateTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsedEnd))
+		if (!DateTimeOffset.TryParseExact(settings.EndDateTime, ["yyyy-MM-ddTHH:mm:ss", "yyyy-MM-ddTHH:mm:sszzz", "yyyy-MM-ddTHH:mm:ssZ"], CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedEnd))
 		{
 			AnsiConsole.MarkupLine($"[red]✗[/] Failed to create event: invalid end date/time format '{Markup.Escape(settings.EndDateTime)}'. Use ISO 8601 format, e.g. 2026-03-25T09:30:00");
 			return 1;
@@ -32,7 +32,7 @@ internal sealed class CreateCalendarCommand(ICalendarService calendarService)
 			return 1;
 		}
 
-		var eventId = await calendarService.CreateEventAsync(settings.Title, settings.StartDateTime, settings.EndDateTime, settings.Content, cancellationToken);
+		var eventId = await calendarService.CreateEventAsync(settings.Title, parsedStart, parsedEnd, settings.Content, cancellationToken);
 
 		if (eventId is null)
 		{

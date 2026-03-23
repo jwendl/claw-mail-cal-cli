@@ -606,7 +606,7 @@ public class CalendarServiceTests
 			.ReturnsAsync(createdEvent);
 
 		// Act
-		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
 
 		// Assert
 		result.Should().Be("new-event-id-12345");
@@ -623,7 +623,7 @@ public class CalendarServiceTests
 			.ReturnsAsync((Event?)null);
 
 		// Act
-		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
 
 		// Assert
 		result.Should().BeNull();
@@ -640,7 +640,7 @@ public class CalendarServiceTests
 			.ThrowsAsync(new InvalidOperationException("No default account configured."));
 
 		// Act
-		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
 
 		// Assert
 		result.Should().BeNull();
@@ -657,7 +657,7 @@ public class CalendarServiceTests
 			.ThrowsAsync(new ODataError { ResponseStatusCode = 400 });
 
 		// Act
-		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
 
 		// Assert
 		result.Should().BeNull();
@@ -675,7 +675,7 @@ public class CalendarServiceTests
 			.ReturnsAsync(createdEvent);
 
 		// Act
-		await _calendarService.CreateEventAsync("Budget Review", "2026-04-01T10:00:00", "2026-04-01T11:00:00", "Q2 budget sync");
+		await _calendarService.CreateEventAsync("Budget Review", new DateTimeOffset(2026, 4, 1, 10, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 4, 1, 11, 0, 0, TimeSpan.Zero), "Q2 budget sync");
 
 		// Assert
 		_mockGraphClientService.Verify(
@@ -697,7 +697,7 @@ public class CalendarServiceTests
 			.ReturnsAsync(createdEvent);
 
 		// Act
-		var result = await _calendarService.CreateEventAsync("Team Meeting", "2026-03-25T09:00:00", "2026-03-25T09:30:00", "Weekly team sync");
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
 
 		// Assert
 		result.Should().BeNull();

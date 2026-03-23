@@ -107,15 +107,15 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 	private static bool IsEventId(string query) => query.Length >= EventIdMinimumLength;
 
 	/// <inheritdoc />
-	public async Task<string?> CreateEventAsync(string title, string startDateTime, string endDateTime, string content, CancellationToken cancellationToken = default)
+	public async Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default)
 	{
 		try
 		{
 			var newEvent = new Event
 			{
 				Subject = title,
-				Start = new DateTimeTimeZone { DateTime = startDateTime, TimeZone = "UTC" },
-				End = new DateTimeTimeZone { DateTime = endDateTime, TimeZone = "UTC" },
+				Start = new DateTimeTimeZone { DateTime = startDateTime.UtcDateTime.ToString("o"), TimeZone = "UTC" },
+				End = new DateTimeTimeZone { DateTime = endDateTime.UtcDateTime.ToString("o"), TimeZone = "UTC" },
 				Body = new ItemBody { ContentType = BodyType.Text, Content = content },
 			};
 
