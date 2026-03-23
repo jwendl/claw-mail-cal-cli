@@ -39,9 +39,13 @@ public class ProcessRunner
 
 			return new ProcessResult(process.ExitCode, output, error);
 		}
-		catch (Exception exception) when (exception is not null)
+		catch (OperationCanceledException)
 		{
-			return new ProcessResult(-1, string.Empty, string.Empty);
+			throw;
+		}
+		catch (Exception exception)
+		{
+			return new ProcessResult(-1, string.Empty, exception.Message);
 		}
 	}
 }
