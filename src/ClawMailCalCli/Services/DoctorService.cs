@@ -18,7 +18,7 @@ public class DoctorService(IProcessRunner processRunner, IConfigurationService c
 		var azureCliInstalledResult = await CheckAzureCliInstalledAsync(cancellationToken);
 		results.Add(azureCliInstalledResult);
 
-		if (azureCliInstalledResult.IsSuccess)
+		if (azureCliInstalledResult.Passed)
 		{
 			results.Add(await CheckAzureCliLoggedInAsync(cancellationToken));
 		}
@@ -40,7 +40,11 @@ public class DoctorService(IProcessRunner processRunner, IConfigurationService c
 				true,
 				"~/.claw-mail-cal-cli/config.json"));
 		}
-		catch (Exception exception) when (exception is not null)
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception)
 		{
 			results.Add(new DoctorCheckResult(
 				"Config file found",
@@ -114,7 +118,16 @@ public class DoctorService(IProcessRunner processRunner, IConfigurationService c
 
 	private static DoctorCheckResult CheckDefaultAccount(ClawConfiguration? configuration)
 	{
-		if (!string.IsNullOrWhiteSpace(configuration?.DefaultAccount))
+		if (configuration is null)
+		{
+			return new DoctorCheckResult(
+				"Default account set",
+				false,
+				"Skipped (config file not found or invalid)",
+				"Fix the config file first");
+		}
+
+		if (!string.IsNullOrWhiteSpace(configuration.DefaultAccount))
 		{
 			return new DoctorCheckResult(
 				"Default account set",

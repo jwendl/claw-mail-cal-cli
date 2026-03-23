@@ -83,7 +83,36 @@ az keyvault create \
 
 > **Note:** Key Vault names must be globally unique (3–24 alphanumeric characters and hyphens).
 
-Grant your own identity access to read and write secrets:
+Grant your own identity access to read and write secrets. Azure Key Vault supports two permission models; use the section that matches your vault's configuration:
+
+#### Option A — Azure RBAC (recommended for new vaults)
+
+If your vault uses Azure RBAC (the default for new vaults created in the portal after 2022), assign the **Key Vault Secrets Officer** role. First, look up your principal object ID:
+
+```bash
+az ad signed-in-user show --query id --output tsv
+```
+
+Then assign the role, scoping it to the vault:
+
+```bash
+az role assignment create \
+  --role "Key Vault Secrets Officer" \
+  --assignee "<your-object-id>" \
+  --scope "/subscriptions/<subscription-id>/resourceGroups/<your-resource-group>/providers/Microsoft.KeyVault/vaults/<your-unique-vault-name>"
+```
+
+To verify which permission model your vault uses:
+
+```bash
+az keyvault show --name "<your-unique-vault-name>" --query "properties.enableRbacAuthorization"
+```
+
+`true` means RBAC is enabled; `false` (or absent) means access policies are in use.
+
+#### Option B — Vault access policies
+
+If your vault uses access policies, run:
 
 ```bash
 az keyvault set-policy \

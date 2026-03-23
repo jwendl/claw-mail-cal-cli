@@ -27,7 +27,7 @@ public class DoctorServiceTests
 	}
 
 	[Fact]
-	public async Task RunAllChecksAsync_WhenAllCheckPass_ReturnsAllPassedResults()
+	public async Task RunAllChecksAsync_WhenAllChecksPass_ReturnsAllPassedResults()
 	{
 		// Arrange
 		SetupAzCliInstalled("2.58.0");
@@ -52,7 +52,6 @@ public class DoctorServiceTests
 		_mockProcessRunner
 			.Setup(runner => runner.RunAsync("az", "--version", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(new ProcessResult(-1, string.Empty, string.Empty));
-		SetupAzCliLoggedIn("user@example.com");
 		SetupConfigFileValid("https://my-kv.vault.azure.net/", "work");
 		_mockKeyVaultChecker
 			.Setup(checker => checker.IsReachableAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -65,6 +64,28 @@ public class DoctorServiceTests
 		var azureCliCheck = results.First(result => result.CheckName == "Azure CLI installed");
 		azureCliCheck.Passed.Should().BeFalse();
 		azureCliCheck.FixHint.Should().NotBeNullOrWhiteSpace();
+	}
+
+	[Fact]
+	public async Task RunAllChecksAsync_WhenAzureCliNotInstalled_LoginCheckIsSkipped()
+	{
+		// Arrange
+		_mockProcessRunner
+			.Setup(runner => runner.RunAsync("az", "--version", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(new ProcessResult(-1, string.Empty, string.Empty));
+		SetupConfigFileValid("https://my-kv.vault.azure.net/", "work");
+		_mockKeyVaultChecker
+			.Setup(checker => checker.IsReachableAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		// Act
+		var results = await _doctorService.RunAllChecksAsync();
+
+		// Assert
+		var loginCheck = results.First(result => result.CheckName == "Azure CLI logged in");
+		loginCheck.Passed.Should().BeFalse();
+		loginCheck.Message.Should().Contain("Skipped");
+		_mockProcessRunner.Verify(runner => runner.RunAsync("az", "account show --query user.name --output tsv", It.IsAny<CancellationToken>()), Times.Never);
 	}
 
 	[Fact]
@@ -229,6 +250,25 @@ public class DoctorServiceTests
 		var accountCheck = results.First(result => result.CheckName == "Default account set");
 		accountCheck.Passed.Should().BeTrue();
 		accountCheck.Message.Should().Be("work");
+	}
+
+	[Fact]
+	public async Task RunAllChecksAsync_WhenConfigFileMissing_DefaultAccountCheckIsSkipped()
+	{
+		// Arrange
+		SetupAzCliInstalled("2.58.0");
+		SetupAzCliLoggedIn("user@example.com");
+		_mockConfigurationService
+			.Setup(service => service.ReadConfigurationAsync())
+			.ThrowsAsync(new InvalidOperationException("Configuration file not found."));
+
+		// Act
+		var results = await _doctorService.RunAllChecksAsync();
+
+		// Assert
+		var accountCheck = results.First(result => result.CheckName == "Default account set");
+		accountCheck.Passed.Should().BeFalse();
+		accountCheck.Message.Should().Contain("Skipped");
 	}
 
 	[Fact]
