@@ -16,7 +16,11 @@ namespace ClawMailCalCli.Services;
 public class GraphClientService(IAccountService accountService, IKeyVaultService keyVaultService, IOptions<EntraOptions> entraOptions, ILogger<GraphClientService> logger)
 	: IGraphClientService
 {
-	private static string AuthRecordSecretName(string accountName) => $"auth-record-{accountName}";
+	private static string AuthRecordSecretName(string accountName)
+	{
+		KeyVaultNameValidator.EnsureValid(accountName);
+		return $"auth-record-{accountName}";
+	}
 
 	/// <inheritdoc />
 	public async Task<EventCollectionResponse?> GetCalendarViewAsync(DateTimeOffset startDateTime, DateTimeOffset endDateTime, int top, string[] select, CancellationToken cancellationToken = default)
