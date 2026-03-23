@@ -1,3 +1,4 @@
+using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Services;
 
 namespace ClawMailCalCli.Commands.Email;
@@ -7,22 +8,10 @@ namespace ClawMailCalCli.Commands.Email;
 /// Usage: <c>claw-mail-cal-cli email list [folder-name]</c>
 /// </summary>
 internal sealed class ListEmailCommand(IEmailService emailService)
-	: AsyncCommand<ListEmailCommand.Settings>
+	: AsyncCommand<ListEmailSettings>
 {
-	/// <summary>
-	/// Settings (arguments and options) for the <see cref="ListEmailCommand"/>.
-	/// </summary>
-	internal sealed class Settings : CommandSettings
-	{
-		/// <summary>
-		/// The optional folder name to list messages from. Defaults to the inbox when omitted.
-		/// </summary>
-		[CommandArgument(0, "[folder-name]")]
-		public string? FolderName { get; set; }
-	}
-
 	/// <inheritdoc />
-	public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
+	public override async Task<int> ExecuteAsync(CommandContext context, ListEmailSettings settings, CancellationToken cancellationToken)
 	{
 		var emails = await emailService.GetEmailsAsync(settings.FolderName, cancellationToken);
 
