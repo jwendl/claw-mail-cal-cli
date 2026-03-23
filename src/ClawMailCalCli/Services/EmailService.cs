@@ -38,13 +38,25 @@ public class EmailService(IAccountService accountService, IGraphClientService gr
 
 			return await graphClientService.GetFolderMessagesAsync(defaultAccount.Name, normalizedFolderName!, DefaultMessageCount, cancellationToken);
 		}
-		catch (InvalidOperationException invalidOperationException) when (invalidOperationException.Message.StartsWith("Folder '", StringComparison.Ordinal))
+		catch (InvalidOperationException invalidOperationException)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Folder '[yellow]{Markup.Escape(normalizedFolderName!)}[/]' was not found.");
-
-			if (logger.IsEnabled(LogLevel.Debug))
+			if (string.IsNullOrWhiteSpace(normalizedFolderName))
 			{
-				logger.LogDebug(invalidOperationException, "Folder '{FolderName}' was not found for account '{AccountName}'.", normalizedFolderName, defaultAccount.Name);
+				AnsiConsole.MarkupLine("[red]Error:[/] Unable to retrieve emails from the inbox.");
+
+				if (logger.IsEnabled(LogLevel.Debug))
+				{
+					logger.LogDebug(invalidOperationException, "Unable to retrieve inbox messages for account '{AccountName}'.", defaultAccount.Name);
+				}
+			}
+			else
+			{
+				AnsiConsole.MarkupLine($"[red]Error:[/] Folder '[yellow]{Markup.Escape(normalizedFolderName!)}[/]' was not found.");
+
+				if (logger.IsEnabled(LogLevel.Debug))
+				{
+					logger.LogDebug(invalidOperationException, "Folder '{FolderName}' was not found for account '{AccountName}'.", normalizedFolderName, defaultAccount.Name);
+				}
 			}
 
 			return [];

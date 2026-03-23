@@ -272,6 +272,28 @@ public class EmailServiceTests
 	}
 
 	[Fact]
+	public async Task GetEmailsAsync_WhenInboxThrowsInvalidOperation_ReturnsEmptyList()
+	{
+		// Arrange
+		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
+		_mockAccountService
+			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(defaultAccount);
+
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("Account 'myaccount' has no cached authentication record. Please run 'login myaccount' first."));
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.GetEmailsAsync(folderName: null);
+
+		// Assert
+		result.Should().BeEmpty();
+	}
+
+	[Fact]
 	public async Task GetEmailsAsync_WithDefaultAccount_UsesAccountName()
 	{
 		// Arrange

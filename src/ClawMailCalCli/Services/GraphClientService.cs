@@ -86,6 +86,10 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 			: options.WorkTenantId;
 
 		var authenticationRecord = await LoadAuthenticationRecordAsync(accountName, cancellationToken);
+		if (authenticationRecord is null)
+		{
+			throw new InvalidOperationException($"Account '{accountName}' has no cached authentication record. Please run 'login {accountName}' first.");
+		}
 
 		var credentialOptions = new DeviceCodeCredentialOptions
 		{
@@ -105,6 +109,7 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 
 	private async Task<AuthenticationRecord?> LoadAuthenticationRecordAsync(string accountName, CancellationToken cancellationToken)
 	{
+		KeyVaultNameValidator.EnsureValid(accountName);
 		var secretName = $"auth-record-{accountName}";
 		var secretValue = await keyVaultService.GetSecretAsync(secretName, cancellationToken);
 		if (string.IsNullOrWhiteSpace(secretValue))
