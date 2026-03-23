@@ -1,8 +1,10 @@
 global using ClawMailCalCli.Commands;
 global using ClawMailCalCli.Commands.Account;
+global using ClawMailCalCli.Commands.Calendar;
 global using ClawMailCalCli.Commands.Settings;
 global using ClawMailCalCli.Configuration;
 global using ClawMailCalCli.Services;
+global using CalendarEvent = ClawMailCalCli.Models.CalendarEvent;
 global using Microsoft.Extensions.DependencyInjection;
 global using Microsoft.Extensions.Logging;
 global using Spectre.Console;

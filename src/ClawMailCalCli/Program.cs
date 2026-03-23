@@ -54,6 +54,9 @@ services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
+services.AddTransient<ICalendarGraphService, CalendarGraphService>();
+services.AddTransient<ICalendarService, CalendarService>();
+services.AddSingleton<IConfigurationService, ConfigurationService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -71,8 +74,6 @@ app.Configure(config =>
 	config.SetApplicationName("claw-mail-cal-cli");
 	config.UseStrictParsing();
 
-	config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
-
 	config.AddBranch("account", account =>
 	{
 		account.AddCommand<AddAccountCommand>("add")
@@ -86,6 +87,13 @@ app.Configure(config =>
 		account.AddCommand<SetAccountCommand>("set")
 	.WithDescription("Set the default account.")
 	.WithExample("account set myaccount");
+	});
+
+	config.AddBranch("calendar", calendar =>
+	{
+		calendar.AddCommand<ReadCalendarCommand>("read")
+			.WithDescription("Read a calendar event by title or event ID.")
+			.WithExample("calendar read \"Team Meeting\"");
 	});
 
 	config.AddCommand<LoginCommand>("login")
