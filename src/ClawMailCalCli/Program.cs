@@ -97,6 +97,9 @@ app.Configure(config =>
 
 	config.AddBranch("email", email =>
 	{
+		email.AddCommand<SendEmailCommand>("send")
+		.WithDescription("Send an email via Microsoft Graph.")
+		.WithExample("email send user@example.com \"Hello\" \"This is the body.\"");
 		email.AddCommand<ListEmailCommand>("list")
 		.WithDescription("List the 20 most recent messages from the inbox or a named folder.")
 		.WithExample("email list")

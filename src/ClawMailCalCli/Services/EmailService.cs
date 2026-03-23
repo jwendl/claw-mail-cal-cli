@@ -1,13 +1,14 @@
 using ClawMailCalCli.Models;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
+using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Services;
 
 /// <summary>
-/// Implements email operations (list and read) using the Microsoft Graph API.
+/// Implements email operations (send, list, and read) using the Microsoft Graph API.
 /// </summary>
 public class EmailService(IGraphClientService graphClientService, ILogger<EmailService> logger)
 	: IEmailService
@@ -33,6 +34,60 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		"body",
 		"bodyPreview",
 	];
+
+	/// <inheritdoc />
+	public async Task<bool> SendEmailAsync(string to, string subject, string content, CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			return await graphClientService.ExecuteWithRetryAsync(async graphClient =>
+			{
+				await graphClient.Me.SendMail.PostAsync(new SendMailPostRequestBody
+				{
+					Message = new Message
+					{
+						Subject = subject,
+						Body = new ItemBody { ContentType = BodyType.Text, Content = content },
+						ToRecipients =
+						[
+							new Recipient { EmailAddress = new EmailAddress { Address = to } },
+						],
+					},
+				}, cancellationToken: cancellationToken);
+				return true;
+			}, cancellationToken);
+		}
+		catch (InvalidOperationException invalidOperationException)
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug(invalidOperationException, "Unable to send email.");
+			}
+
+			return false;
+		}
+		catch (ODataError oDataError)
+		{
+			var reason = oDataError.Error?.Message ?? "unknown Graph API error";
+			AnsiConsole.MarkupLine($"[red]✗[/] Failed to send email: {Markup.Escape(reason)}");
+			if (logger.IsEnabled(LogLevel.Error))
+			{
+				logger.LogError(oDataError, "Graph API error sending email to '{To}'.", to);
+			}
+
+			return false;
+		}
+		catch (Exception exception)
+		{
+			AnsiConsole.MarkupLine($"[red]✗[/] Failed to send email: {Markup.Escape(exception.Message)}");
+			if (logger.IsEnabled(LogLevel.Error))
+			{
+				logger.LogError(exception, "Unexpected error sending email to '{To}'.", to);
+			}
+
+			return false;
+		}
+	}
 
 	/// <inheritdoc />
 	public async Task<IReadOnlyList<EmailSummary>> GetEmailsAsync(string? folderName = null, CancellationToken cancellationToken = default)

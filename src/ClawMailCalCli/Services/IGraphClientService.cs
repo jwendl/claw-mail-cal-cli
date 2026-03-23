@@ -1,3 +1,4 @@
+using ClawMailCalCli.Models;
 using Microsoft.Graph;
 
 namespace ClawMailCalCli.Services;

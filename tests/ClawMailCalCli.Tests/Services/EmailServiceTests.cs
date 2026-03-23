@@ -30,6 +30,93 @@ public class EmailServiceTests
 	private EmailService CreateEmailService() =>
 		new EmailService(_mockGraphClientService.Object, _logger);
 
+	[Fact]
+	public async Task SendEmailAsync_WhenNoDefaultAccount_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("No default account configured."));
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.SendEmailAsync("to@example.com", "Subject", "Body");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task SendEmailAsync_WhenGraphCallSucceeds_ReturnsTrue()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.SendEmailAsync("to@example.com", "Subject", "Body");
+
+		// Assert
+		result.Should().BeTrue();
+	}
+
+	[Fact]
+	public async Task SendEmailAsync_WhenSuccessful_CallsExecuteWithRetryAsync()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var emailService = CreateEmailService();
+
+		// Act
+		await emailService.SendEmailAsync("to@example.com", "Subject", "Body");
+
+		// Assert
+		_mockGraphClientService.Verify(
+			service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task SendEmailAsync_WhenODataErrorThrown_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new ODataError { Error = new MainError { Message = "Mailbox unavailable" } });
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.SendEmailAsync("to@example.com", "Subject", "Body");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task SendEmailAsync_WhenGenericExceptionThrown_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new HttpRequestException("Network error"));
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.SendEmailAsync("to@example.com", "Subject", "Body");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
 	[Theory]
 	[InlineData("AAMkAGVmMDEzMTM4LTZmYWUtNDdkNC1hMDZjLWM2Y2I0MThlYjAyNwBGAAAAAAD=", true)]
 	[InlineData("AAAA=", true)]
