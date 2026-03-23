@@ -46,14 +46,9 @@ public sealed class CalendarWorkflowTests : IAsyncLifetime
 		await _accountService.SetDefaultAccountAsync("alice");
 		accountAdded.Should().BeTrue();
 
-		// Arrange — simulated login (no real credentials required)
-		var mockAuthenticationService = new Mock<IAuthenticationService>();
-		mockAuthenticationService
-			.Setup(authService => authService.AuthenticateAsync("alice", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
-		await mockAuthenticationService.Object.AuthenticateAsync("alice");
-
-		// Arrange — seeded Graph API calendar response with real Event objects for CalendarService to map
+		// Arrange — seeded Graph API calendar response with real Event objects for CalendarService to map.
+		// Login is a prerequisite handled by the real GraphClientService; the FakeGraphClientService stands
+		// in for the authenticated Graph layer and exercises CalendarService's EventCollectionResponse mapping.
 		var seedCalendarResponse = new EventCollectionResponse
 		{
 			Value =
@@ -95,9 +90,6 @@ public sealed class CalendarWorkflowTests : IAsyncLifetime
 		result[0].Location.Should().Be("Conference Room A");
 		result[1].Title.Should().Be("Quarterly Review");
 		result[1].Location.Should().Be("Main Boardroom");
-		mockAuthenticationService.Verify(
-			authService => authService.AuthenticateAsync("alice", It.IsAny<CancellationToken>()),
-			Times.Once);
 	}
 
 	[Fact]
@@ -107,14 +99,9 @@ public sealed class CalendarWorkflowTests : IAsyncLifetime
 		await _accountService.AddAccountAsync("bob", "bob@example.com", AccountType.Work);
 		await _accountService.SetDefaultAccountAsync("bob");
 
-		// Arrange — simulated login
-		var mockAuthenticationService = new Mock<IAuthenticationService>();
-		mockAuthenticationService
-			.Setup(authService => authService.AuthenticateAsync("bob", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
-		await mockAuthenticationService.Object.AuthenticateAsync("bob");
-
-		// Arrange — fake graph client that returns a new Event with a Graph-assigned ID
+		// Arrange — fake graph client that returns a new Event with a Graph-assigned ID.
+		// Login is a prerequisite handled by the real GraphClientService; the FakeGraphClientService
+		// stands in for the authenticated Graph layer and exercises CalendarService's ID extraction.
 		var createdGraphEvent = new Event { Id = "created-event-id-abc123" };
 		var fakeGraphClientService = new FakeGraphClientService()
 			.Seed<Event?>(createdGraphEvent);
@@ -133,8 +120,5 @@ public sealed class CalendarWorkflowTests : IAsyncLifetime
 		// Assert
 		result.Should().NotBeNull();
 		result.Should().Be("created-event-id-abc123");
-		mockAuthenticationService.Verify(
-			authService => authService.AuthenticateAsync("bob", It.IsAny<CancellationToken>()),
-			Times.Once);
 	}
 }

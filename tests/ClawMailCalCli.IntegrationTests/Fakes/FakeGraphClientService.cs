@@ -26,11 +26,14 @@ public sealed class FakeGraphClientService : IGraphClientService
 	/// <inheritdoc />
 	/// <remarks>
 	/// The operation delegate is never invoked. Instead, the pre-seeded value for type <typeparamref name="T"/>
-	/// is returned directly. If no value was seeded for <typeparamref name="T"/>, <see langword="default"/>
-	/// is returned — which is <see langword="null"/> for reference types. This behaviour is intentional: tests
-	/// that expect a null response (e.g., error paths) can rely on an unseeded fake returning null without
-	/// additional configuration.
+	/// is returned directly. Call <see cref="Seed{T}"/> before executing any operation whose return type
+	/// is <typeparamref name="T"/>; an <see cref="InvalidOperationException"/> is thrown if no seed has
+	/// been registered for the requested type.
 	/// </remarks>
+	/// <exception cref="InvalidOperationException">
+	/// Thrown when no seeded value has been registered for <typeparamref name="T"/>.
+	/// Call <see cref="Seed{T}"/> with the expected return value before running the operation.
+	/// </exception>
 	public Task<T> ExecuteWithRetryAsync<T>(Func<GraphServiceClient, Task<T>> operation, CancellationToken cancellationToken = default)
 	{
 		if (_seedData.TryGetValue(typeof(T), out var seeded))
@@ -38,6 +41,8 @@ public sealed class FakeGraphClientService : IGraphClientService
 			return Task.FromResult((T)seeded!);
 		}
 
-		return Task.FromResult(default(T)!);
+		throw new InvalidOperationException(
+			$"FakeGraphClientService has no seeded value for return type '{typeof(T).Name}'. " +
+			$"Call Seed<{typeof(T).Name}>(...) in the test Arrange section before invoking this operation.");
 	}
 }

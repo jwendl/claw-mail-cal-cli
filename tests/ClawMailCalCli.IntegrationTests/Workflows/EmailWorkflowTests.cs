@@ -48,14 +48,8 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		await _accountService.SetDefaultAccountAsync("alice");
 		accountAdded.Should().BeTrue();
 
-		// Arrange — simulated login (no real credentials required)
-		var mockAuthenticationService = new Mock<IAuthenticationService>();
-		mockAuthenticationService
-			.Setup(authService => authService.AuthenticateAsync("alice", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
-		await mockAuthenticationService.Object.AuthenticateAsync("alice");
-
-		// Arrange — seeded email list
+		// Arrange — seeded email list (login is a prerequisite handled by the real GraphClientService;
+		// here the FakeGraphClientService stands in for the authenticated Graph layer)
 		IReadOnlyList<EmailSummary> seededEmails =
 		[
 			new EmailSummary("sender@example.com", "Hello World", DateTimeOffset.UtcNow, false),
@@ -74,9 +68,6 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		result.Should().HaveCount(2);
 		result[0].Subject.Should().Be("Hello World");
 		result[1].Subject.Should().Be("Meeting Tomorrow");
-		mockAuthenticationService.Verify(
-			authService => authService.AuthenticateAsync("alice", It.IsAny<CancellationToken>()),
-			Times.Once);
 	}
 
 	[Fact]
@@ -86,14 +77,8 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		await _accountService.AddAccountAsync("bob", "bob@example.com", AccountType.Work);
 		await _accountService.SetDefaultAccountAsync("bob");
 
-		// Arrange — simulated login
-		var mockAuthenticationService = new Mock<IAuthenticationService>();
-		mockAuthenticationService
-			.Setup(authService => authService.AuthenticateAsync("bob", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
-		await mockAuthenticationService.Object.AuthenticateAsync("bob");
-
-		// Arrange — seeded email message
+		// Arrange — seeded email message (login is a prerequisite handled by the real GraphClientService;
+		// here the FakeGraphClientService stands in for the authenticated Graph layer)
 		var seededEmailMessage = new EmailMessage(
 			Id: "msg-001",
 			Subject: "Project Update",
@@ -115,9 +100,6 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		result!.Subject.Should().Be("Project Update");
 		result.From.Should().Be("manager@example.com");
 		result.Body.Should().Be("The project is on track.");
-		mockAuthenticationService.Verify(
-			authService => authService.AuthenticateAsync("bob", It.IsAny<CancellationToken>()),
-			Times.Once);
 	}
 
 	[Fact]
@@ -127,14 +109,9 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		await _accountService.AddAccountAsync("alice", "alice@example.com", AccountType.Personal);
 		await _accountService.SetDefaultAccountAsync("alice");
 
-		// Arrange — simulated login
-		var mockAuthenticationService = new Mock<IAuthenticationService>();
-		mockAuthenticationService
-			.Setup(authService => authService.AuthenticateAsync("alice", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
-		await mockAuthenticationService.Object.AuthenticateAsync("alice");
-
 		// Arrange — fake graph client that returns a successful send result
+		// (login is a prerequisite handled by the real GraphClientService;
+		// here the FakeGraphClientService stands in for the authenticated Graph layer)
 		var fakeGraphClientService = new FakeGraphClientService()
 			.Seed<bool>(true);
 
@@ -145,9 +122,6 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 
 		// Assert
 		result.Should().BeTrue();
-		mockAuthenticationService.Verify(
-			authService => authService.AuthenticateAsync("alice", It.IsAny<CancellationToken>()),
-			Times.Once);
 	}
 
 	[Fact]
