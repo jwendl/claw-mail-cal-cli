@@ -1,5 +1,6 @@
 global using ClawMailCalCli.Commands;
 global using ClawMailCalCli.Commands.Account;
+global using ClawMailCalCli.Commands.Email;
 global using ClawMailCalCli.Commands.Settings;
 global using ClawMailCalCli.Configuration;
 global using ClawMailCalCli.Services;

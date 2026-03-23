@@ -54,6 +54,8 @@ services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
+services.AddTransient<IGraphClientService, GraphClientService>();
+services.AddTransient<IEmailService, EmailService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -91,6 +93,12 @@ app.Configure(config =>
 	config.AddCommand<LoginCommand>("login")
 	.WithDescription("Authenticate an account using the Entra ID device code flow.")
 	.WithExample("login", "my-account");
+
+	config.AddBranch("email", email =>
+	{
+		email.AddCommand<SendEmailCommand>("send")
+		.WithDescription("Send an email via Microsoft Graph.")
+		.WithExample("email send user@example.com \"Hello\" \"This is the body.\"");	});
 });
 
 return app.Run(args);

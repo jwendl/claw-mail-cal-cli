@@ -18,6 +18,12 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 		"https://graph.microsoft.com/Mail.Send",
 	];
 
+	private static string AuthRecordSecretName(string accountName)
+	{
+		KeyVaultNameValidator.EnsureValid(accountName);
+		return $"auth-record-{accountName}";
+	}
+
 	/// <inheritdoc />
 	public async Task<GraphServiceClient?> GetClientForDefaultAccountAsync(CancellationToken cancellationToken = default)
 	{
@@ -35,11 +41,6 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 		var authRecord = await LoadAuthenticationRecordAsync(defaultAccount.Name, cancellationToken);
 		if (authRecord is null)
 		{
-			if (logger.IsEnabled(LogLevel.Warning))
-			{
-				logger.LogWarning("No authentication record found for account '{AccountName}'. User must run 'login' first.", defaultAccount.Name);
-			}
-
 			return null;
 		}
 
@@ -55,51 +56,43 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 			TenantId = tenantId,
 			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
 			AuthenticationRecord = authRecord,
-			DeviceCodeCallback = (_, _) => Task.CompletedTask,
+			DeviceCodeCallback = (deviceCodeInfo, _) =>
+			{
+				AnsiConsole.MarkupLine($"[bold]Re-authentication required for account '[yellow]{Markup.Escape(defaultAccount.Name)}[/]':[/]");
+				AnsiConsole.MarkupLine(Markup.Escape(deviceCodeInfo.Message));
+				return Task.CompletedTask;
+			},
 		};
 
 		var credential = new DeviceCodeCredential(credentialOptions);
 		return new GraphServiceClient(credential, GraphScopes);
 	}
 
-	private static bool IsValidKeyVaultSecretNameComponent(string name)
-	{
-		if (string.IsNullOrWhiteSpace(name))
-		{
-			return false;
-		}
-
-		if (name.Length > 127)
-		{
-			return false;
-		}
-
-		foreach (var character in name)
-		{
-			if (!char.IsLetterOrDigit(character) && character != '-')
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-
 	private async Task<AuthenticationRecord?> LoadAuthenticationRecordAsync(string accountName, CancellationToken cancellationToken)
 	{
-		if (!IsValidKeyVaultSecretNameComponent(accountName))
+		string secretName;
+		try
+		{
+			secretName = AuthRecordSecretName(accountName);
+		}
+		catch (ArgumentException argumentException)
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
-				logger.LogWarning("Account name '{AccountName}' is not valid for use in a Key Vault secret name.", accountName);
+				logger.LogWarning(argumentException, "Account name '{AccountName}' is not valid for use in a Key Vault secret name.", accountName);
 			}
 
 			return null;
 		}
-		var secretName = $"auth-record-{accountName}";
+
 		var secretValue = await keyVaultService.GetSecretAsync(secretName, cancellationToken);
 		if (string.IsNullOrWhiteSpace(secretValue))
 		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("No authentication record found for account '{AccountName}'. Run 'login <account-name>' to authenticate.", accountName);
+			}
+
 			return null;
 		}
 
@@ -109,13 +102,24 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 			using var memoryStream = new MemoryStream(recordBytes);
 			return await AuthenticationRecord.DeserializeAsync(memoryStream, cancellationToken);
 		}
-		catch (Exception exception)
+		catch (FormatException formatException)
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
-				logger.LogWarning(exception, "Failed to deserialize cached AuthenticationRecord for account '{AccountName}'.", accountName);
+				logger.LogWarning(formatException, "Cached authentication data for account '{AccountName}' is not valid Base64. User must re-authenticate.", accountName);
 			}
 
+			AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{Markup.Escape(accountName)}[/]' is invalid. Please re-authenticate by running '[bold]login {Markup.Escape(accountName)}[/]'.");
+			return null;
+		}
+		catch (Exception deserializationException)
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning(deserializationException, "Failed to deserialize cached AuthenticationRecord for account '{AccountName}'. User must re-authenticate.", accountName);
+			}
+
+			AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{Markup.Escape(accountName)}[/]' could not be loaded. Please re-authenticate by running '[bold]login {Markup.Escape(accountName)}[/]'.");
 			return null;
 		}
 	}
