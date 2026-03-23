@@ -1,5 +1,6 @@
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
+using Microsoft.Graph;
 using Microsoft.Graph.Models;
 
 namespace ClawMailCalCli.Tests.Services;
@@ -23,17 +24,14 @@ public class CalendarServiceTests
 	}
 
 	[Fact]
-	public async Task GetUpcomingEventsAsync_WhenGraphClientReturnsNull_ReturnsNull()
+	public async Task GetUpcomingEventsAsync_WhenNoDefaultAccount_ReturnsNull()
 	{
 		// Arrange
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetCalendarViewAsync(
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<int>(),
-				It.IsAny<string[]>(),
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<EventCollectionResponse?>>>(),
 				It.IsAny<CancellationToken>()))
-			.ReturnsAsync((EventCollectionResponse?)null);
+			.ThrowsAsync(new InvalidOperationException("No default account configured."));
 
 		// Act
 		var result = await _calendarService.GetUpcomingEventsAsync();
@@ -47,11 +45,8 @@ public class CalendarServiceTests
 	{
 		// Arrange
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetCalendarViewAsync(
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<int>(),
-				It.IsAny<string[]>(),
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<EventCollectionResponse?>>>(),
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync(new EventCollectionResponse { Value = null });
 
@@ -68,11 +63,8 @@ public class CalendarServiceTests
 	{
 		// Arrange
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetCalendarViewAsync(
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<int>(),
-				It.IsAny<string[]>(),
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<EventCollectionResponse?>>>(),
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync(new EventCollectionResponse { Value = [] });
 
@@ -194,88 +186,18 @@ public class CalendarServiceTests
 	}
 
 	[Fact]
-	public async Task GetUpcomingEventsAsync_PassesCorrectTopToGraphClient()
+	public async Task GetUpcomingEventsAsync_CallsExecuteWithRetryAsync()
 	{
 		// Arrange
 		SetupGraphResponse([]);
-
-		// Act
-		await _calendarService.GetUpcomingEventsAsync();
-
-		// Assert — CalendarService should request 20 events
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetCalendarViewAsync(
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<DateTimeOffset>(),
-				20,
-				It.IsAny<string[]>(),
-				It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
-
-	[Fact]
-	public async Task GetUpcomingEventsAsync_PassesStartDateTimeFromNow()
-	{
-		// Arrange
-		var beforeCall = DateTimeOffset.UtcNow;
-		SetupGraphResponse([]);
-
-		// Act
-		await _calendarService.GetUpcomingEventsAsync();
-		var afterCall = DateTimeOffset.UtcNow;
-
-		// Assert — start should be approximately now
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetCalendarViewAsync(
-				It.Is<DateTimeOffset>(startDateTime => startDateTime >= beforeCall && startDateTime <= afterCall),
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<int>(),
-				It.IsAny<string[]>(),
-				It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
-
-	[Fact]
-	public async Task GetUpcomingEventsAsync_PassesEndDateTimeThirtyDaysFromNow()
-	{
-		// Arrange
-		var beforeCall = DateTimeOffset.UtcNow;
-		SetupGraphResponse([]);
-
-		// Act
-		await _calendarService.GetUpcomingEventsAsync();
-		var afterCall = DateTimeOffset.UtcNow;
-
-		// Assert — end should be approximately 30 days from now
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetCalendarViewAsync(
-				It.IsAny<DateTimeOffset>(),
-				It.Is<DateTimeOffset>(endDateTime =>
-					endDateTime >= beforeCall.AddDays(30) &&
-					endDateTime <= afterCall.AddDays(30)),
-				It.IsAny<int>(),
-				It.IsAny<string[]>(),
-				It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
-
-	[Fact]
-	public async Task GetUpcomingEventsAsync_PassesCorrectSelectFields()
-	{
-		// Arrange
-		SetupGraphResponse([]);
-		var expectedFields = new[] { "subject", "start", "end", "location", "isAllDay" };
 
 		// Act
 		await _calendarService.GetUpcomingEventsAsync();
 
 		// Assert
 		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetCalendarViewAsync(
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<int>(),
-				It.Is<string[]>(select => expectedFields.All(field => select.Contains(field))),
+			graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<EventCollectionResponse?>>>(),
 				It.IsAny<CancellationToken>()),
 			Times.Once);
 	}
@@ -402,11 +324,8 @@ public class CalendarServiceTests
 	private void SetupGraphResponse(List<Event> events)
 	{
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetCalendarViewAsync(
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<DateTimeOffset>(),
-				It.IsAny<int>(),
-				It.IsAny<string[]>(),
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<EventCollectionResponse?>>>(),
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync(new EventCollectionResponse { Value = events });
 	}

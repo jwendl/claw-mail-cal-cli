@@ -55,8 +55,10 @@ services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
-services.AddTransient<IGraphClientService, GraphClientService>();
+services.AddSingleton<IGraphServiceClientBuilder, GraphServiceClientBuilder>();
+services.AddSingleton<IGraphClientService, GraphClientService>();
 services.AddTransient<ICalendarService, CalendarService>();
+services.AddTransient<IEmailService, EmailService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -100,6 +102,20 @@ app.Configure(config =>
 		calendar.AddCommand<ListCalendarCommand>("list")
 		.WithDescription("List the next 20 upcoming calendar events.")
 		.WithExample("calendar list");
+	});
+
+	config.AddBranch("email", email =>
+	{
+		email.AddCommand<SendEmailCommand>("send")
+		.WithDescription("Send an email via Microsoft Graph.")
+		.WithExample("email send user@example.com \"Hello\" \"This is the body.\"");
+		email.AddCommand<ListEmailCommand>("list")
+		.WithDescription("List the 20 most recent messages from the inbox or a named folder.")
+		.WithExample("email list")
+		.WithExample("email list", "sentitems");
+		email.AddCommand<ReadEmailCommand>("read")
+		.WithDescription("Read an email by subject or message ID.")
+		.WithExample("email", "read", "my-account", "Meeting notes");
 	});
 });
 

@@ -1,5 +1,6 @@
 using System.Globalization;
 using ClawMailCalCli.Models;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Services;
 
@@ -19,33 +20,50 @@ public class CalendarService(IGraphClientService graphClientService)
 		var startDateTime = DateTimeOffset.UtcNow;
 		var endDateTime = startDateTime.AddDays(LookAheadDays);
 
-		var response = await graphClientService.GetCalendarViewAsync(
-			startDateTime,
-			endDateTime,
-			EventCount,
-			["subject", "start", "end", "location", "isAllDay"],
-			cancellationToken);
-
-		if (response is null)
+		try
 		{
+			var response = await graphClientService.ExecuteWithRetryAsync(
+				async graphClient => await graphClient.Me.CalendarView.GetAsync(config =>
+				{
+					config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
+					config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
+					config.QueryParameters.Top = EventCount;
+					config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
+					config.QueryParameters.Orderby = ["start/dateTime asc"];
+				}, cancellationToken),
+				cancellationToken);
+
+			if (response is null)
+			{
+				return null;
+			}
+
+			var events = response.Value ?? [];
+			return events
+				.Select(calendarEvent =>
+				{
+					var title = calendarEvent.Subject ?? "(No Title)";
+					var isAllDay = calendarEvent.IsAllDay ?? false;
+					var location = calendarEvent.Location?.DisplayName;
+
+					var start = ParseEventDateTime(calendarEvent.Start);
+					var end = ParseEventDateTime(calendarEvent.End);
+
+					return new CalendarEventSummary(title, start, end, isAllDay, location);
+				})
+				.OrderBy(calendarEventSummary => calendarEventSummary.Start)
+				.ToList();
+		}
+		catch (InvalidOperationException)
+		{
+			// Thrown by GraphClientService when no default account is set or re-authentication fails.
 			return null;
 		}
-
-		var events = response.Value ?? [];
-		return events
-			.Select(calendarEvent =>
-			{
-				var title = calendarEvent.Subject ?? "(No Title)";
-				var isAllDay = calendarEvent.IsAllDay ?? false;
-				var location = calendarEvent.Location?.DisplayName;
-
-				var start = ParseEventDateTime(calendarEvent.Start);
-				var end = ParseEventDateTime(calendarEvent.End);
-
-				return new CalendarEventSummary(title, start, end, isAllDay, location);
-			})
-			.OrderBy(calendarEventSummary => calendarEventSummary.Start)
-			.ToList();
+		catch (ODataError odataError)
+		{
+			AnsiConsole.MarkupLine($"[red]Error:[/] Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
+			return null;
+		}
 	}
 
 	private static DateTimeOffset ParseEventDateTime(Microsoft.Graph.Models.DateTimeTimeZone? dateTimeTimeZone)

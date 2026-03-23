@@ -514,14 +514,26 @@ public class AccountServiceTests : IAsyncLifetime
 	}
 
 	[Fact]
-	public async Task GetDefaultAccountAsync_WhenNoDefaultAccountIsSet_ReturnsNull()
+	public async Task GetDefaultAccountAsync_WhenNoDefaultIsSet_ReturnsNull()
 	{
 		// Arrange
 		using (var context = _dbContextFactory.CreateDbContext())
 		{
-			context.Accounts.Add(new AccountEntity { Name = "myaccount", Email = "user@example.com", IsDefault = false });
+			context.Accounts.Add(new AccountEntity { Name = "alice", Email = "alice@example.com", IsDefault = false });
 			await context.SaveChangesAsync();
 		}
+
+		// Act
+		var result = await _accountService.GetDefaultAccountAsync();
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task GetDefaultAccountAsync_WithNoAccounts_ReturnsNull()
+	{
+		// Arrange (empty database)
 
 		// Act
 		var result = await _accountService.GetDefaultAccountAsync();
@@ -551,7 +563,7 @@ public class AccountServiceTests : IAsyncLifetime
 	}
 
 	[Fact]
-	public async Task GetDefaultAccountAsync_WhenMultipleAccountsExist_ReturnsOnlyDefaultAccount()
+	public async Task GetDefaultAccountAsync_WhenDefaultIsSet_ReturnsDefaultAccount()
 	{
 		// Arrange
 		using (var context = _dbContextFactory.CreateDbContext())
@@ -567,18 +579,7 @@ public class AccountServiceTests : IAsyncLifetime
 		// Assert
 		result.Should().NotBeNull();
 		result!.Name.Should().Be("bob");
-	}
-
-	[Fact]
-	public async Task GetDefaultAccountAsync_WhenDatabaseIsEmpty_ReturnsNull()
-	{
-		// Arrange (empty database)
-
-		// Act
-		var result = await _accountService.GetDefaultAccountAsync();
-
-		// Assert
-		result.Should().BeNull();
+		result.Email.Should().Be("bob@example.com");
 	}
 
 	/// <summary>
