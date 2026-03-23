@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Publish Windows x64
+        run: >
+          dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj
+          -c Release -r win-x64 --self-contained true
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -o ./publish/win-x64
+
+      - name: Publish Ubuntu x64
+        run: >
+          dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj
+          -c Release -r linux-x64 --self-contained true
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -o ./publish/linux-x64
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            publish/win-x64/ClawMailCalCli.exe
+            publish/linux-x64/ClawMailCalCli
+          generate_release_notes: true
