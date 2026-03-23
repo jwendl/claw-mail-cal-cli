@@ -1,6 +1,8 @@
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 using Microsoft.Extensions.Logging;
+using Microsoft.Graph;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Tests.Services;
 
@@ -10,7 +12,6 @@ namespace ClawMailCalCli.Tests.Services;
 [Trait("Category", "Unit")]
 public class EmailServiceTests
 {
-	private readonly Mock<IAccountService> _mockAccountService;
 	private readonly Mock<IGraphClientService> _mockGraphClientService;
 	private readonly ILogger<EmailService> _logger;
 
@@ -19,21 +20,20 @@ public class EmailServiceTests
 	/// </summary>
 	public EmailServiceTests()
 	{
-		_mockAccountService = new Mock<IAccountService>();
 		_mockGraphClientService = new Mock<IGraphClientService>();
 		_logger = new NullLogger<EmailService>();
 	}
 
 	private EmailService CreateEmailService() =>
-		new EmailService(_mockAccountService.Object, _mockGraphClientService.Object, _logger);
+		new EmailService(_mockGraphClientService.Object, _logger);
 
 	[Fact]
 	public async Task GetEmailsAsync_WhenNoDefaultAccount_ReturnsEmptyList()
 	{
 		// Arrange
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync((Account?)null);
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("No default account configured."));
 
 		var emailService = CreateEmailService();
 
@@ -45,39 +45,28 @@ public class EmailServiceTests
 	}
 
 	[Fact]
-	public async Task GetEmailsAsync_WhenNoDefaultAccount_DoesNotCallGraphClientService()
+	public async Task GetEmailsAsync_WhenAccountNotAuthenticated_ReturnsEmptyList()
 	{
 		// Arrange
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync((Account?)null);
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("Account 'myaccount' is not authenticated."));
 
 		var emailService = CreateEmailService();
 
 		// Act
-		await emailService.GetEmailsAsync();
+		var result = await emailService.GetEmailsAsync();
 
 		// Assert
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetInboxMessagesAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-			Times.Never);
-
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetFolderMessagesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-			Times.Never);
+		result.Should().BeEmpty();
 	}
 
 	[Fact]
-	public async Task GetEmailsAsync_WithNoFolderName_CallsGetInboxMessages()
+	public async Task GetEmailsAsync_WithNoFolderName_CallsExecuteWithRetryAsync()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()))
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync([]);
 
 		var emailService = CreateEmailService();
@@ -87,21 +76,16 @@ public class EmailServiceTests
 
 		// Assert
 		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()),
+			service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()),
 			Times.Once);
 	}
 
 	[Fact]
-	public async Task GetEmailsAsync_WithEmptyFolderName_CallsGetInboxMessages()
+	public async Task GetEmailsAsync_WithEmptyFolderName_CallsExecuteWithRetryAsync()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()))
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync([]);
 
 		var emailService = CreateEmailService();
@@ -111,21 +95,16 @@ public class EmailServiceTests
 
 		// Assert
 		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()),
+			service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()),
 			Times.Once);
 	}
 
 	[Fact]
-	public async Task GetEmailsAsync_WithFolderName_CallsGetFolderMessages()
+	public async Task GetEmailsAsync_WithFolderName_CallsExecuteWithRetryAsync()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetFolderMessagesAsync("myaccount", "sentitems", 20, It.IsAny<CancellationToken>()))
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync([]);
 
 		var emailService = CreateEmailService();
@@ -135,67 +114,14 @@ public class EmailServiceTests
 
 		// Assert
 		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetFolderMessagesAsync("myaccount", "sentitems", 20, It.IsAny<CancellationToken>()),
+			service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()),
 			Times.Once);
-	}
-
-	[Fact]
-	public async Task GetEmailsAsync_WithNoFolderName_DoesNotCallGetFolderMessages()
-	{
-		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
-		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()))
-			.ReturnsAsync([]);
-
-		var emailService = CreateEmailService();
-
-		// Act
-		await emailService.GetEmailsAsync(folderName: null);
-
-		// Assert
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetFolderMessagesAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-			Times.Never);
-	}
-
-	[Fact]
-	public async Task GetEmailsAsync_WithFolderName_DoesNotCallGetInboxMessages()
-	{
-		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
-		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetFolderMessagesAsync("myaccount", "drafts", 20, It.IsAny<CancellationToken>()))
-			.ReturnsAsync([]);
-
-		var emailService = CreateEmailService();
-
-		// Act
-		await emailService.GetEmailsAsync(folderName: "drafts");
-
-		// Assert
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetInboxMessagesAsync(It.IsAny<string>(), It.IsAny<int>(), It.IsAny<CancellationToken>()),
-			Times.Never);
 	}
 
 	[Fact]
 	public async Task GetEmailsAsync_WithInboxMessages_ReturnsEmailSummaries()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		var expectedEmails = new List<EmailSummary>
 		{
 			new("sender@example.com", "Hello World", new DateTimeOffset(2026, 3, 21, 10, 0, 0, TimeSpan.Zero), true),
@@ -203,7 +129,7 @@ public class EmailServiceTests
 		};
 
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()))
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync(expectedEmails);
 
 		var emailService = CreateEmailService();
@@ -224,18 +150,13 @@ public class EmailServiceTests
 	public async Task GetEmailsAsync_WithFolderMessages_ReturnsEmailSummaries()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		var expectedEmails = new List<EmailSummary>
 		{
 			new("noreply@service.com", "Your invoice", new DateTimeOffset(2026, 3, 19, 9, 0, 0, TimeSpan.Zero), true),
 		};
 
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetFolderMessagesAsync("myaccount", "inbox", 20, It.IsAny<CancellationToken>()))
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync(expectedEmails);
 
 		var emailService = CreateEmailService();
@@ -253,14 +174,9 @@ public class EmailServiceTests
 	public async Task GetEmailsAsync_WhenFolderNotFound_ReturnsEmptyList()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetFolderMessagesAsync("myaccount", "nonexistent", 20, It.IsAny<CancellationToken>()))
-			.ThrowsAsync(new InvalidOperationException("Folder 'nonexistent' was not found."));
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new ODataError { ResponseStatusCode = 404 });
 
 		var emailService = CreateEmailService();
 
@@ -275,14 +191,9 @@ public class EmailServiceTests
 	public async Task GetEmailsAsync_WhenInboxThrowsInvalidOperation_ReturnsEmptyList()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()))
-			.ThrowsAsync(new InvalidOperationException("Account 'myaccount' has no cached authentication record. Please run 'login myaccount' first."));
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("Account 'myaccount' has no cached authentication record."));
 
 		var emailService = CreateEmailService();
 
@@ -294,40 +205,11 @@ public class EmailServiceTests
 	}
 
 	[Fact]
-	public async Task GetEmailsAsync_WithDefaultAccount_UsesAccountName()
-	{
-		// Arrange
-		var defaultAccount = new Account("work-account", "user@contoso.com", AccountType.Work);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
-		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("work-account", 20, It.IsAny<CancellationToken>()))
-			.ReturnsAsync([]);
-
-		var emailService = CreateEmailService();
-
-		// Act
-		await emailService.GetEmailsAsync();
-
-		// Assert
-		_mockGraphClientService.Verify(
-			graphClientService => graphClientService.GetInboxMessagesAsync("work-account", 20, It.IsAny<CancellationToken>()),
-			Times.Once);
-	}
-
-	[Fact]
 	public async Task GetEmailsAsync_WithInboxEmptyList_ReturnsEmptyList()
 	{
 		// Arrange
-		var defaultAccount = new Account("myaccount", "user@example.com", AccountType.Personal);
-		_mockAccountService
-			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
-			.ReturnsAsync(defaultAccount);
-
 		_mockGraphClientService
-			.Setup(graphClientService => graphClientService.GetInboxMessagesAsync("myaccount", 20, It.IsAny<CancellationToken>()))
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>>>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync([]);
 
 		var emailService = CreateEmailService();

@@ -1,28 +1,20 @@
-using ClawMailCalCli.Models;
+using Microsoft.Graph;
 
 namespace ClawMailCalCli.Services;
 
 /// <summary>
-/// Provides authenticated access to Microsoft Graph email endpoints with built-in 401 retry
-/// logic via the Azure Identity token-refresh pipeline.
+/// Provides Microsoft Graph API operations with automatic 401 retry and re-authentication.
 /// </summary>
 public interface IGraphClientService
 {
 	/// <summary>
-	/// Retrieves the most recent messages from the inbox of the given account.
+	/// Executes a Microsoft Graph API operation using the default account's cached credentials.
+	/// If the operation fails with a 401 Unauthorized response, the login flow is automatically
+	/// triggered and the operation is retried once.
 	/// </summary>
-	/// <param name="accountName">The short name of the account whose inbox to query.</param>
-	/// <param name="top">The maximum number of messages to return.</param>
+	/// <typeparam name="T">The return type of the Graph operation.</typeparam>
+	/// <param name="operation">A delegate that performs the Graph API call using the provided <see cref="GraphServiceClient"/>.</param>
 	/// <param name="cancellationToken">Cancellation token.</param>
-	Task<IReadOnlyList<EmailSummary>> GetInboxMessagesAsync(string accountName, int top = 20, CancellationToken cancellationToken = default);
-
-	/// <summary>
-	/// Retrieves the most recent messages from the named mail folder of the given account.
-	/// </summary>
-	/// <param name="accountName">The short name of the account to query.</param>
-	/// <param name="folderName">The well-known or display name of the folder (e.g. "inbox", "sentitems").</param>
-	/// <param name="top">The maximum number of messages to return.</param>
-	/// <param name="cancellationToken">Cancellation token.</param>
-	/// <exception cref="InvalidOperationException">Thrown when the folder is not found.</exception>
-	Task<IReadOnlyList<EmailSummary>> GetFolderMessagesAsync(string accountName, string folderName, int top = 20, CancellationToken cancellationToken = default);
+	/// <returns>The result of the Graph API operation.</returns>
+	Task<T> ExecuteWithRetryAsync<T>(Func<GraphServiceClient, Task<T>> operation, CancellationToken cancellationToken = default);
 }

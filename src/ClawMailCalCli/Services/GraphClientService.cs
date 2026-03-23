@@ -1,152 +1,55 @@
-using Azure.Identity;
-using ClawMailCalCli.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Services;
 
 /// <summary>
-/// Implements <see cref="IGraphClientService"/> by creating an authenticated
-/// <see cref="GraphServiceClient"/> from the cached <see cref="AuthenticationRecord"/>
-/// stored in Azure Key Vault. The Azure Identity token-refresh pipeline handles 401
-/// responses transparently, retrying with a fresh access token as needed.
+/// Wraps Microsoft Graph API calls with automatic 401 Unauthorized retry and re-authentication.
+/// When a 401 is received the default account is re-authenticated and the operation is retried once.
 /// </summary>
-public class GraphClientService(IAccountService accountService, IKeyVaultService keyVaultService, IOptions<EntraOptions> entraOptions, ILogger<GraphClientService> logger)
+public class GraphClientService(IAccountService accountService, IGraphServiceClientBuilder graphServiceClientBuilder, IAuthenticationService authenticationService, ILogger<GraphClientService> logger)
 	: IGraphClientService
 {
-	private static readonly string[] GraphScopes =
-	[
-		"https://graph.microsoft.com/Mail.Read",
-	];
-
-	private static readonly string[] MessageSelectFields =
-	[
-		"id",
-		"subject",
-		"from",
-		"receivedDateTime",
-		"isRead",
-	];
-
 	/// <inheritdoc />
-	public async Task<IReadOnlyList<EmailSummary>> GetInboxMessagesAsync(string accountName, int top = 20, CancellationToken cancellationToken = default)
+	public async Task<T> ExecuteWithRetryAsync<T>(Func<GraphServiceClient, Task<T>> operation, CancellationToken cancellationToken = default)
 	{
-		var graphClient = await CreateGraphClientAsync(accountName, cancellationToken);
-
-		var messageCollection = await graphClient.Me.Messages.GetAsync(config =>
+		var defaultAccount = await accountService.GetDefaultAccountAsync(cancellationToken);
+		if (defaultAccount is null)
 		{
-			config.QueryParameters.Top = top;
-			config.QueryParameters.Select = MessageSelectFields;
-			config.QueryParameters.Orderby = ["receivedDateTime desc"];
-		}, cancellationToken);
-
-		return MapMessages(messageCollection?.Value);
-	}
-
-	/// <inheritdoc />
-	public async Task<IReadOnlyList<EmailSummary>> GetFolderMessagesAsync(string accountName, string folderName, int top = 20, CancellationToken cancellationToken = default)
-	{
-		var graphClient = await CreateGraphClientAsync(accountName, cancellationToken);
-
-		try
-		{
-			var messageCollection = await graphClient.Me.MailFolders[folderName].Messages.GetAsync(config =>
-			{
-				config.QueryParameters.Top = top;
-				config.QueryParameters.Select = MessageSelectFields;
-				config.QueryParameters.Orderby = ["receivedDateTime desc"];
-			}, cancellationToken);
-
-			return MapMessages(messageCollection?.Value);
-		}
-		catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
-		{
-			if (logger.IsEnabled(LogLevel.Debug))
-			{
-				logger.LogDebug(odataError, "Folder '{FolderName}' not found for account '{AccountName}'.", folderName, accountName);
-			}
-
-			throw new InvalidOperationException($"Folder '{folderName}' was not found.", odataError);
-		}
-	}
-
-	private async Task<GraphServiceClient> CreateGraphClientAsync(string accountName, CancellationToken cancellationToken)
-	{
-		var account = await accountService.GetAccountAsync(accountName, cancellationToken);
-		if (account is null)
-		{
-			throw new InvalidOperationException($"Account '{accountName}' does not exist.");
+			AnsiConsole.MarkupLine("[red]Error:[/] No default account is set. Run [bold]account set <name>[/] to choose an account.");
+			throw new InvalidOperationException("No default account configured. Run 'account set <name>' to choose one.");
 		}
 
-		var options = entraOptions.Value;
-		var tenantId = account.Type == AccountType.Personal
-			? options.PersonalTenantId
-			: options.WorkTenantId;
-
-		var authenticationRecord = await LoadAuthenticationRecordAsync(accountName, cancellationToken);
-		if (authenticationRecord is null)
+		var graphClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
+		if (graphClient is null)
 		{
-			throw new InvalidOperationException($"Account '{accountName}' has no cached authentication record. Please run 'login {accountName}' first.");
-		}
-
-		var credentialOptions = new DeviceCodeCredentialOptions
-		{
-			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
-			ClientId = options.ClientId,
-			TenantId = tenantId,
-			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
-			AuthenticationRecord = authenticationRecord,
-			// Silent re-authentication only: the user must run 'login' first to populate the auth record.
-			// Graph calls should not trigger an interactive prompt.
-			DeviceCodeCallback = (_, _) => Task.CompletedTask,
-		};
-
-		var credential = new DeviceCodeCredential(credentialOptions);
-		return new GraphServiceClient(credential, GraphScopes);
-	}
-
-	private async Task<AuthenticationRecord?> LoadAuthenticationRecordAsync(string accountName, CancellationToken cancellationToken)
-	{
-		KeyVaultNameValidator.EnsureValid(accountName);
-		var secretName = $"auth-record-{accountName}";
-		var secretValue = await keyVaultService.GetSecretAsync(secretName, cancellationToken);
-		if (string.IsNullOrWhiteSpace(secretValue))
-		{
-			return null;
+			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[bold]{Markup.Escape(defaultAccount.Name)}[/]' is not authenticated. Run [bold]login {Markup.Escape(defaultAccount.Name)}[/] first.");
+			throw new InvalidOperationException($"Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
 		}
 
 		try
 		{
-			var recordBytes = Convert.FromBase64String(secretValue);
-			using var memoryStream = new MemoryStream(recordBytes);
-			return await AuthenticationRecord.DeserializeAsync(memoryStream, cancellationToken);
+			return await operation(graphClient);
 		}
-		catch (Exception exception) when (exception is FormatException or System.Text.Json.JsonException)
+		catch (ODataError odataError) when (odataError.ResponseStatusCode == 401)
 		{
-			if (logger.IsEnabled(LogLevel.Warning))
+			if (logger.IsEnabled(LogLevel.Information))
 			{
-				logger.LogWarning(exception, "Cached authentication record for account '{AccountName}' is corrupt. Re-authentication may be required.", accountName);
+				logger.LogInformation("Received 401 Unauthorized for account '{AccountName}'. Triggering re-authentication.", defaultAccount.Name);
 			}
 
-			return null;
-		}
-	}
+			AnsiConsole.MarkupLine($"[yellow]Session expired for account '[bold]{Markup.Escape(defaultAccount.Name)}[/]'. Re-authenticating...[/]");
+			await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken);
 
-	private static IReadOnlyList<EmailSummary> MapMessages(IList<Microsoft.Graph.Models.Message>? messages)
-	{
-		if (messages is null)
-		{
-			return [];
-		}
+			var retryClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
+			if (retryClient is null)
+			{
+				AnsiConsole.MarkupLine("[red]Error:[/] Re-authentication failed. Please run [bold]login[/] manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' manually.");
+			}
 
-		return messages
-			.Select(message => new EmailSummary(
-				message.From?.EmailAddress?.Address ?? "(unknown)",
-				message.Subject ?? "(no subject)",
-				message.ReceivedDateTime ?? DateTimeOffset.MinValue,
-				message.IsRead ?? false))
-			.ToList();
+			return await operation(retryClient);
+		}
 	}
 }
