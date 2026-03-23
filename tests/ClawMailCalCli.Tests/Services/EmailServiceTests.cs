@@ -1,3 +1,4 @@
+using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
@@ -105,7 +106,7 @@ public class EmailServiceTests
 		// exception propagates when the Graph client is not available.
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
 			.ThrowsAsync(new InvalidOperationException("No account found."));
 
 		// Act
@@ -123,7 +124,7 @@ public class EmailServiceTests
 		var mockGraphClientService = new Mock<IGraphClientService>();
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
 			.ThrowsAsync(new InvalidOperationException("Account not found."));
 
 		// Act
@@ -172,8 +173,8 @@ public class EmailServiceTests
 		var graphClient = new GraphServiceClient(mockAdapter.Object);
 		var mockGraphClientService = new Mock<IGraphClientService>();
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync(graphClient);
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
+			.Returns<Func<GraphServiceClient, Task<EmailMessage?>>, CancellationToken>((operation, cancellationToken) => operation(graphClient));
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 
 		// Act
@@ -204,8 +205,8 @@ public class EmailServiceTests
 		var graphClient = new GraphServiceClient(mockAdapter.Object);
 		var mockGraphClientService = new Mock<IGraphClientService>();
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync(graphClient);
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
+			.Returns<Func<GraphServiceClient, Task<EmailMessage?>>, CancellationToken>((operation, cancellationToken) => operation(graphClient));
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 
 		// Act
@@ -241,8 +242,8 @@ public class EmailServiceTests
 		var graphClient = new GraphServiceClient(mockAdapter.Object);
 		var mockGraphClientService = new Mock<IGraphClientService>();
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync(graphClient);
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
+			.Returns<Func<GraphServiceClient, Task<EmailMessage?>>, CancellationToken>((operation, cancellationToken) => operation(graphClient));
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 
 		// Act
@@ -270,8 +271,8 @@ public class EmailServiceTests
 		var graphClient = new GraphServiceClient(mockAdapter.Object);
 		var mockGraphClientService = new Mock<IGraphClientService>();
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync(graphClient);
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
+			.Returns<Func<GraphServiceClient, Task<EmailMessage?>>, CancellationToken>((operation, cancellationToken) => operation(graphClient));
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 
 		// Act
@@ -307,8 +308,8 @@ public class EmailServiceTests
 		var graphClient = new GraphServiceClient(mockAdapter.Object);
 		var mockGraphClientService = new Mock<IGraphClientService>();
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync(graphClient);
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
+			.Returns<Func<GraphServiceClient, Task<EmailMessage?>>, CancellationToken>((operation, cancellationToken) => operation(graphClient));
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 
 		// Act
@@ -348,8 +349,8 @@ public class EmailServiceTests
 		var graphClient = new GraphServiceClient(mockAdapter.Object);
 		var mockGraphClientService = new Mock<IGraphClientService>();
 		mockGraphClientService
-			.Setup(s => s.GetClientAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
-			.ReturnsAsync(graphClient);
+			.Setup(s => s.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<EmailMessage?>>>(), It.IsAny<CancellationToken>()))
+			.Returns<Func<GraphServiceClient, Task<EmailMessage?>>, CancellationToken>((operation, cancellationToken) => operation(graphClient));
 		var emailService = new EmailService(mockGraphClientService.Object, Mock.Of<ILogger<EmailService>>());
 
 		// Act

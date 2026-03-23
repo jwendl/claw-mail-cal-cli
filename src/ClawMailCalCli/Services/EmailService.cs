@@ -26,52 +26,53 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 	/// <inheritdoc />
 	public async Task<EmailMessage?> ReadEmailAsync(string accountName, string subjectOrId, CancellationToken cancellationToken = default)
 	{
-		var graphClient = await graphClientService.GetClientAsync(accountName, cancellationToken);
-
-		if (LooksLikeMessageId(subjectOrId))
+		return await graphClientService.ExecuteWithRetryAsync(async graphClient =>
 		{
-			if (logger.IsEnabled(LogLevel.Debug))
-			{
-				logger.LogDebug("Fetching email by ID for account '{AccountName}'.", accountName);
-			}
-
-			try
-			{
-				var message = await graphClient.Me.Messages[subjectOrId].GetAsync(config =>
-				{
-					config.QueryParameters.Select = MessageSelect;
-				}, cancellationToken);
-
-				return message is null ? null : MapToEmailMessage(message);
-			}
-			catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
+			if (LooksLikeMessageId(subjectOrId))
 			{
 				if (logger.IsEnabled(LogLevel.Debug))
 				{
-					logger.LogDebug("Message with ID '{MessageId}' not found for account '{AccountName}'.", subjectOrId, accountName);
+					logger.LogDebug("Fetching email by ID for account '{AccountName}'.", accountName);
 				}
 
-				return null;
-			}
-		}
-		else
-		{
-			if (logger.IsEnabled(LogLevel.Debug))
-			{
-				logger.LogDebug("Searching email by subject for account '{AccountName}'.", accountName);
-			}
+				try
+				{
+					var message = await graphClient.Me.Messages[subjectOrId].GetAsync(config =>
+					{
+						config.QueryParameters.Select = MessageSelect;
+					}, cancellationToken);
 
-			var escapedSubject = subjectOrId.Replace("'", "''");
-			var response = await graphClient.Me.Messages.GetAsync(config =>
-			{
-				config.QueryParameters.Filter = $"contains(subject, '{escapedSubject}')";
-				config.QueryParameters.Select = MessageSelect;
-				config.QueryParameters.Top = 1;
-			}, cancellationToken);
+					return message is null ? null : MapToEmailMessage(message);
+				}
+				catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
+				{
+					if (logger.IsEnabled(LogLevel.Debug))
+					{
+						logger.LogDebug("Message with ID '{MessageId}' not found for account '{AccountName}'.", subjectOrId, accountName);
+					}
 
-			var firstMessage = response?.Value?.FirstOrDefault();
-			return firstMessage is null ? null : MapToEmailMessage(firstMessage);
-		}
+					return null;
+				}
+			}
+			else
+			{
+				if (logger.IsEnabled(LogLevel.Debug))
+				{
+					logger.LogDebug("Searching email by subject for account '{AccountName}'.", accountName);
+				}
+
+				var escapedSubject = subjectOrId.Replace("'", "''");
+				var response = await graphClient.Me.Messages.GetAsync(config =>
+				{
+					config.QueryParameters.Filter = $"contains(subject, '{escapedSubject}')";
+					config.QueryParameters.Select = MessageSelect;
+					config.QueryParameters.Top = 1;
+				}, cancellationToken);
+
+				var firstMessage = response?.Value?.FirstOrDefault();
+				return firstMessage is null ? null : MapToEmailMessage(firstMessage);
+			}
+		}, cancellationToken);
 	}
 
 	/// <summary>

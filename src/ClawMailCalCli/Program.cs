@@ -54,6 +54,7 @@ services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
+services.AddSingleton<IGraphServiceClientBuilder, GraphServiceClientBuilder>();
 services.AddSingleton<IGraphClientService, GraphClientService>();
 services.AddTransient<IEmailService, EmailService>();
 
