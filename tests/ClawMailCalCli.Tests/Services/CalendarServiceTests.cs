@@ -278,13 +278,13 @@ public class CalendarServiceTests
 	[Fact]
 	public async Task GetUpcomingEventsAsync_WithNonUtcTimezone_AppliesTimezoneOffset()
 	{
-		// Arrange — "Eastern Standard Time" is UTC-5; 09:00 EST = 14:00 UTC
+		// Arrange — "Eastern Standard Time" on Jan 15 (outside DST) is UTC-5
 		var graphEvent = new Event
 		{
 			Subject = "EST Meeting",
 			IsAllDay = false,
-			Start = new DateTimeTimeZone { DateTime = "2025-03-22T09:00:00", TimeZone = "Eastern Standard Time" },
-			End = new DateTimeTimeZone { DateTime = "2025-03-22T10:00:00", TimeZone = "Eastern Standard Time" },
+			Start = new DateTimeTimeZone { DateTime = "2025-01-15T09:00:00", TimeZone = "Eastern Standard Time" },
+			End = new DateTimeTimeZone { DateTime = "2025-01-15T10:00:00", TimeZone = "Eastern Standard Time" },
 			Location = null,
 		};
 		SetupGraphResponse([graphEvent]);
