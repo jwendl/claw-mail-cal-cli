@@ -4,5 +4,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ClawMailCalCli.Tests/ClawMailCalCli.Tests.csproj" />
+    <Project Path="tests/ClawMailCalCli.IntegrationTests/ClawMailCalCli.IntegrationTests.csproj" />
   </Folder>
 </Solution>
