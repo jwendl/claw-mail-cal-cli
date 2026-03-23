@@ -1,10 +1,11 @@
 # claw-mail-cal-cli
 
 [![CI](https://github.com/jwendl/claw-mail-cal-cli/actions/workflows/ci.yaml/badge.svg)](https://github.com/jwendl/claw-mail-cal-cli/actions/workflows/ci.yaml)
+[![License](https://img.shields.io/github/license/jwendl/claw-mail-cal-cli)](LICENSE)
 
-An experimental command-line interface intended to provide access to email, people, and calendar items via Microsoft Graph. Designed for use by [OpenClaw](https://github.com/openclaw/openclaw) to provide mail and calendar capabilities without the complexity of MCP server authentication.
+A command-line interface that provides access to email and calendar items via Microsoft Graph. Designed for use by [OpenClaw](https://github.com/openclaw/openclaw) to provide mail and calendar capabilities without the complexity of MCP server authentication.
 
-Planned authentication will use Entra ID's **device code flow**, with OAuth tokens stored securely in **Azure Key Vault** for subsequent reuse. These capabilities are under active development; see the [project roadmap](docs/roadmap.md) for current status.
+Authentication uses Entra ID's **device code flow**, with the resulting `AuthenticationRecord` stored securely in **Azure Key Vault** for silent re-authentication on subsequent commands.
 
 ## Table of Contents
 
@@ -33,6 +34,19 @@ Planned authentication will use Entra ID's **device code flow**, with OAuth toke
   - `People.Read`
 
 ## Installation
+
+### Download Binary
+
+Pre-built self-contained binaries for Windows and Ubuntu are available on the [GitHub Releases](https://github.com/jwendl/claw-mail-cal-cli/releases) page.
+
+1. Go to the [Releases](https://github.com/jwendl/claw-mail-cal-cli/releases) page and download the archive for your platform:
+   - `claw-mail-cal-cli-win-x64.zip` — Windows x64
+   - `claw-mail-cal-cli-linux-x64.tar.gz` — Ubuntu / Linux x64
+2. Extract the archive and place the binary somewhere on your `PATH` (for example `~/.local/bin` on Linux or `C:\tools` on Windows).
+3. Verify the installation:
+   ```bash
+   claw-mail-cal-cli --help
+   ```
 
 ### Build from Source
 
@@ -71,7 +85,83 @@ dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj \
 
 ## Configuration
 
-The CLI requires access to an Azure Key Vault to store and retrieve OAuth tokens. Configure the Key Vault URL before first use. Access to Key Vault is provided via the **Azure CLI Credential**, so you must run `az login` prior to using the tool.
+The CLI requires access to an Azure Key Vault to store and retrieve authentication records. Access to Key Vault is provided via the **Azure CLI Credential**, so you must run `az login` prior to using any command that requires authentication.
+
+> **Two configuration mechanisms exist:**
+> - **`keyVault:vaultUri` / `entra:*`** — Runtime settings read from `appsettings.json`, environment variables, or user secrets. These configure the Key Vault and Entra ID connections used by the app on startup.
+> - **`~/.claw-mail-cal-cli/config.json`** — Read only by specific commands (such as `calendar read`) for account-scoped CLI settings. This file does **not** affect the runtime Key Vault connection.
+
+### Configuration File
+
+The `~/.claw-mail-cal-cli/config.json` file is used by specific commands (for example, `calendar read`) to resolve a default account when `--account` is not provided:
+
+```json
+{
+  "keyVaultUri": "https://my-keyvault.vault.azure.net/",
+  "defaultAccount": "myaccount"
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `keyVaultUri` | **Yes** | The HTTPS URI of your Azure Key Vault, used by commands that read this file (e.g. `https://my-vault.vault.azure.net/`). |
+| `defaultAccount` | No | Account name used by the `calendar read` command when its `--account` option is not specified. Other commands use the default account set via `account set`. |
+
+### Azure Key Vault Setup
+
+1. Create an Azure Key Vault in the [Azure Portal](https://portal.azure.com) or with the Azure CLI:
+   ```bash
+   az keyvault create --name my-keyvault --resource-group my-rg --location eastus --enable-rbac-authorization true
+   ```
+2. Grant yourself the **Key Vault Secrets Officer** role (or at minimum **Key Vault Secrets User**):
+   ```bash
+   az role assignment create \
+     --role "Key Vault Secrets Officer" \
+     --assignee $(az ad signed-in-user show --query id -o tsv) \
+     --scope $(az keyvault show --name my-keyvault --query id -o tsv)
+   ```
+3. Log in with the Azure CLI:
+   ```bash
+   az login
+   ```
+4. Set `keyVault:vaultUri` via environment variable or user secrets (see [Entra ID App Registration](#entra-id-app-registration) below).
+
+### Entra ID App Registration
+
+The CLI requires a Microsoft Entra ID app registration to perform delegated authentication. Configure the app registration's client ID and tenant IDs using one of the following approaches.
+
+**Bash / Linux / macOS (environment variables):**
+
+```bash
+export keyVault__vaultUri="https://my-keyvault.vault.azure.net/"
+export entra__clientId="<your-app-registration-client-id>"
+export entra__workTenantId="<your-tenant-id>"   # For work/school accounts
+```
+
+**PowerShell / Windows (environment variables):**
+
+```powershell
+$env:keyVault__vaultUri = "https://my-keyvault.vault.azure.net/"
+$env:entra__clientId = "<your-app-registration-client-id>"
+$env:entra__workTenantId = "<your-tenant-id>"   # For work/school accounts
+```
+
+**User secrets (local development with .NET):**
+
+```bash
+cd src/ClawMailCalCli
+dotnet user-secrets set "keyVault:vaultUri" "https://my-keyvault.vault.azure.net/"
+dotnet user-secrets set "entra:clientId" "<your-app-registration-client-id>"
+dotnet user-secrets set "entra:workTenantId" "<your-tenant-id>"
+```
+
+> **Note:** Environment variables and user secrets take precedence over `appsettings.json`. The Key Vault URI used by the app (`SecretClient`) comes from the `keyVault:vaultUri` configuration (env vars / user secrets / `appsettings.json`). The `~/.claw-mail-cal-cli/config.json` file is read only by specific commands (such as `calendar read`) for account-scoped CLI settings like `keyVaultUri` and `defaultAccount`, and does **not** change the runtime Key Vault configuration.
+
+The app registration requires the following **delegated** Microsoft Graph permissions:
+
+- `Mail.ReadWrite`
+- `Calendars.ReadWrite`
+- `People.Read`
 
 ## Usage
 
@@ -109,7 +199,7 @@ Authenticate an account using Entra ID device code flow:
 claw-mail-cal-cli login <account-name>
 ```
 
-You will be prompted to visit a verification URL and enter a code. Once authenticated, the access and refresh tokens are stored in Azure Key Vault. Subsequent commands will use the cached tokens automatically, refreshing them as needed.
+You will be prompted to visit a verification URL and enter a code. Once authenticated, an `AuthenticationRecord` is stored in Azure Key Vault under the key `auth-record-{account-name}`. Subsequent commands silently re-authenticate using the cached record without requiring you to sign in again.
 
 ### Email
 
@@ -128,7 +218,7 @@ claw-mail-cal-cli email list <folder-name>
 Read a specific email:
 
 ```
-claw-mail-cal-cli email read <subject-name or unique-message-id>
+claw-mail-cal-cli email read <account-name> <subject-or-id>
 ```
 
 Send an email:
@@ -159,14 +249,16 @@ Create a calendar event:
 claw-mail-cal-cli calendar create <title> <start-date-time> <end-date-time> <content>
 ```
 
+> **Note:** `calendar create` is planned and will be available in a future release.
+
 ## Authentication Flow
 
 1. You run a command or explicitly call `login <account>`.
 2. The CLI requests a device code from Entra ID.
 3. You are prompted to visit a verification URL and enter the code.
 4. The CLI polls Entra ID until authentication is complete.
-5. Access and refresh tokens are stored in Azure Key Vault as `{account}_access_token` and `{account}_refresh_token`.
-6. Subsequent commands retrieve tokens from Key Vault without requiring re-authentication.
+5. An `AuthenticationRecord` is serialized and stored in Azure Key Vault as the secret `auth-record-{account-name}`.
+6. Subsequent commands retrieve the record from Key Vault and use it for silent re-authentication without requiring re-login.
 7. If a `401 Unauthorized` error is received from Microsoft Graph, the CLI automatically retries the login flow (up to 3 times).
 
 For a detailed diagram, see [Authentication Flow](docs/architecture/architecture.md#authentication-flow).
@@ -217,7 +309,7 @@ See [`docs/architecture/requirements.md`](docs/architecture/requirements.md) for
 
 ## Contributing
 
-Contributions are welcome! Contribution guidelines specific to this repository are being documented; in the meantime, please open an issue to discuss substantial changes before submitting a pull request.
+Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on branching, coding standards, testing requirements, and the pull request process.
 
 ## License
 
