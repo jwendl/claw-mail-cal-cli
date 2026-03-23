@@ -38,10 +38,15 @@ jobs:
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
           -o ./publish/linux-x64
 
+      - name: Package Ubuntu x64 binary
+        run: |
+          cd publish/linux-x64
+          tar -czf ../ClawMailCalCli-linux-x64.tar.gz ClawMailCalCli
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             publish/win-x64/ClawMailCalCli.exe
-            publish/linux-x64/ClawMailCalCli
+            publish/ClawMailCalCli-linux-x64.tar.gz
           generate_release_notes: true
