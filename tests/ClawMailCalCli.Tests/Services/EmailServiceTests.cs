@@ -1,7 +1,5 @@
-using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 using Microsoft.Extensions.Logging;
-using Microsoft.Graph.Models;
 
 namespace ClawMailCalCli.Tests.Services;
 
