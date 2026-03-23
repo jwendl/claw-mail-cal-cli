@@ -1,7 +1,7 @@
 namespace ClawMailCalCli.Commands.Settings;
 
 /// <summary>
-/// Settings for the <see cref="Email.ReadEmailCommand"/>.
+/// Settings for the <c>email read</c> command.
 /// </summary>
 internal sealed class ReadEmailSettings : CommandSettings
 {
