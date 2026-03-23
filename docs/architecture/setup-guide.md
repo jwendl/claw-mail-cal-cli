@@ -176,10 +176,12 @@ Create `~/.claw-mail-cal-cli/config.json` with the following content, replacing 
 
 ## Step 7 — Configure `appsettings.json`
 
-> **Why is this step needed when using Azure CLI?**  
-> Azure CLI handles the *credential* — it proves who you are to Azure. The app still needs to know *where* to connect (the Key Vault URI) and *which Entra app* to use for Microsoft Graph access (tenant ID and client ID). These values are not derived from Azure CLI login state; they must be explicitly configured.
+> **Credential separation — Key Vault vs. Microsoft Graph**  
+> **Key Vault** is accessed using your Azure CLI login (`AzureCliCredential`) — no `clientId` or `tenantId` is needed for vault access. The only Key Vault setting the app needs is `keyVault.vaultUri` so it knows *which* vault to connect to.  
+>
+> **Microsoft Graph** (email and calendar) uses a separate Entra app registration with the device code flow. That is what `entra.tenantId` and `entra.clientId` are for — they are never used for Key Vault access.
 
-Open `src/ClawMailCalCli/appsettings.json` and update the `entra` and `keyVault` sections with your Entra app registration details:
+Open `src/ClawMailCalCli/appsettings.json` and set the following values:
 
 ```json
 {
@@ -192,6 +194,12 @@ Open `src/ClawMailCalCli/appsettings.json` and update the `entra` and `keyVault`
   }
 }
 ```
+
+| Setting | Used for | Sourced from |
+|---|---|---|
+| `keyVault.vaultUri` | Locating the vault (access via Azure CLI login) | Step 4 output |
+| `entra.tenantId` | Microsoft Graph device code flow (email/calendar) | Step 5, Directory (tenant) ID |
+| `entra.clientId` | Microsoft Graph device code flow (email/calendar) | Step 5, Application (client) ID |
 
 > **Security:** Never commit real tenant IDs, client IDs, or vault URIs to source control in a shared repository. For team environments, use [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) or environment variables instead.
 
