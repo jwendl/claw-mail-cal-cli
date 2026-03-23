@@ -5,14 +5,52 @@ using Microsoft.Graph.Models.ODataErrors;
 namespace ClawMailCalCli.Services;
 
 /// <summary>
-/// Retrieves upcoming calendar events from Microsoft Graph and maps them to
-/// <see cref="CalendarEventSummary"/> instances for display.
+/// Provides business logic for calendar events — reading a single event by ID or subject
+/// and listing upcoming calendar events via Microsoft Graph.
 /// </summary>
-public class CalendarService(IGraphClientService graphClientService)
+public class CalendarService(ICalendarGraphService calendarGraphService, IGraphClientService graphClientService, ILogger<CalendarService> logger)
 	: ICalendarService
 {
+	/// <summary>
+	/// Queries whose length is at or above this threshold are treated as Graph event IDs.
+	/// Graph event IDs are typically 150+ characters long.
+	/// </summary>
+	private const int EventIdMinimumLength = 50;
+
 	private const int EventCount = 20;
 	private const int LookAheadDays = 30;
+
+	/// <inheritdoc />
+	public async Task<CalendarEvent?> ReadEventAsync(string query, string accountName, CancellationToken cancellationToken = default)
+	{
+		if (string.IsNullOrWhiteSpace(query))
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("ReadEventAsync called with an empty query for account '{AccountName}'.", accountName);
+			}
+
+			return null;
+		}
+
+		if (IsEventId(query))
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Query treated as event ID for account '{AccountName}'.", accountName);
+			}
+
+			return await calendarGraphService.GetEventByIdAsync(accountName, query, cancellationToken);
+		}
+
+		if (logger.IsEnabled(LogLevel.Debug))
+		{
+			logger.LogDebug("Query treated as title search for account '{AccountName}'.", accountName);
+		}
+
+		var events = await calendarGraphService.GetEventsBySubjectFilterAsync(accountName, query, cancellationToken);
+		return events.Count > 0 ? events[0] : null;
+	}
 
 	/// <inheritdoc />
 	public async Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(CancellationToken cancellationToken = default)
@@ -56,7 +94,6 @@ public class CalendarService(IGraphClientService graphClientService)
 		}
 		catch (InvalidOperationException)
 		{
-			// Thrown by GraphClientService when no default account is set or re-authentication fails.
 			return null;
 		}
 		catch (ODataError odataError)
@@ -65,6 +102,8 @@ public class CalendarService(IGraphClientService graphClientService)
 			return null;
 		}
 	}
+
+	private static bool IsEventId(string query) => query.Length >= EventIdMinimumLength;
 
 	private static DateTimeOffset ParseEventDateTime(Microsoft.Graph.Models.DateTimeTimeZone? dateTimeTimeZone)
 	{
@@ -78,7 +117,6 @@ public class CalendarService(IGraphClientService graphClientService)
 			return DateTimeOffset.MinValue;
 		}
 
-		// Honor the TimeZone field when present; fall back to UTC if absent or unrecognized
 		if (!string.IsNullOrWhiteSpace(dateTimeTimeZone.TimeZone))
 		{
 			try

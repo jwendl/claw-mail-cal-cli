@@ -55,10 +55,12 @@ services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
+services.AddTransient<ICalendarGraphService, CalendarGraphService>();
 services.AddSingleton<IGraphServiceClientBuilder, GraphServiceClientBuilder>();
 services.AddSingleton<IGraphClientService, GraphClientService>();
 services.AddTransient<ICalendarService, CalendarService>();
 services.AddTransient<IEmailService, EmailService>();
+services.AddSingleton<IConfigurationService, ConfigurationService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -76,8 +78,6 @@ app.Configure(config =>
 	config.SetApplicationName("claw-mail-cal-cli");
 	config.UseStrictParsing();
 
-	config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
-
 	config.AddBranch("account", account =>
 	{
 		account.AddCommand<AddAccountCommand>("add")
@@ -93,16 +93,19 @@ app.Configure(config =>
 	.WithExample("account set myaccount");
 	});
 
+	config.AddBranch("calendar", calendar =>
+	{
+		calendar.AddCommand<ReadCalendarCommand>("read")
+			.WithDescription("Read a calendar event by title or event ID.")
+			.WithExample("calendar read \"Team Meeting\"");
+		calendar.AddCommand<ListCalendarCommand>("list")
+			.WithDescription("List the next 20 upcoming calendar events.")
+			.WithExample("calendar list");
+	});
+
 	config.AddCommand<LoginCommand>("login")
 	.WithDescription("Authenticate an account using the Entra ID device code flow.")
 	.WithExample("login", "my-account");
-
-	config.AddBranch("calendar", calendar =>
-	{
-		calendar.AddCommand<ListCalendarCommand>("list")
-		.WithDescription("List the next 20 upcoming calendar events.")
-		.WithExample("calendar list");
-	});
 
 	config.AddBranch("email", email =>
 	{
