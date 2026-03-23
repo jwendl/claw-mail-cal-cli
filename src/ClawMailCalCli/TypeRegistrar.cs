@@ -4,26 +4,27 @@ namespace ClawMailCalCli;
 /// Bridges Microsoft's <see cref="IServiceCollection"/> with the Spectre.Console.Cli
 /// dependency injection model.
 /// </summary>
-internal sealed class TypeRegistrar(IServiceCollection services) : ITypeRegistrar
+internal sealed class TypeRegistrar(IServiceCollection services)
+: ITypeRegistrar
 {
 	/// <inheritdoc />
 	public ITypeResolver Build() => new TypeResolver(services.BuildServiceProvider());
 
 	/// <inheritdoc />
-	public void Register(Type service, Type implementation) => services.AddSingleton(service, implementation);
+	public void Register(Type service, Type implementation) => services.AddTransient(service, implementation);
 
 	/// <inheritdoc />
 	public void RegisterInstance(Type service, object implementation) => services.AddSingleton(service, implementation);
 
 	/// <inheritdoc />
 	public void RegisterLazy(Type service, Func<object> factory) =>
-		services.AddSingleton(service, _ => factory());
+	services.AddTransient(service, _ => factory());
 
 	/// <summary>
 	/// Resolves services from a built <see cref="IServiceProvider"/>.
 	/// </summary>
 	private sealed class TypeResolver(IServiceProvider serviceProvider)
-		: ITypeResolver, IDisposable
+	: ITypeResolver, IDisposable
 	{
 		/// <inheritdoc />
 		public object? Resolve(Type? type)

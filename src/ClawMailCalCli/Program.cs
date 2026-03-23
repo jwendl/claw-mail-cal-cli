@@ -1,17 +1,19 @@
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
+using ClawMailCalCli.Data;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 var configuration = new ConfigurationBuilder()
-	.SetBasePath(AppContext.BaseDirectory)
-	.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-	.AddEnvironmentVariables()
-	.Build();
+.SetBasePath(AppContext.BaseDirectory)
+.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+.AddEnvironmentVariables()
+.Build();
 
 var services = new ServiceCollection();
 
@@ -20,6 +22,18 @@ services.Configure<KeyVaultOptions>(configuration.GetSection("keyVault"));
 
 services.AddLogging();
 
+// SQLite database for account data (names, emails, default selection).
+// Key Vault is reserved for secrets such as OAuth tokens.
+var dbDirectory = Path.Combine(
+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+".claw-mail-cal-cli");
+Directory.CreateDirectory(dbDirectory);
+var dbPath = Path.Combine(dbDirectory, "accounts.db");
+
+services.AddDbContextFactory<ApplicationDbContext>(options =>
+options.UseSqlite($"Data Source={dbPath}"));
+
+// Key Vault client for OAuth token storage (not account data).
 services.AddSingleton(serviceProvider =>
 {
 	var keyVaultOptions = serviceProvider.GetRequiredService<IOptions<KeyVaultOptions>>().Value;
@@ -37,9 +51,17 @@ services.AddSingleton(serviceProvider =>
 });
 
 services.AddSingleton<IKeyVaultService, KeyVaultService>();
-services.AddSingleton<IAccountService, AccountService>();
+services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
+
+// Ensure the SQLite schema is up to date before running any commands.
+await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
+.UseSqlite($"Data Source={dbPath}")
+.Options))
+{
+	await startupContext.Database.EnsureCreatedAsync();
+}
 
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp<DefaultCommand>(registrar);
@@ -51,9 +73,24 @@ app.Configure(config =>
 
 	config.Settings.Registrar.Register<IConfigurationService, ConfigurationService>();
 
+	config.AddBranch("account", account =>
+	{
+		account.AddCommand<AddAccountCommand>("add")
+	.WithDescription("Add a new account.")
+	.WithExample("account add myaccount user@example.com");
+		account.AddCommand<ListAccountsCommand>("list")
+	.WithDescription("List all accounts.");
+		account.AddCommand<DeleteAccountCommand>("delete")
+	.WithDescription("Delete an account.")
+	.WithExample("account delete myaccount");
+		account.AddCommand<SetAccountCommand>("set")
+	.WithDescription("Set the default account.")
+	.WithExample("account set myaccount");
+	});
+
 	config.AddCommand<LoginCommand>("login")
-		.WithDescription("Authenticate an account using the Entra ID device code flow.")
-		.WithExample("login", "my-account");
+	.WithDescription("Authenticate an account using the Entra ID device code flow.")
+	.WithExample("login", "my-account");
 });
 
 return app.Run(args);
