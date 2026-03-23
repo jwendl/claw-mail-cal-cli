@@ -143,7 +143,7 @@ dotnet user-secrets set "entra:clientId" "<your-app-registration-client-id>"
 dotnet user-secrets set "entra:workTenantId" "<your-tenant-id>"
 ```
 
-> **Note:** Environment variables and user secrets take precedence over `appsettings.json`. The `~/.claw-mail-cal-cli/config.json` file is read by specific commands (such as `calendar read`) for account-scoped settings like `keyVaultUri` and `defaultAccount`.
+> **Note:** Environment variables and user secrets take precedence over `appsettings.json`. The Key Vault URI used by the app (`SecretClient`) comes from the `keyVault:vaultUri` configuration (env vars / user secrets / `appsettings.json`). The `~/.claw-mail-cal-cli/config.json` file is read only by specific commands (such as `calendar read`) for account-scoped CLI settings like `keyVaultUri` and `defaultAccount`, and does **not** change the runtime Key Vault configuration.
 
 The app registration requires the following **delegated** Microsoft Graph permissions:
 
