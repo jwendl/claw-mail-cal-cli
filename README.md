@@ -45,7 +45,7 @@ Pre-built self-contained binaries for Windows and Ubuntu are available on the [G
 2. Extract the archive and place the binary somewhere on your `PATH` (for example `~/.local/bin` on Linux or `C:\tools` on Windows).
 3. Verify the installation:
    ```bash
-   claw-mail-cal-cli --version
+   claw-mail-cal-cli --help
    ```
 
 ### Build from Source
