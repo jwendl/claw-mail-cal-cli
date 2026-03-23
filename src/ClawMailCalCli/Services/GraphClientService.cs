@@ -112,7 +112,11 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 			TenantId = tenantId,
 			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
 			AuthenticationRecord = authenticationRecord,
-			DeviceCodeCallback = (_, _) => Task.CompletedTask,
+			DeviceCodeCallback = (deviceCodeInfo, _) =>
+			{
+				AnsiConsole.WriteLine(deviceCodeInfo.Message);
+				return Task.CompletedTask;
+			},
 		};
 
 		var credential = new DeviceCodeCredential(credentialOptions);
