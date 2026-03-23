@@ -26,20 +26,6 @@ internal sealed class ListEmailCommand(IEmailService emailService)
 	{
 		var emails = await emailService.GetEmailsAsync(settings.FolderName, cancellationToken);
 
-		if (emails.Count == 0)
-		{
-			if (string.IsNullOrWhiteSpace(settings.FolderName))
-			{
-				AnsiConsole.MarkupLine("[yellow]No messages found in the inbox.[/]");
-			}
-			else
-			{
-				AnsiConsole.MarkupLine($"[yellow]No messages found in folder '[bold]{Markup.Escape(settings.FolderName)}[/]'.[/]");
-			}
-
-			return 0;
-		}
-
 		var table = new Table();
 		table.AddColumn("From");
 		table.AddColumn("Subject");
