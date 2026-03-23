@@ -1,7 +1,10 @@
+using ClawMailCalCli.Models;
+
 namespace ClawMailCalCli.Services;
 
 /// <summary>
-/// Provides business logic for reading calendar events from Microsoft Graph.
+/// Provides business logic for reading calendar events from Microsoft Graph
+/// and retrieving upcoming calendar events.
 /// </summary>
 public interface ICalendarService
 {
@@ -18,4 +21,12 @@ public interface ICalendarService
 	/// The first matching <see cref="CalendarEvent"/>, or <see langword="null"/> if no event was found.
 	/// </returns>
 	Task<CalendarEvent?> ReadEventAsync(string query, string accountName, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Returns the next upcoming calendar events starting from now, ordered by start date/time ascending.
+	/// Returns <see langword="null"/> if the operation could not be completed (e.g., no default account set
+	/// or authentication error).
+	/// </summary>
+	/// <param name="cancellationToken">Cancellation token.</param>
+	Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(CancellationToken cancellationToken = default);
 }

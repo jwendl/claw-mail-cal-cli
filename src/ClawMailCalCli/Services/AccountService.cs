@@ -178,6 +178,20 @@ public class AccountService(IDbContextFactory<ApplicationDbContext> dbContextFac
 		return true;
 	}
 
+	/// <inheritdoc />
+	public async Task<Account?> GetDefaultAccountAsync(CancellationToken cancellationToken = default)
+	{
+		await using var context = await dbContextFactory.CreateDbContextAsync(cancellationToken);
+
+		var entity = await context.Accounts.FirstOrDefaultAsync(a => a.IsDefault, cancellationToken);
+		if (entity is null)
+		{
+			return null;
+		}
+
+		return new Account(entity.Name, entity.Email, entity.Type);
+	}
+
 	private static bool TryNormalizeName(string name, out string normalizedName)
 	{
 		var trimmed = name.Trim().ToLowerInvariant();
@@ -190,4 +204,5 @@ public class AccountService(IDbContextFactory<ApplicationDbContext> dbContextFac
 		normalizedName = trimmed;
 		return true;
 	}
+
 }
