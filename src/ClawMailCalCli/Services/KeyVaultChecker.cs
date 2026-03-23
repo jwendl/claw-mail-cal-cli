@@ -27,7 +27,11 @@ public class KeyVaultChecker
 			// Both cases mean the vault endpoint is accessible.
 			return true;
 		}
-		catch (Exception exception) when (exception is not null)
+		catch (OperationCanceledException operationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception exception)
 		{
 			return false;
 		}
