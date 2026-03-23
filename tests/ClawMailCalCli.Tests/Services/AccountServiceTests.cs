@@ -543,6 +543,26 @@ public class AccountServiceTests : IAsyncLifetime
 	}
 
 	[Fact]
+	public async Task GetDefaultAccountAsync_WhenDefaultAccountIsSet_ReturnsDefaultAccount()
+	{
+		// Arrange
+		using (var context = _dbContextFactory.CreateDbContext())
+		{
+			context.Accounts.Add(new AccountEntity { Name = "myaccount", Email = "user@example.com", Type = AccountType.Personal, IsDefault = true });
+			await context.SaveChangesAsync();
+		}
+
+		// Act
+		var result = await _accountService.GetDefaultAccountAsync();
+
+		// Assert
+		result.Should().NotBeNull();
+		result!.Name.Should().Be("myaccount");
+		result.Email.Should().Be("user@example.com");
+		result.Type.Should().Be(AccountType.Personal);
+	}
+
+	[Fact]
 	public async Task GetDefaultAccountAsync_WhenDefaultIsSet_ReturnsDefaultAccount()
 	{
 		// Arrange
