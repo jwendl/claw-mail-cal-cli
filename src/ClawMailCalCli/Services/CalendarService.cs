@@ -139,7 +139,7 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 		{
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
-				logger.LogWarning(invalidOperationException, "Could not create calendar event '{Title}': no default account configured.", title);
+				logger.LogWarning(invalidOperationException, "Could not create calendar event '{Title}': {ErrorMessage}", title, invalidOperationException.Message);
 			}
 
 			return null;
