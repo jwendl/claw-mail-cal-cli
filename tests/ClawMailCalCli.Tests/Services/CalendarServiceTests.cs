@@ -353,6 +353,52 @@ public class CalendarServiceTests
 		result.Should().HaveCount(5);
 	}
 
+	[Fact]
+	public async Task GetUpcomingEventsAsync_WithNonUtcTimezone_AppliesTimezoneOffset()
+	{
+		// Arrange — "Eastern Standard Time" is UTC-5; 09:00 EST = 14:00 UTC
+		var graphEvent = new Event
+		{
+			Subject = "EST Meeting",
+			IsAllDay = false,
+			Start = new DateTimeTimeZone { DateTime = "2025-03-22T09:00:00", TimeZone = "Eastern Standard Time" },
+			End = new DateTimeTimeZone { DateTime = "2025-03-22T10:00:00", TimeZone = "Eastern Standard Time" },
+			Location = null,
+		};
+		SetupGraphResponse([graphEvent]);
+
+		// Act
+		var result = await _calendarService.GetUpcomingEventsAsync();
+
+		// Assert — offset should be -5:00 and the local hour should be 9
+		result.Should().HaveCount(1);
+		result![0].Start.Hour.Should().Be(9);
+		result[0].Start.Offset.Should().Be(TimeSpan.FromHours(-5));
+	}
+
+	[Fact]
+	public async Task GetUpcomingEventsAsync_WithUnrecognizedTimezone_TreatsAsUtc()
+	{
+		// Arrange — unknown timezone should fall back to UTC
+		var graphEvent = new Event
+		{
+			Subject = "Unknown TZ Meeting",
+			IsAllDay = false,
+			Start = new DateTimeTimeZone { DateTime = "2025-03-22T09:00:00", TimeZone = "Imaginary/Timezone" },
+			End = new DateTimeTimeZone { DateTime = "2025-03-22T10:00:00", TimeZone = "Imaginary/Timezone" },
+			Location = null,
+		};
+		SetupGraphResponse([graphEvent]);
+
+		// Act
+		var result = await _calendarService.GetUpcomingEventsAsync();
+
+		// Assert — falls back to UTC offset of 0
+		result.Should().HaveCount(1);
+		result![0].Start.Offset.Should().Be(TimeSpan.Zero);
+		result[0].Start.Hour.Should().Be(9);
+	}
+
 	private void SetupGraphResponse(List<Event> events)
 	{
 		_mockGraphClientService

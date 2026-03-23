@@ -6,6 +6,7 @@ using Microsoft.Graph;
 using Microsoft.Graph.Me.CalendarView;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
+using Microsoft.Kiota.Abstractions;
 
 namespace ClawMailCalCli.Services;
 
@@ -49,24 +50,25 @@ public class GraphClientService(IAccountService accountService, IKeyVaultService
 				config.QueryParameters.Orderby = ["start/dateTime asc"];
 			}, cancellationToken);
 		}
-		catch (ODataError odataError) when (odataError.ResponseStatusCode == 401)
+		catch (ApiException apiException) when (apiException.ResponseStatusCode == 401)
 		{
 			AnsiConsole.MarkupLine($"[red]Error:[/] Authentication failed for account '[bold]{defaultAccount.Name}[/]'. Run [bold]claw-mail-cal-cli login {defaultAccount.Name}[/] to re-authenticate.");
 
 			if (logger.IsEnabled(LogLevel.Debug))
 			{
-				logger.LogDebug(odataError, "401 Unauthorized from Microsoft Graph for account '{AccountName}'.", defaultAccount.Name);
+				logger.LogDebug(apiException, "401 Unauthorized from Microsoft Graph for account '{AccountName}'.", defaultAccount.Name);
 			}
 
 			return null;
 		}
-		catch (ODataError odataError)
+		catch (ApiException apiException)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
+			var errorMessage = apiException is ODataError odataError ? odataError.Error?.Message ?? apiException.Message : apiException.Message;
+			AnsiConsole.MarkupLine($"[red]Error:[/] Microsoft Graph returned an error: {errorMessage}");
 
 			if (logger.IsEnabled(LogLevel.Warning))
 			{
-				logger.LogWarning(odataError, "Graph API error for account '{AccountName}'.", defaultAccount.Name);
+				logger.LogWarning(apiException, "Graph API error for account '{AccountName}'.", defaultAccount.Name);
 			}
 
 			return null;

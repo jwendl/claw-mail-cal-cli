@@ -1,3 +1,4 @@
+using System.Globalization;
 using ClawMailCalCli.Models;
 
 namespace ClawMailCalCli.Services;
@@ -54,11 +55,26 @@ public class CalendarService(IGraphClientService graphClientService)
 			return DateTimeOffset.MinValue;
 		}
 
-		if (DateTime.TryParse(dateTimeTimeZone.DateTime, null, System.Globalization.DateTimeStyles.AssumeUniversal, out var parsed))
+		if (!DateTime.TryParse(dateTimeTimeZone.DateTime, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var parsed))
 		{
-			return new DateTimeOffset(parsed, TimeSpan.Zero);
+			return DateTimeOffset.MinValue;
 		}
 
-		return DateTimeOffset.MinValue;
+		// Honor the TimeZone field when present; fall back to UTC if absent or unrecognized
+		if (!string.IsNullOrWhiteSpace(dateTimeTimeZone.TimeZone))
+		{
+			try
+			{
+				var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(dateTimeTimeZone.TimeZone);
+				var unspecifiedDateTime = DateTime.SpecifyKind(parsed, DateTimeKind.Unspecified);
+				return new DateTimeOffset(unspecifiedDateTime, timeZoneInfo.GetUtcOffset(unspecifiedDateTime));
+			}
+			catch (Exception exception) when (exception is TimeZoneNotFoundException or InvalidTimeZoneException)
+			{
+				// Unrecognized timezone — fall through and treat as UTC
+			}
+		}
+
+		return new DateTimeOffset(DateTime.SpecifyKind(parsed, DateTimeKind.Utc), TimeSpan.Zero);
 	}
 }
