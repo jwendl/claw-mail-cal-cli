@@ -1,0 +1,119 @@
+using ClawMailCalCli.Models;
+using HtmlAgilityPack;
+using Microsoft.Extensions.Logging;
+using Microsoft.Graph.Models;
+
+namespace ClawMailCalCli.Services;
+
+/// <summary>
+/// Implements email read operations using the Microsoft Graph API.
+/// </summary>
+public class EmailService(IGraphClientService graphClientService, ILogger<EmailService> logger)
+	: IEmailService
+{
+	private static readonly string[] MessageSelect =
+	[
+		"id",
+		"subject",
+		"from",
+		"toRecipients",
+		"receivedDateTime",
+		"body",
+		"bodyPreview",
+	];
+
+	/// <inheritdoc />
+	public async Task<EmailMessage?> ReadEmailAsync(string accountName, string subjectOrId, CancellationToken cancellationToken = default)
+	{
+		var graphClient = await graphClientService.GetClientAsync(accountName, cancellationToken);
+
+		if (LooksLikeMessageId(subjectOrId))
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Fetching email by ID for account '{AccountName}'.", accountName);
+			}
+
+			var message = await graphClient.Me.Messages[subjectOrId].GetAsync(config =>
+			{
+				config.QueryParameters.Select = MessageSelect;
+			}, cancellationToken);
+
+			return message is null ? null : MapToEmailMessage(message);
+		}
+		else
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Searching email by subject for account '{AccountName}'.", accountName);
+			}
+
+			var escapedSubject = subjectOrId.Replace("'", "''");
+			var response = await graphClient.Me.Messages.GetAsync(config =>
+			{
+				config.QueryParameters.Filter = $"contains(subject, '{escapedSubject}')";
+				config.QueryParameters.Select = MessageSelect;
+				config.QueryParameters.Top = 1;
+			}, cancellationToken);
+
+			var firstMessage = response?.Value?.FirstOrDefault();
+			return firstMessage is null ? null : MapToEmailMessage(firstMessage);
+		}
+	}
+
+	/// <summary>
+	/// Determines whether the given string looks like a Graph message ID rather than a subject.
+	/// Graph message IDs are long Base64-encoded strings that contain '=' padding characters.
+	/// </summary>
+	internal static bool LooksLikeMessageId(string value) =>
+		value.Contains('=') || value.Length >= MessageIdMinLength;
+
+	/// <summary>
+	/// Minimum length of a string to be considered a Graph message ID.
+	/// Graph message IDs are long Base64-encoded strings, typically over 100 characters.
+	/// </summary>
+	private const int MessageIdMinLength = 100;
+
+	/// <summary>
+	/// Strips HTML tags from the given HTML content and returns plain text.
+	/// </summary>
+	internal static string StripHtml(string html)
+	{
+		if (string.IsNullOrWhiteSpace(html))
+		{
+			return string.Empty;
+		}
+
+		var htmlDocument = new HtmlDocument();
+		htmlDocument.LoadHtml(html);
+
+		var plainText = htmlDocument.DocumentNode.InnerText;
+		return System.Net.WebUtility.HtmlDecode(plainText).Trim();
+	}
+
+	private static EmailMessage MapToEmailMessage(Message message)
+	{
+		var from = message.From?.EmailAddress?.Address ?? string.Empty;
+		var to = string.Join(", ", message.ToRecipients?
+			.Select(r => r.EmailAddress?.Address ?? string.Empty)
+			.Where(a => !string.IsNullOrWhiteSpace(a))
+			?? []);
+
+		var bodyContent = message.Body?.ContentType == BodyType.Html
+			? StripHtml(message.Body.Content ?? string.Empty)
+			: message.Body?.Content ?? string.Empty;
+
+		if (string.IsNullOrWhiteSpace(bodyContent))
+		{
+			bodyContent = message.BodyPreview ?? string.Empty;
+		}
+
+		return new EmailMessage(
+			Id: message.Id ?? string.Empty,
+			Subject: message.Subject ?? string.Empty,
+			From: from,
+			To: to,
+			ReceivedDateTime: message.ReceivedDateTime,
+			Body: bodyContent);
+	}
+}
