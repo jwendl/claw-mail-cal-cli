@@ -204,4 +204,5 @@ public class AccountService(IDbContextFactory<ApplicationDbContext> dbContextFac
 		normalizedName = trimmed;
 		return true;
 	}
+
 }

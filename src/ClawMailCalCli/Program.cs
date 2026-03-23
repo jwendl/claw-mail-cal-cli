@@ -54,7 +54,8 @@ services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
-services.AddTransient<IGraphClientService, GraphClientService>();
+services.AddSingleton<IGraphServiceClientBuilder, GraphServiceClientBuilder>();
+services.AddSingleton<IGraphClientService, GraphClientService>();
 services.AddTransient<IEmailService, EmailService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
@@ -98,7 +99,15 @@ app.Configure(config =>
 	{
 		email.AddCommand<SendEmailCommand>("send")
 		.WithDescription("Send an email via Microsoft Graph.")
-		.WithExample("email send user@example.com \"Hello\" \"This is the body.\"");	});
+		.WithExample("email send user@example.com \"Hello\" \"This is the body.\"");
+		email.AddCommand<ListEmailCommand>("list")
+		.WithDescription("List the 20 most recent messages from the inbox or a named folder.")
+		.WithExample("email list")
+		.WithExample("email list", "sentitems");
+		email.AddCommand<ReadEmailCommand>("read")
+		.WithDescription("Read an email by subject or message ID.")
+		.WithExample("email", "read", "my-account", "Meeting notes");
+	});
 });
 
 return app.Run(args);

@@ -1,126 +1,55 @@
-using Azure.Identity;
-using ClawMailCalCli.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Microsoft.Graph;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Services;
 
 /// <summary>
-/// Builds an authenticated <see cref="GraphServiceClient"/> using the stored
-/// <see cref="AuthenticationRecord"/> for the default account.
+/// Wraps Microsoft Graph API calls with automatic 401 Unauthorized retry and re-authentication.
+/// When a 401 is received the default account is re-authenticated and the operation is retried once.
 /// </summary>
-public class GraphClientService(IAccountService accountService, IKeyVaultService keyVaultService, IOptions<EntraOptions> entraOptions, ILogger<GraphClientService> logger)
+public class GraphClientService(IAccountService accountService, IGraphServiceClientBuilder graphServiceClientBuilder, IAuthenticationService authenticationService, ILogger<GraphClientService> logger)
 	: IGraphClientService
 {
-	private static readonly string[] GraphScopes =
-	[
-		"https://graph.microsoft.com/Mail.Send",
-	];
-
-	private static string AuthRecordSecretName(string accountName)
-	{
-		KeyVaultNameValidator.EnsureValid(accountName);
-		return $"auth-record-{accountName}";
-	}
-
 	/// <inheritdoc />
-	public async Task<GraphServiceClient?> GetClientForDefaultAccountAsync(CancellationToken cancellationToken = default)
+	public async Task<T> ExecuteWithRetryAsync<T>(Func<GraphServiceClient, Task<T>> operation, CancellationToken cancellationToken = default)
 	{
 		var defaultAccount = await accountService.GetDefaultAccountAsync(cancellationToken);
 		if (defaultAccount is null)
 		{
-			if (logger.IsEnabled(LogLevel.Warning))
-			{
-				logger.LogWarning("No default account is configured.");
-			}
-
-			return null;
+			AnsiConsole.MarkupLine("[red]Error:[/] No default account is set. Run [bold]account set <name>[/] to choose an account.");
+			throw new InvalidOperationException("No default account configured. Run 'account set <name>' to choose one.");
 		}
 
-		var authRecord = await LoadAuthenticationRecordAsync(defaultAccount.Name, cancellationToken);
-		if (authRecord is null)
+		var graphClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
+		if (graphClient is null)
 		{
-			return null;
-		}
-
-		var options = entraOptions.Value;
-		var tenantId = defaultAccount.Type == AccountType.Personal
-			? options.PersonalTenantId
-			: options.WorkTenantId;
-
-		var credentialOptions = new DeviceCodeCredentialOptions
-		{
-			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
-			ClientId = options.ClientId,
-			TenantId = tenantId,
-			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
-			AuthenticationRecord = authRecord,
-			DeviceCodeCallback = (deviceCodeInfo, _) =>
-			{
-				AnsiConsole.MarkupLine($"[bold]Re-authentication required for account '[yellow]{Markup.Escape(defaultAccount.Name)}[/]':[/]");
-				AnsiConsole.MarkupLine(Markup.Escape(deviceCodeInfo.Message));
-				return Task.CompletedTask;
-			},
-		};
-
-		var credential = new DeviceCodeCredential(credentialOptions);
-		return new GraphServiceClient(credential, GraphScopes);
-	}
-
-	private async Task<AuthenticationRecord?> LoadAuthenticationRecordAsync(string accountName, CancellationToken cancellationToken)
-	{
-		string secretName;
-		try
-		{
-			secretName = AuthRecordSecretName(accountName);
-		}
-		catch (ArgumentException argumentException)
-		{
-			if (logger.IsEnabled(LogLevel.Warning))
-			{
-				logger.LogWarning(argumentException, "Account name '{AccountName}' is not valid for use in a Key Vault secret name.", accountName);
-			}
-
-			return null;
-		}
-
-		var secretValue = await keyVaultService.GetSecretAsync(secretName, cancellationToken);
-		if (string.IsNullOrWhiteSpace(secretValue))
-		{
-			if (logger.IsEnabled(LogLevel.Warning))
-			{
-				logger.LogWarning("No authentication record found for account '{AccountName}'. Run 'login <account-name>' to authenticate.", accountName);
-			}
-
-			return null;
+			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[bold]{Markup.Escape(defaultAccount.Name)}[/]' is not authenticated. Run [bold]login {Markup.Escape(defaultAccount.Name)}[/] first.");
+			throw new InvalidOperationException($"Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
 		}
 
 		try
 		{
-			var recordBytes = Convert.FromBase64String(secretValue);
-			using var memoryStream = new MemoryStream(recordBytes);
-			return await AuthenticationRecord.DeserializeAsync(memoryStream, cancellationToken);
+			return await operation(graphClient);
 		}
-		catch (FormatException formatException)
+		catch (ODataError odataError) when (odataError.ResponseStatusCode == 401)
 		{
-			if (logger.IsEnabled(LogLevel.Warning))
+			if (logger.IsEnabled(LogLevel.Information))
 			{
-				logger.LogWarning(formatException, "Cached authentication data for account '{AccountName}' is not valid Base64. User must re-authenticate.", accountName);
+				logger.LogInformation("Received 401 Unauthorized for account '{AccountName}'. Triggering re-authentication.", defaultAccount.Name);
 			}
 
-			AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{Markup.Escape(accountName)}[/]' is invalid. Please re-authenticate by running '[bold]login {Markup.Escape(accountName)}[/]'.");
-			return null;
-		}
-		catch (Exception deserializationException)
-		{
-			if (logger.IsEnabled(LogLevel.Warning))
+			AnsiConsole.MarkupLine($"[yellow]Session expired for account '[bold]{Markup.Escape(defaultAccount.Name)}[/]'. Re-authenticating...[/]");
+			await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken);
+
+			var retryClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
+			if (retryClient is null)
 			{
-				logger.LogWarning(deserializationException, "Failed to deserialize cached AuthenticationRecord for account '{AccountName}'. User must re-authenticate.", accountName);
+				AnsiConsole.MarkupLine("[red]Error:[/] Re-authentication failed. Please run [bold]login[/] manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' manually.");
 			}
 
-			AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{Markup.Escape(accountName)}[/]' could not be loaded. Please re-authenticate by running '[bold]login {Markup.Escape(accountName)}[/]'.");
-			return null;
+			return await operation(retryClient);
 		}
 	}
 }
