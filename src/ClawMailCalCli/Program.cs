@@ -18,7 +18,6 @@ var configuration = new ConfigurationBuilder()
 
 var services = new ServiceCollection();
 
-services.Configure<EntraOptions>(configuration.GetSection("entra"));
 services.Configure<KeyVaultOptions>(configuration.GetSection("keyVault"));
 
 services.AddLogging();

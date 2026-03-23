@@ -176,40 +176,54 @@ Create `~/.claw-mail-cal-cli/config.json` with the following content, replacing 
 
 ## Step 7 — Configure `appsettings.json`
 
-> **Credential separation — Key Vault vs. Microsoft Graph**  
-> **Key Vault** is accessed using your Azure CLI login (`AzureCliCredential`) — no `clientId` or `tenantId` is needed for vault access. The only Key Vault setting the app needs is `keyVault.vaultUri` so it knows *which* vault to connect to.  
->
-> **Microsoft Graph** (email and calendar) uses a separate Entra app registration with the device code flow. That is what `entra.tenantId` and `entra.clientId` are for — they are never used for Key Vault access.
+`appsettings.json` only needs the Key Vault URI. The Entra app client ID and tenant ID are stored **directly in Key Vault** as secrets, so they are never needed in configuration files.
 
-Open `src/ClawMailCalCli/appsettings.json` and set the following values:
+Open `src/ClawMailCalCli/appsettings.json` and set:
 
 ```json
 {
-  "entra": {
-    "tenantId": "<your-tenant-id>",
-    "clientId": "<your-app-client-id>"
-  },
   "keyVault": {
     "vaultUri": "https://<your-unique-vault-name>.vault.azure.net/"
   }
 }
 ```
 
-| Setting | Used for | Sourced from |
-|---|---|---|
-| `keyVault.vaultUri` | Locating the vault (access via Azure CLI login) | Step 4 output |
-| `entra.tenantId` | Microsoft Graph device code flow (email/calendar) | Step 5, Directory (tenant) ID |
-| `entra.clientId` | Microsoft Graph device code flow (email/calendar) | Step 5, Application (client) ID |
-
-> **Security:** Never commit real tenant IDs, client IDs, or vault URIs to source control in a shared repository. For team environments, use [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) or environment variables instead.
-
-To configure using environment variables instead of editing `appsettings.json`:
+To use an environment variable instead:
 
 ```bash
-export entra__tenantId="<your-tenant-id>"
-export entra__clientId="<your-app-client-id>"
 export keyVault__vaultUri="https://<your-unique-vault-name>.vault.azure.net/"
 ```
+
+> **Security:** Never commit real vault URIs to source control in a shared repository. For team environments, use [.NET User Secrets](https://learn.microsoft.com/en-us/aspnet/core/security/app-secrets) or environment variables.
+
+### Store Entra credentials in Key Vault
+
+The Entra application client ID and tenant ID are read from Key Vault secrets at runtime. The secret names are prefixed by account type:
+
+| Account type | Client ID secret | Tenant ID secret |
+|---|---|---|
+| Personal (Hotmail / Outlook.com) | `hotmail-client-id` | `hotmail-tenant-id` |
+| Work / school (Exchange Online) | `exchange-client-id` | `exchange-tenant-id` |
+
+Create each secret in your vault with `az keyvault secret set`:
+
+```bash
+VAULT_NAME="<your-unique-vault-name>"
+
+# Personal accounts (Hotmail / Outlook.com)
+az keyvault secret set --vault-name "$VAULT_NAME" \
+  --name "hotmail-client-id" --value "<your-entra-app-client-id>"
+az keyvault secret set --vault-name "$VAULT_NAME" \
+  --name "hotmail-tenant-id" --value "common"
+
+# Work / school accounts (Exchange Online)
+az keyvault secret set --vault-name "$VAULT_NAME" \
+  --name "exchange-client-id" --value "<your-entra-app-client-id>"
+az keyvault secret set --vault-name "$VAULT_NAME" \
+  --name "exchange-tenant-id" --value "<your-organisation-tenant-id>"
+```
+
+> **Tip:** If all your accounts use the same Entra app registration (common for personal setups), use the same client ID for both `hotmail-client-id` and `exchange-client-id`.
 
 ---
 

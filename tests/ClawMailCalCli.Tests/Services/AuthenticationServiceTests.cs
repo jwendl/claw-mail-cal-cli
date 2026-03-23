@@ -2,7 +2,6 @@ using Azure.Identity;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace ClawMailCalCli.Tests.Services;
 
@@ -15,7 +14,6 @@ public class AuthenticationServiceTests
 	private readonly Mock<IAccountService> _mockAccountService;
 	private readonly Mock<IKeyVaultService> _mockKeyVaultService;
 	private readonly Mock<IDeviceCodeCredentialProvider> _mockDeviceCodeCredentialProvider;
-	private readonly IOptions<EntraOptions> _entraOptions;
 	private readonly ILogger<AuthenticationService> _logger;
 
 	public AuthenticationServiceTests()
@@ -23,13 +21,21 @@ public class AuthenticationServiceTests
 		_mockAccountService = new Mock<IAccountService>();
 		_mockKeyVaultService = new Mock<IKeyVaultService>();
 		_mockDeviceCodeCredentialProvider = new Mock<IDeviceCodeCredentialProvider>();
-		_entraOptions = Options.Create(new EntraOptions
-		{
-			ClientId = "test-client-id",
-			PersonalTenantId = "common",
-			WorkTenantId = "test-work-tenant-id",
-		});
 		_logger = new NullLogger<AuthenticationService>();
+
+		// Default setups for Key Vault credential secrets — tests can override as needed.
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("hotmail-client-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync("test-personal-client-id");
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("hotmail-tenant-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync("common");
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("exchange-client-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync("test-work-client-id");
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("exchange-tenant-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync("test-work-tenant-id");
 	}
 
 	private AuthenticationService CreateAuthenticationService() =>
@@ -37,7 +43,6 @@ public class AuthenticationServiceTests
 			_mockAccountService.Object,
 			_mockKeyVaultService.Object,
 			_mockDeviceCodeCredentialProvider.Object,
-			_entraOptions,
 			_logger);
 
 	[Fact]
@@ -121,7 +126,7 @@ public class AuthenticationServiceTests
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(
 				It.Is<DeviceCodeCredentialOptions>(options =>
-					options.ClientId == "test-client-id" &&
+					options.ClientId == "test-personal-client-id" &&
 					options.TenantId == "common"),
 				It.IsAny<string[]>(),
 				It.IsAny<CancellationToken>()),
@@ -248,7 +253,7 @@ public class AuthenticationServiceTests
 			.ReturnsAsync(account);
 
 		_mockKeyVaultService
-			.Setup(keyVaultService => keyVaultService.GetSecretAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-personal-account", It.IsAny<CancellationToken>()))
 			.ReturnsAsync((string?)null);
 
 		var fakeRecord = BuildFakeAuthenticationRecord();
