@@ -3,6 +3,7 @@ using ClawMailCalCli.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
+using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Tests.Services;
 
@@ -591,6 +592,115 @@ public class CalendarServiceTests
 		result.Should().HaveCount(1);
 		result![0].Start.Offset.Should().Be(TimeSpan.Zero);
 		result[0].Start.Hour.Should().Be(9);
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenGraphReturnsEvent_ReturnsEventId()
+	{
+		// Arrange
+		var createdEvent = new Event { Id = "new-event-id-12345", Subject = "Team Meeting" };
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(createdEvent);
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
+
+		// Assert
+		result.Should().Be("new-event-id-12345");
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenGraphReturnsNull_ReturnsNull()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync((Event?)null);
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenInvalidOperationExceptionThrown_ReturnsNull()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("No default account configured."));
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenODataErrorThrown_ReturnsNull()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new ODataError { ResponseStatusCode = 400 });
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_CallsExecuteWithRetryAsyncOnce()
+	{
+		// Arrange
+		var createdEvent = new Event { Id = "event-abc" };
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(createdEvent);
+
+		// Act
+		await _calendarService.CreateEventAsync("Budget Review", new DateTimeOffset(2026, 4, 1, 10, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 4, 1, 11, 0, 0, TimeSpan.Zero), "Q2 budget sync");
+
+		// Assert
+		_mockGraphClientService.Verify(
+			graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task CreateEventAsync_WhenEventHasNullId_ReturnsNull()
+	{
+		// Arrange
+		var createdEvent = new Event { Id = null, Subject = "Team Meeting" };
+		_mockGraphClientService
+			.Setup(graphClientService => graphClientService.ExecuteWithRetryAsync(
+				It.IsAny<Func<GraphServiceClient, Task<Event?>>>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync(createdEvent);
+
+		// Act
+		var result = await _calendarService.CreateEventAsync("Team Meeting", new DateTimeOffset(2026, 3, 25, 9, 0, 0, TimeSpan.Zero), new DateTimeOffset(2026, 3, 25, 9, 30, 0, TimeSpan.Zero), "Weekly team sync");
+
+		// Assert
+		result.Should().BeNull();
 	}
 
 	private static CalendarEvent CreateTestCalendarEvent(string id, string subject) =>

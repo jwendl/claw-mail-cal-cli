@@ -1,5 +1,6 @@
 using System.Globalization;
 using ClawMailCalCli.Models;
+using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 
 namespace ClawMailCalCli.Services;
@@ -104,6 +105,55 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 	}
 
 	private static bool IsEventId(string query) => query.Length >= EventIdMinimumLength;
+
+	/// <inheritdoc />
+	public async Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			var newEvent = new Event
+			{
+				Subject = title,
+				Start = new DateTimeTimeZone { DateTime = startDateTime.UtcDateTime.ToString("o"), TimeZone = "UTC" },
+				End = new DateTimeTimeZone { DateTime = endDateTime.UtcDateTime.ToString("o"), TimeZone = "UTC" },
+				Body = new ItemBody { ContentType = BodyType.Text, Content = content },
+			};
+
+			var createdEvent = await graphClientService.ExecuteWithRetryAsync(
+				async graphClient => await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken),
+				cancellationToken);
+
+			if (createdEvent is null)
+			{
+				if (logger.IsEnabled(LogLevel.Warning))
+				{
+					logger.LogWarning("Graph API returned a null response when creating calendar event '{Title}'.", title);
+				}
+
+				return null;
+			}
+
+			return createdEvent.Id;
+		}
+		catch (InvalidOperationException invalidOperationException)
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning(invalidOperationException, "Could not create calendar event '{Title}': {ErrorMessage}", title, invalidOperationException.Message);
+			}
+
+			return null;
+		}
+		catch (ODataError odataError)
+		{
+			if (logger.IsEnabled(LogLevel.Error))
+			{
+				logger.LogError(odataError, "Graph API error while creating calendar event '{Title}'.", title);
+			}
+
+			return null;
+		}
+	}
 
 	private static DateTimeOffset ParseEventDateTime(Microsoft.Graph.Models.DateTimeTimeZone? dateTimeTimeZone)
 	{
