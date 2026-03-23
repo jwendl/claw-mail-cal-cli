@@ -1,6 +1,7 @@
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
+using ClawMailCalCli.Commands.Calendar;
 using ClawMailCalCli.Data;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
@@ -54,6 +55,8 @@ services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
+services.AddTransient<IGraphClientService, GraphClientService>();
+services.AddTransient<ICalendarService, CalendarService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -91,6 +94,13 @@ app.Configure(config =>
 	config.AddCommand<LoginCommand>("login")
 	.WithDescription("Authenticate an account using the Entra ID device code flow.")
 	.WithExample("login", "my-account");
+
+	config.AddBranch("calendar", calendar =>
+	{
+		calendar.AddCommand<ListCalendarCommand>("list")
+		.WithDescription("List the next 20 upcoming calendar events.")
+		.WithExample("calendar list");
+	});
 });
 
 return app.Run(args);
