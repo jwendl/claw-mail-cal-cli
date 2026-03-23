@@ -107,7 +107,7 @@ The CLI reads startup settings from `~/.claw-mail-cal-cli/config.json`. Create t
 
 1. Create an Azure Key Vault in the [Azure Portal](https://portal.azure.com) or with the Azure CLI:
    ```bash
-   az keyvault create --name my-keyvault --resource-group my-rg --location eastus
+   az keyvault create --name my-keyvault --resource-group my-rg --location eastus --enable-rbac-authorization true
    ```
 2. Grant yourself the **Key Vault Secrets Officer** role (or at minimum **Key Vault Secrets User**):
    ```bash
