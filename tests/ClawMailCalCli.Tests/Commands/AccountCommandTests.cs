@@ -29,7 +29,7 @@ public class AccountCommandTests
 		var remainingArguments = Mock.Of<IRemainingArguments>();
 		return (CommandContext)Activator.CreateInstance(
 			typeof(CommandContext),
-			BindingFlags.Instance | BindingFlags.Public,
+			BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic,
 			binder: null,
 			args: [Array.Empty<string>(), remainingArguments, "command", null],
 			culture: null)!;
