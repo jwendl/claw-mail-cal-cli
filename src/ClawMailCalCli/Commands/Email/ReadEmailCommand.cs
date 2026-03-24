@@ -1,4 +1,4 @@
-using ClawMailCalCli.Commands.Settings;
+﻿using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Services;
 
 namespace ClawMailCalCli.Commands.Email;
@@ -7,7 +7,7 @@ namespace ClawMailCalCli.Commands.Email;
 /// Reads a single email message by subject or Graph message ID.
 /// Usage: <c>claw-mail-cal-cli email read <account-name> <subject-or-id></c>
 /// </summary>
-internal sealed class ReadEmailCommand(IEmailService emailService)
+internal sealed class ReadEmailCommand(IEmailService emailService, IOutputService outputService)
 	: AsyncCommand<ReadEmailSettings>
 {
 	/// <inheritdoc />
@@ -17,8 +17,14 @@ internal sealed class ReadEmailCommand(IEmailService emailService)
 
 		if (message is null)
 		{
-			AnsiConsole.MarkupLine($"[yellow]No message found matching:[/] [bold]{Markup.Escape(settings.SubjectOrId)}[/]");
+			outputService.WriteError($"No message found matching: {settings.SubjectOrId}");
 			return 1;
+		}
+
+		if (settings.Json)
+		{
+			outputService.WriteJson(message);
+			return 0;
 		}
 
 		var receivedDisplay = message.ReceivedDateTime.HasValue

@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Commands.Settings;
+﻿namespace ClawMailCalCli.Commands.Settings;
 
 /// <summary>
 /// Settings for the <c>email list</c> command.
@@ -11,4 +11,10 @@ internal sealed class ListEmailSettings
 	/// </summary>
 	[CommandArgument(0, "[folder-name]")]
 	public string? FolderName { get; set; }
+
+	/// <summary>
+	/// When <see langword="true"/>, outputs raw JSON to stdout instead of a formatted table.
+	/// </summary>
+	[CommandOption("--json")]
+	public bool Json { get; init; }
 }

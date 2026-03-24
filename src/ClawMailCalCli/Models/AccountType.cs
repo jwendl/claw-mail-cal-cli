@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Models;
+﻿namespace ClawMailCalCli.Models;
 
 /// <summary>
 /// Represents the type of a Microsoft account.

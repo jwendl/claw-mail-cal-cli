@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Models;
+﻿namespace ClawMailCalCli.Models;
 
 /// <summary>
 /// Represents a read email message fetched from the Microsoft Graph API.

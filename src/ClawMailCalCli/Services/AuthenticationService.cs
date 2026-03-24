@@ -1,4 +1,4 @@
-using Azure.Identity;
+﻿using Azure.Identity;
 using ClawMailCalCli.Models;
 using Microsoft.Extensions.Logging;
 

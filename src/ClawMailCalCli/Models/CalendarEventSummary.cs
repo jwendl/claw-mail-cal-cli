@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Models;
+﻿namespace ClawMailCalCli.Models;
 
 /// <summary>
 /// A lightweight summary of a calendar event used for display purposes.

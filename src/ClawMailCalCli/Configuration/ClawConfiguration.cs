@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Configuration;
+﻿namespace ClawMailCalCli.Configuration;
 
 /// <summary>
 /// Represents the configuration for the claw-mail-cal-cli application.

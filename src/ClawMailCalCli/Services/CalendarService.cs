@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ClawMailCalCli.Models;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
@@ -99,7 +99,7 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 		}
 		catch (ODataError odataError)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
+			Console.Error.WriteLine($"Error: Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
 			return null;
 		}
 	}

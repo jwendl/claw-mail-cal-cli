@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
 
@@ -17,14 +17,14 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 		var defaultAccount = await accountService.GetDefaultAccountAsync(cancellationToken);
 		if (defaultAccount is null)
 		{
-			AnsiConsole.MarkupLine("[red]Error:[/] No default account is set. Run [bold]account set <name>[/] to choose an account.");
+			Console.Error.WriteLine("Error: No default account is set. Run 'account set <name>' to choose an account.");
 			throw new InvalidOperationException("No default account configured. Run 'account set <name>' to choose one.");
 		}
 
 		var graphClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
 		if (graphClient is null)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[bold]{Markup.Escape(defaultAccount.Name)}[/]' is not authenticated. Run [bold]login {Markup.Escape(defaultAccount.Name)}[/] first.");
+			Console.Error.WriteLine($"Error: Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
 			throw new InvalidOperationException($"Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
 		}
 
@@ -39,13 +39,13 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 				logger.LogInformation("Received 401 Unauthorized for account '{AccountName}'. Triggering re-authentication.", defaultAccount.Name);
 			}
 
-			AnsiConsole.MarkupLine($"[yellow]Session expired for account '[bold]{Markup.Escape(defaultAccount.Name)}[/]'. Re-authenticating...[/]");
+			Console.Error.WriteLine($"Session expired for account '{defaultAccount.Name}'. Re-authenticating...");
 			await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken);
 
 			var retryClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
 			if (retryClient is null)
 			{
-				AnsiConsole.MarkupLine("[red]Error:[/] Re-authentication failed. Please run [bold]login[/] manually.");
+				Console.Error.WriteLine("Error: Re-authentication failed. Please run 'login' manually.");
 				throw new InvalidOperationException($"Re-authentication failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' manually.");
 			}
 

@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Models;
+﻿namespace ClawMailCalCli.Models;
 
 /// <summary>
 /// Holds the Azure Key Vault configuration values read from <c>appsettings.json</c>.

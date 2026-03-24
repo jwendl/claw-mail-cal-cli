@@ -1,4 +1,4 @@
-namespace ClawMailCalCli;
+﻿namespace ClawMailCalCli;
 
 /// <summary>
 /// Bridges Microsoft's <see cref="IServiceCollection"/> with the Spectre.Console.Cli

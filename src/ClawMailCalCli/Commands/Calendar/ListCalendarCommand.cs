@@ -1,3 +1,5 @@
+﻿using ClawMailCalCli.Commands.Settings;
+using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 
 namespace ClawMailCalCli.Commands.Calendar;
@@ -6,11 +8,11 @@ namespace ClawMailCalCli.Commands.Calendar;
 /// Lists the next upcoming calendar events for the currently configured default account.
 /// Usage: <c>claw-mail-cal-cli calendar list</c>
 /// </summary>
-internal sealed class ListCalendarCommand(ICalendarService calendarService)
-	: AsyncCommand
+internal sealed class ListCalendarCommand(ICalendarService calendarService, IOutputService outputService)
+	: AsyncCommand<ListCalendarSettings>
 {
 	/// <inheritdoc />
-	public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+	public override async Task<int> ExecuteAsync(CommandContext context, ListCalendarSettings settings, CancellationToken cancellationToken)
 	{
 		var events = await calendarService.GetUpcomingEventsAsync(cancellationToken);
 		if (events is null)
@@ -20,7 +22,21 @@ internal sealed class ListCalendarCommand(ICalendarService calendarService)
 
 		if (events.Count == 0)
 		{
-			AnsiConsole.MarkupLine("[yellow]No upcoming calendar events found in the next 30 days.[/]");
+			if (settings.Json)
+			{
+				outputService.WriteJson(Array.Empty<CalendarEventSummary>());
+			}
+			else
+			{
+				AnsiConsole.MarkupLine("[yellow]No upcoming calendar events found in the next 30 days.[/]");
+			}
+
+			return 0;
+		}
+
+		if (settings.Json)
+		{
+			outputService.WriteJson(events);
 			return 0;
 		}
 
@@ -43,7 +59,7 @@ internal sealed class ListCalendarCommand(ICalendarService calendarService)
 				new Text(locationText));
 		}
 
-		AnsiConsole.Write(table);
+		outputService.WriteTable(table);
 		return 0;
 	}
 }
