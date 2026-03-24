@@ -24,7 +24,7 @@ internal sealed class ListCalendarCommand(ICalendarService calendarService, IOut
 		{
 			if (settings.Json)
 			{
-				outputService.WriteJson([]);
+				outputService.WriteJson(Array.Empty<CalendarEventSummary>());
 			}
 			else
 			{

@@ -8,6 +8,7 @@ namespace ClawMailCalCli.Tests.Services;
 /// Unit tests for <see cref="OutputService"/>.
 /// </summary>
 [Trait("Category", "Unit")]
+[Collection(NonParallelCollection.Name)]
 public class OutputServiceTests
 {
 	private readonly OutputService _outputService;

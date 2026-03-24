@@ -69,7 +69,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		catch (ODataError oDataError)
 		{
 			var reason = oDataError.Error?.Message ?? "unknown Graph API error";
-			AnsiConsole.MarkupLine($"[red]✗[/] Failed to send email: {Markup.Escape(reason)}");
+			Console.Error.WriteLine($"Failed to send email: {reason}");
 			if (logger.IsEnabled(LogLevel.Error))
 			{
 				logger.LogError(oDataError, "Graph API error sending email to '{To}'.", to);
@@ -79,7 +79,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		}
 		catch (Exception exception)
 		{
-			AnsiConsole.MarkupLine($"[red]✗[/] Failed to send email: {Markup.Escape(exception.Message)}");
+			Console.Error.WriteLine($"Failed to send email: {exception.Message}");
 			if (logger.IsEnabled(LogLevel.Error))
 			{
 				logger.LogError(exception, "Unexpected error sending email to '{To}'.", to);
@@ -133,7 +133,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		}
 		catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Folder '[yellow]{Markup.Escape(normalizedFolderName!)}[/]' was not found.");
+			Console.Error.WriteLine($"Error: Folder '{normalizedFolderName}' was not found.");
 
 			if (logger.IsEnabled(LogLevel.Debug))
 			{
