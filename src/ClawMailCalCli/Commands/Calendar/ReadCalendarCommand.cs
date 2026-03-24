@@ -39,7 +39,7 @@ internal sealed class ReadCalendarCommand(ICalendarService calendarService, ICon
 		if (calendarEvent is null)
 		{
 			outputService.WriteError($"No event found matching '{settings.Query}'.");
-			return 0;
+			return 1;
 		}
 
 		if (settings.Json)
