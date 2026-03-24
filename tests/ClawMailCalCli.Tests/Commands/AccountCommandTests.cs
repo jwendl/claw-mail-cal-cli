@@ -3,7 +3,6 @@ using ClawMailCalCli.Commands.Account;
 using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
-using Microsoft.Extensions.Logging;
 using Spectre.Console.Cli;
 
 namespace ClawMailCalCli.Tests.Commands;
