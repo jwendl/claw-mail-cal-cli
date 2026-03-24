@@ -63,6 +63,7 @@ services.AddSingleton<IConfigurationService, ConfigurationService>();
 services.AddSingleton<IProcessRunner, ProcessRunner>();
 services.AddSingleton<IKeyVaultChecker, KeyVaultChecker>();
 services.AddTransient<IDoctorService, DoctorService>();
+services.AddSingleton<IOutputService, OutputService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()

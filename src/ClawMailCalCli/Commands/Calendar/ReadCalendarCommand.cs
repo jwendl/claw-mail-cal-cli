@@ -7,7 +7,7 @@ namespace ClawMailCalCli.Commands.Calendar;
 /// <summary>
 /// Reads a calendar event by title or unique Graph event ID and prints its details to the console.
 /// </summary>
-internal sealed class ReadCalendarCommand(ICalendarService calendarService, IConfigurationService configurationService)
+internal sealed class ReadCalendarCommand(ICalendarService calendarService, IConfigurationService configurationService, IOutputService outputService)
 	: AsyncCommand<ReadCalendarSettings>
 {
 	/// <inheritdoc />
@@ -24,13 +24,13 @@ internal sealed class ReadCalendarCommand(ICalendarService calendarService, ICon
 			}
 			catch (InvalidOperationException invalidOperationException)
 			{
-				AnsiConsole.MarkupLine($"[yellow]Warning:[/] Could not read default account from configuration: {Markup.Escape(invalidOperationException.Message)}");
+				outputService.WriteError($"Warning: Could not read default account from configuration: {invalidOperationException.Message}");
 			}
 		}
 
 		if (string.IsNullOrWhiteSpace(accountName))
 		{
-			AnsiConsole.MarkupLine("[red]Error:[/] No account specified. Use [bold]--account[/] to specify one or set a default with [bold]account set[/].");
+			outputService.WriteError("Error: No account specified. Use --account to specify one or set a default with 'account set'.");
 			return 1;
 		}
 
@@ -38,7 +38,13 @@ internal sealed class ReadCalendarCommand(ICalendarService calendarService, ICon
 
 		if (calendarEvent is null)
 		{
-			AnsiConsole.MarkupLine($"[yellow]No event found[/] matching '[bold]{Markup.Escape(settings.Query)}[/]'.");
+			outputService.WriteError($"No event found matching '{settings.Query}'.");
+			return 0;
+		}
+
+		if (settings.Json)
+		{
+			outputService.WriteJson(calendarEvent);
 			return 0;
 		}
 
