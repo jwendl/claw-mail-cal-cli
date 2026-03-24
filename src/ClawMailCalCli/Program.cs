@@ -3,12 +3,17 @@ using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
 using ClawMailCalCli.Commands.Calendar;
 using ClawMailCalCli.Data;
+using ClawMailCalCli.Logging;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+
+var verbosityLevel = ParseVerbosityLevel(args);
+var minimumLogLevel = MapToLogLevel(verbosityLevel);
 
 var configuration = new ConfigurationBuilder()
 .SetBasePath(AppContext.BaseDirectory)
@@ -20,7 +25,11 @@ var services = new ServiceCollection();
 
 services.Configure<KeyVaultOptions>(configuration.GetSection("keyVault"));
 
-services.AddLogging();
+services.AddLogging(loggingBuilder =>
+{
+	loggingBuilder.SetMinimumLevel(minimumLogLevel);
+	loggingBuilder.AddProvider(new StderrLoggerProvider(minimumLogLevel));
+});
 
 // SQLite database for account data (names, emails, default selection).
 // Key Vault is reserved for secrets such as OAuth tokens.
@@ -132,4 +141,61 @@ app.Configure(config =>
 	});
 });
 
-return app.Run(args);
+return app.Run(StripVerbosityFlag(args));
+
+/// <summary>
+/// Parses the <c>--verbosity</c> option from the raw argument list.
+/// Defaults to <see cref="VerbosityLevel.Normal"/> when the option is absent or unrecognised.
+/// </summary>
+static VerbosityLevel ParseVerbosityLevel(string[] arguments)
+{
+	for (var argumentIndex = 0; argumentIndex < arguments.Length - 1; argumentIndex++)
+	{
+		if (arguments[argumentIndex] == "--verbosity")
+		{
+			return arguments[argumentIndex + 1].ToLowerInvariant() switch
+			{
+				"quiet" => VerbosityLevel.Quiet,
+				"debug" => VerbosityLevel.Debug,
+				_ => VerbosityLevel.Normal,
+			};
+		}
+	}
+
+	return VerbosityLevel.Normal;
+}
+
+/// <summary>
+/// Returns a new argument array with the <c>--verbosity &lt;value&gt;</c> pair removed so that
+/// Spectre.Console.Cli strict parsing does not reject the unknown flag.
+/// </summary>
+static string[] StripVerbosityFlag(string[] arguments)
+{
+	var filtered = new List<string>(arguments.Length);
+	for (var argumentIndex = 0; argumentIndex < arguments.Length; argumentIndex++)
+	{
+		if (arguments[argumentIndex] == "--verbosity" && argumentIndex + 1 < arguments.Length)
+		{
+			var potentialVerbosityValue = arguments[argumentIndex + 1].ToLowerInvariant();
+			if (potentialVerbosityValue is "quiet" or "normal" or "debug")
+			{
+				argumentIndex++; // skip the value as well
+				continue;
+			}
+		}
+
+		filtered.Add(arguments[argumentIndex]);
+	}
+
+	return [.. filtered];
+}
+
+/// <summary>
+/// Maps a <see cref="VerbosityLevel"/> to the corresponding <see cref="LogLevel"/> minimum threshold.
+/// </summary>
+static LogLevel MapToLogLevel(VerbosityLevel verbosityLevel) => verbosityLevel switch
+{
+	VerbosityLevel.Quiet => LogLevel.Error,
+	VerbosityLevel.Debug => LogLevel.Debug,
+	_ => LogLevel.Warning,
+};

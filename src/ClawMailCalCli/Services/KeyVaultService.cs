@@ -1,5 +1,6 @@
 ﻿using Azure;
 using Azure.Security.KeyVault.Secrets;
+using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Services;
 
@@ -8,12 +9,17 @@ namespace ClawMailCalCli.Services;
 /// Accesses Key Vault using the <see cref="Azure.Identity.AzureCliCredential"/>
 /// so the machine must have <c>az login</c> completed.
 /// </summary>
-public class KeyVaultService(SecretClient secretClient)
+public class KeyVaultService(SecretClient secretClient, ILogger<KeyVaultService> logger)
 	: IKeyVaultService
 {
 	/// <inheritdoc />
 	public async Task<string?> GetSecretAsync(string secretName, CancellationToken cancellationToken = default)
 	{
+		if (logger.IsEnabled(LogLevel.Debug))
+		{
+			logger.LogDebug("Key Vault: reading secret '{SecretName}'.", secretName);
+		}
+
 		try
 		{
 			var response = await secretClient.GetSecretAsync(secretName, cancellationToken: cancellationToken);
@@ -28,6 +34,11 @@ public class KeyVaultService(SecretClient secretClient)
 	/// <inheritdoc />
 	public async Task SetSecretAsync(string secretName, string secretValue, CancellationToken cancellationToken = default)
 	{
+		if (logger.IsEnabled(LogLevel.Debug))
+		{
+			logger.LogDebug("Key Vault: writing secret '{SecretName}'.", secretName);
+		}
+
 		await secretClient.SetSecretAsync(secretName, secretValue, cancellationToken);
 	}
 }

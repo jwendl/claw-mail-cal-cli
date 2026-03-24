@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli.Services;
+using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Tests.Services;
 
@@ -18,7 +19,7 @@ public class KeyVaultServiceTests
 		var secretValue = "secret-value-123";
 		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
 		var fakeClient = new FakeSecretClient(Response.FromValue(keyVaultSecret, Mock.Of<Response>()));
-		var keyVaultService = new KeyVaultService(fakeClient);
+		var keyVaultService = new KeyVaultService(fakeClient, Mock.Of<ILogger<KeyVaultService>>());
 
 		// Act
 		var result = await keyVaultService.GetSecretAsync(secretName);
@@ -32,13 +33,65 @@ public class KeyVaultServiceTests
 	{
 		// Arrange
 		var fakeClient = new FakeSecretClient(new RequestFailedException(404, "Secret not found"));
-		var keyVaultService = new KeyVaultService(fakeClient);
+		var keyVaultService = new KeyVaultService(fakeClient, Mock.Of<ILogger<KeyVaultService>>());
 
 		// Act
 		var result = await keyVaultService.GetSecretAsync("nonexistent-secret");
 
 		// Assert
 		result.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task GetSecretAsync_WhenDebugLoggingEnabled_LogsSecretName()
+	{
+		// Arrange
+		var secretName = "logged-secret";
+		var secretValue = "value";
+		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var fakeClient = new FakeSecretClient(Response.FromValue(keyVaultSecret, Mock.Of<Response>()));
+		var mockLogger = new Mock<ILogger<KeyVaultService>>();
+		mockLogger.Setup(logger => logger.IsEnabled(LogLevel.Debug)).Returns(true);
+		var keyVaultService = new KeyVaultService(fakeClient, mockLogger.Object);
+
+		// Act
+		await keyVaultService.GetSecretAsync(secretName);
+
+		// Assert — a Debug log entry including the secret name was written
+		mockLogger.Verify(
+			logger => logger.Log(
+				LogLevel.Debug,
+				It.IsAny<EventId>(),
+				It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(secretName, StringComparison.Ordinal)),
+				It.IsAny<Exception?>(),
+				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+			Times.AtLeastOnce);
+	}
+
+	[Fact]
+	public async Task GetSecretAsync_WhenDebugLoggingDisabled_DoesNotLog()
+	{
+		// Arrange
+		var secretName = "silent-secret";
+		var secretValue = "value";
+		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var fakeClient = new FakeSecretClient(Response.FromValue(keyVaultSecret, Mock.Of<Response>()));
+		var mockLogger = new Mock<ILogger<KeyVaultService>>();
+		mockLogger.Setup(logger => logger.IsEnabled(LogLevel.Debug)).Returns(false);
+		var keyVaultService = new KeyVaultService(fakeClient, mockLogger.Object);
+
+		// Act
+		await keyVaultService.GetSecretAsync(secretName);
+
+		// Assert — Log() must not be called when IsEnabled returns false
+		mockLogger.Verify(
+			logger => logger.Log(
+				LogLevel.Debug,
+				It.IsAny<EventId>(),
+				It.IsAny<It.IsAnyType>(),
+				It.IsAny<Exception?>(),
+				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+			Times.Never);
 	}
 
 	[Fact]
@@ -49,13 +102,65 @@ public class KeyVaultServiceTests
 		var secretValue = "secret-value-456";
 		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
 		var fakeClient = new FakeSecretClient(Response.FromValue(keyVaultSecret, Mock.Of<Response>()));
-		var keyVaultService = new KeyVaultService(fakeClient);
+		var keyVaultService = new KeyVaultService(fakeClient, Mock.Of<ILogger<KeyVaultService>>());
 
 		// Act
 		await keyVaultService.SetSecretAsync(secretName, secretValue);
 
 		// Assert
 		fakeClient.SetSecretCallCount.Should().Be(1);
+	}
+
+	[Fact]
+	public async Task SetSecretAsync_WhenDebugLoggingEnabled_LogsSecretName()
+	{
+		// Arrange
+		var secretName = "write-secret";
+		var secretValue = "write-value";
+		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var fakeClient = new FakeSecretClient(Response.FromValue(keyVaultSecret, Mock.Of<Response>()));
+		var mockLogger = new Mock<ILogger<KeyVaultService>>();
+		mockLogger.Setup(logger => logger.IsEnabled(LogLevel.Debug)).Returns(true);
+		var keyVaultService = new KeyVaultService(fakeClient, mockLogger.Object);
+
+		// Act
+		await keyVaultService.SetSecretAsync(secretName, secretValue);
+
+		// Assert — Debug log was written containing the secret name
+		mockLogger.Verify(
+			logger => logger.Log(
+				LogLevel.Debug,
+				It.IsAny<EventId>(),
+				It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(secretName)),
+				It.IsAny<Exception?>(),
+				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task SetSecretAsync_WhenDebugLoggingDisabled_DoesNotLog()
+	{
+		// Arrange
+		var secretName = "silent-write";
+		var secretValue = "silent-value";
+		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var fakeClient = new FakeSecretClient(Response.FromValue(keyVaultSecret, Mock.Of<Response>()));
+		var mockLogger = new Mock<ILogger<KeyVaultService>>();
+		mockLogger.Setup(logger => logger.IsEnabled(LogLevel.Debug)).Returns(false);
+		var keyVaultService = new KeyVaultService(fakeClient, mockLogger.Object);
+
+		// Act
+		await keyVaultService.SetSecretAsync(secretName, secretValue);
+
+		// Assert — Log() must not be called when IsEnabled returns false
+		mockLogger.Verify(
+			logger => logger.Log(
+				LogLevel.Debug,
+				It.IsAny<EventId>(),
+				It.IsAny<It.IsAnyType>(),
+				It.IsAny<Exception?>(),
+				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
+			Times.Never);
 	}
 
 	/// <summary>
