@@ -73,7 +73,7 @@ public class ProcessRunnerTests
 		cancellationTokenSource.Cancel();
 
 		// Act
-		var act = async () => await _processRunner.RunAsync("sleep", "10", cancellationTokenSource.Token);
+		var act = async () => await _processRunner.RunAsync("echo", "hello", cancellationTokenSource.Token);
 
 		// Assert
 		await act.Should().ThrowAsync<OperationCanceledException>();
