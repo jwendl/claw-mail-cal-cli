@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Commands;
+﻿namespace ClawMailCalCli.Commands;
 
 /// <summary>
 /// Placeholder root command for the claw-mail-cal-cli application.

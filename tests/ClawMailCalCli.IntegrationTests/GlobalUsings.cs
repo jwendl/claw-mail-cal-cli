@@ -1,4 +1,4 @@
-global using ClawMailCalCli.Data;
+﻿global using ClawMailCalCli.Data;
 global using ClawMailCalCli.IntegrationTests.Fakes;
 global using ClawMailCalCli.IntegrationTests.TestHelpers;
 global using ClawMailCalCli.Models;

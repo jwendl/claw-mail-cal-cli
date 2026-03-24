@@ -1,4 +1,4 @@
-using ClawMailCalCli.Configuration;
+﻿using ClawMailCalCli.Configuration;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 

@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.IntegrationTests.TestHelpers;
+﻿namespace ClawMailCalCli.IntegrationTests.TestHelpers;
 
 /// <summary>
 /// A simple <see cref="IDbContextFactory{TContext}"/> implementation for integration testing.

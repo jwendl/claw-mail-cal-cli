@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Configuration;
+﻿namespace ClawMailCalCli.Configuration;
 
 /// <summary>
 /// Provides access to read and write the claw-mail-cal-cli configuration file.

@@ -1,4 +1,4 @@
-using Azure.Identity;
+﻿using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
 using ClawMailCalCli.Commands.Calendar;

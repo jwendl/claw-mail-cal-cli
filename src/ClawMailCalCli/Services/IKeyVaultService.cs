@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Services;
+﻿namespace ClawMailCalCli.Services;
 
 /// <summary>
 /// Abstraction over Azure Key Vault secret operations used by the CLI.

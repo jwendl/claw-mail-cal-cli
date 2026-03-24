@@ -1,4 +1,4 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using ClawMailCalCli.Models;
 
 namespace ClawMailCalCli.Services;
