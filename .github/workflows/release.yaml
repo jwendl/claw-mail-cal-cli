@@ -43,10 +43,22 @@ jobs:
           cd publish/linux-x64
           tar -czf ../ClawMailCalCli-linux-x64.tar.gz ClawMailCalCli
 
+      - name: Extract release notes from CHANGELOG.md
+        id: changelog
+        run: |
+          # Extract the content of the [Unreleased] section (between ## [Unreleased] and the next versioned ## heading)
+          awk '/^## \[Unreleased\]/{found=1; next} found && /^## \[[0-9]/{exit} found{print}' CHANGELOG.md \
+            | sed '/^[[:space:]]*$/d' > /tmp/release-notes.md
+          # Fall back to a generic message if the section is empty
+          if [ ! -s /tmp/release-notes.md ]; then
+            echo "See [CHANGELOG.md](https://github.com/jwendl/claw-mail-cal-cli/blob/main/CHANGELOG.md) for details." \
+              > /tmp/release-notes.md
+          fi
+
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          body_path: /tmp/release-notes.md
           files: |
             publish/win-x64/ClawMailCalCli.exe
             publish/ClawMailCalCli-linux-x64.tar.gz
-          generate_release_notes: true
