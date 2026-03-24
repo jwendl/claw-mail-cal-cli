@@ -1,4 +1,4 @@
-using System.Reflection;
+﻿using System.Reflection;
 using ClawMailCalCli.Commands.Calendar;
 using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Models;

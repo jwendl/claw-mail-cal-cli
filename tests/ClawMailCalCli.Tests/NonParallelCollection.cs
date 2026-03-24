@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Tests;
+﻿namespace ClawMailCalCli.Tests;
 
 /// <summary>
 /// xUnit collection that disables parallel test execution for tests that mutate shared process state

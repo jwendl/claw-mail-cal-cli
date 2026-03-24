@@ -1,4 +1,4 @@
-using System.Text.Json;
+﻿using System.Text.Json;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 
