@@ -30,6 +30,21 @@ jobs:
       - name: Build
         run: dotnet build claw-mail-cal-cli.slnx --configuration Release --no-restore
 
+      - name: Publish Linux x64 for smoke testing
+        run: >
+          dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj
+          -c Release -r linux-x64 --self-contained true
+          -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -o ./publish/linux-x64
+
+      - name: Smoke test Linux x64 binary
+        run: |
+          chmod +x ./publish/linux-x64/claw-mail-cal-cli
+          echo "Running smoke test: --help"
+          ./publish/linux-x64/claw-mail-cal-cli --help
+          echo "Running smoke test: --version"
+          ./publish/linux-x64/claw-mail-cal-cli --version
+
       - name: Run tests with coverage
         run: |
           dotnet test tests/ClawMailCalCli.Tests/ \
