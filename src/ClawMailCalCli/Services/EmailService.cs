@@ -1,4 +1,4 @@
-using ClawMailCalCli.Models;
+﻿using ClawMailCalCli.Models;
 using HtmlAgilityPack;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph.Me.SendMail;

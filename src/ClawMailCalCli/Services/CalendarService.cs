@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using ClawMailCalCli.Models;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;

@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Commands.Settings;
+﻿namespace ClawMailCalCli.Commands.Settings;
 
 /// <summary>
 /// Settings for the <c>account delete</c> command.

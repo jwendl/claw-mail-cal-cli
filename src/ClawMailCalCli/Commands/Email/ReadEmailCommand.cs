@@ -1,4 +1,4 @@
-using ClawMailCalCli.Commands.Settings;
+﻿using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Services;
 
 namespace ClawMailCalCli.Commands.Email;

@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Models;
+﻿namespace ClawMailCalCli.Models;
 
 /// <summary>
 /// Represents a summary of an email message retrieved from Microsoft Graph.

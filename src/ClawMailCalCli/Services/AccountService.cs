@@ -1,4 +1,4 @@
-using ClawMailCalCli.Data;
+﻿using ClawMailCalCli.Data;
 using ClawMailCalCli.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;

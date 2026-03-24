@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Services;
+﻿namespace ClawMailCalCli.Services;
 
 /// <summary>
 /// Abstracts Microsoft Graph calendar event API calls for testability.

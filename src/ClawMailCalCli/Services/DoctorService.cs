@@ -1,4 +1,4 @@
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 using ClawMailCalCli.Configuration;
 using ClawMailCalCli.Models;
 

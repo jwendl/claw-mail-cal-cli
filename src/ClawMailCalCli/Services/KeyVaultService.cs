@@ -1,4 +1,4 @@
-using Azure;
+﻿using Azure;
 using Azure.Security.KeyVault.Secrets;
 
 namespace ClawMailCalCli.Services;
