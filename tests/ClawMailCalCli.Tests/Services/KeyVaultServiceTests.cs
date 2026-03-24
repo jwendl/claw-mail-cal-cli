@@ -62,7 +62,7 @@ public class KeyVaultServiceTests
 			logger => logger.Log(
 				LogLevel.Debug,
 				It.IsAny<EventId>(),
-				It.Is<It.IsAnyType>(state => state.ToString()!.Contains(secretName, StringComparison.Ordinal)),
+				It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(secretName, StringComparison.Ordinal)),
 				It.IsAny<Exception?>(),
 				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
 			Times.AtLeastOnce);
