@@ -40,12 +40,19 @@ internal sealed class StderrLogger(string categoryName, LogLevel minimumLevel)
 			? categoryName[(categoryName.LastIndexOf('.') + 1)..]
 			: categoryName;
 
-		var message = formatter(state, exception);
-		Console.Error.WriteLine($"{levelPrefix} [{shortCategory}] {message}");
-
-		if (exception is not null)
+		try
 		{
-			Console.Error.WriteLine(exception.ToString());
+			var message = formatter(state, exception);
+			Console.Error.WriteLine($"{levelPrefix} [{shortCategory}] {message}");
+
+			if (exception is not null)
+			{
+				Console.Error.WriteLine(exception.ToString());
+			}
+		}
+		catch (Exception exceptionDuringLogging)
+		{
+			// Swallow all exceptions from logging to avoid crashing the application.
 		}
 	}
 
