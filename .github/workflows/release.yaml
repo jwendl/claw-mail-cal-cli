@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.2.0, without the v prefix)'
+        required: true
+        type: string
 
 jobs:
   release:
@@ -15,6 +21,37 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Determine version and tag
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            VERSION="${{ inputs.version }}"
+            if ! echo "${VERSION}" | grep -qE '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+              echo "::error::Version '${VERSION}' is not a valid semantic version (expected MAJOR.MINOR.PATCH)"
+              exit 1
+            fi
+            TAG="v${VERSION}"
+          else
+            TAG="${GITHUB_REF_NAME}"
+            VERSION="${TAG#v}"
+          fi
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - name: Create and push tag
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "::error::Tag '${{ steps.version.outputs.tag }}' already exists. Bump the version and try again."
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v5
@@ -29,6 +66,7 @@ jobs:
           dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj --no-restore
           -c Release -r win-x64 --self-contained true
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -p:Version=${{ steps.version.outputs.version }}
           -o ./publish/win-x64
 
       - name: Publish Linux x64
@@ -36,6 +74,7 @@ jobs:
           dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj --no-restore
           -c Release -r linux-x64 --self-contained true
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -p:Version=${{ steps.version.outputs.version }}
           -o ./publish/linux-x64
 
       - name: Package Ubuntu x64 binary
@@ -45,8 +84,7 @@ jobs:
 
       - name: Extract release notes from CHANGELOG.md
         run: |
-          # Derive the version number from the tag (e.g. v0.2.0 -> 0.2.0)
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.version.outputs.version }}"
           # Extract the section matching this version (between ## [VERSION] and the next ## [ heading or link reference)
           awk "/^## \[$VERSION\]/{found=1; next} found && /^(## \[|\[[^]]+\]:)/{exit} found{print}" CHANGELOG.md > /tmp/release-notes.md
           # Fall back to a generic message if no matching section or section has no real entries
@@ -59,6 +97,7 @@ jobs:
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.version.outputs.tag }}
           body_path: /tmp/release-notes.md
           files: |
             publish/win-x64/ClawMailCalCli.exe
