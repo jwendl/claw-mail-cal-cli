@@ -84,7 +84,7 @@ jobs:
       - name: Package Ubuntu x64 binary
         run: |
           cd publish/linux-x64
-          tar -czf ../ClawMailCalCli-linux-x64.tar.gz ClawMailCalCli
+          tar -czf ../claw-mail-cal-cli-linux-x64.tar.gz claw-mail-cal-cli
 
       - name: Extract release notes from CHANGELOG.md
         run: |
@@ -105,4 +105,4 @@ jobs:
           body_path: /tmp/release-notes.md
           files: |
             publish/win-x64/ClawMailCalCli.exe
-            publish/ClawMailCalCli-linux-x64.tar.gz
+            publish/claw-mail-cal-cli-linux-x64.tar.gz
