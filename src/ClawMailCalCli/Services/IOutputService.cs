@@ -14,7 +14,7 @@ internal interface IOutputService
 	/// <param name="data">The data to serialize.</param>
 	void WriteJson<T>(T data);
 
-	/// <summary>Writes an error message to standard error.</summary>
-	/// <param name="message">The plain-text error message.</param>
+	/// <summary>Writes a diagnostic message (errors, warnings, or other non-fatal diagnostics) to standard error.</summary>
+	/// <param name="message">The plain-text diagnostic message.</param>
 	void WriteError(string message);
 }
