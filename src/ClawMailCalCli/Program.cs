@@ -18,7 +18,6 @@ var configuration = new ConfigurationBuilder()
 
 var services = new ServiceCollection();
 
-services.Configure<EntraOptions>(configuration.GetSection("entra"));
 services.Configure<KeyVaultOptions>(configuration.GetSection("keyVault"));
 
 services.AddLogging();
@@ -61,6 +60,9 @@ services.AddSingleton<IGraphClientService, GraphClientService>();
 services.AddTransient<ICalendarService, CalendarService>();
 services.AddTransient<IEmailService, EmailService>();
 services.AddSingleton<IConfigurationService, ConfigurationService>();
+services.AddSingleton<IProcessRunner, ProcessRunner>();
+services.AddSingleton<IKeyVaultChecker, KeyVaultChecker>();
+services.AddTransient<IDoctorService, DoctorService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
@@ -109,6 +111,10 @@ app.Configure(config =>
 	config.AddCommand<LoginCommand>("login")
 	.WithDescription("Authenticate an account using the Entra ID device code flow.")
 	.WithExample("login", "my-account");
+
+	config.AddCommand<DoctorCommand>("doctor")
+	.WithDescription("Check the developer environment for required prerequisites.")
+	.WithExample("doctor");
 
 	config.AddBranch("email", email =>
 	{

@@ -1,7 +1,6 @@
 using Azure.Identity;
 using ClawMailCalCli.Models;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 
 namespace ClawMailCalCli.Services;
 
@@ -10,7 +9,13 @@ namespace ClawMailCalCli.Services;
 /// <see cref="AuthenticationRecord"/> instances from Azure Key Vault for silent
 /// re-authentication on subsequent runs.
 /// </summary>
-public class AuthenticationService(IAccountService accountService, IKeyVaultService keyVaultService, IDeviceCodeCredentialProvider deviceCodeCredentialProvider, IOptions<EntraOptions> entraOptions, ILogger<AuthenticationService> logger)
+/// <remarks>
+/// The Entra application client ID and tenant ID are read from Key Vault secrets named
+/// <c>{account-type-prefix}-client-id</c> and <c>{account-type-prefix}-tenant-id</c>,
+/// where the prefix is <c>hotmail</c> for personal accounts and <c>exchange</c> for
+/// work/school accounts.
+/// </remarks>
+public class AuthenticationService(IAccountService accountService, IKeyVaultService keyVaultService, IDeviceCodeCredentialProvider deviceCodeCredentialProvider, ILogger<AuthenticationService> logger)
 	: IAuthenticationService
 {
 	private static readonly string[] GraphScopes =
@@ -39,15 +44,25 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			return;
 		}
 
-		var options = entraOptions.Value;
-		var tenantId = account.Type == AccountType.Personal
-			? options.PersonalTenantId
-			: options.WorkTenantId;
+		var prefix = AccountTypeKeyVaultPrefix(account.Type);
+		var clientId = await keyVaultService.GetSecretAsync($"{prefix}-client-id", cancellationToken);
+		var tenantId = await keyVaultService.GetSecretAsync($"{prefix}-tenant-id", cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(clientId))
+		{
+			AnsiConsole.MarkupLine($"[red]Error:[/] Key Vault secret '[bold]{prefix}-client-id[/]' is not set. Add it to Key Vault before authenticating.");
+			return;
+		}
+
+		if (string.IsNullOrWhiteSpace(tenantId))
+		{
+			tenantId = "common";
+		}
 
 		var credentialOptions = new DeviceCodeCredentialOptions
 		{
 			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
-			ClientId = options.ClientId,
+			ClientId = clientId,
 			TenantId = tenantId,
 			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
 			DeviceCodeCallback = (deviceCodeInfo, _) =>
@@ -122,4 +137,15 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		var base64Value = Convert.ToBase64String(memoryStream.ToArray());
 		await keyVaultService.SetSecretAsync(AuthRecordSecretName(accountName), base64Value, cancellationToken);
 	}
+
+	/// <summary>
+	/// Returns the Key Vault secret name prefix for the given account type.
+	/// Personal accounts use <c>hotmail</c>; work/school accounts use <c>exchange</c>.
+	/// </summary>
+	private static string AccountTypeKeyVaultPrefix(AccountType accountType) => accountType switch
+	{
+		AccountType.Personal => "hotmail",
+		AccountType.Work => "exchange",
+		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
+	};
 }

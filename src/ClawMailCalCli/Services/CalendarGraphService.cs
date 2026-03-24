@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using Azure.Identity;
 using ClawMailCalCli.Models;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
@@ -12,7 +12,13 @@ namespace ClawMailCalCli.Services;
 /// <summary>
 /// Calls Microsoft Graph calendar endpoints using the account's cached Entra credentials.
 /// </summary>
-public partial class CalendarGraphService(IAccountService accountService, IKeyVaultService keyVaultService, IOptions<EntraOptions> entraOptions, ILogger<CalendarGraphService> logger)
+/// <remarks>
+/// The Entra application client ID and tenant ID are read from Key Vault secrets named
+/// <c>{account-type-prefix}-client-id</c> and <c>{account-type-prefix}-tenant-id</c>,
+/// where the prefix is <c>hotmail</c> for personal accounts and <c>exchange</c> for
+/// work/school accounts.
+/// </remarks>
+public partial class CalendarGraphService(IAccountService accountService, IKeyVaultService keyVaultService, ILogger<CalendarGraphService> logger)
 	: ICalendarGraphService
 {
 	private static readonly string[] CalendarReadScopes = ["https://graph.microsoft.com/Calendars.Read"];
@@ -104,13 +110,29 @@ public partial class CalendarGraphService(IAccountService accountService, IKeyVa
 			}
 		}
 
-		var options = entraOptions.Value;
-		var tenantId = account.Type == AccountType.Personal ? options.PersonalTenantId : options.WorkTenantId;
+		var prefix = AccountTypeKeyVaultPrefix(account.Type);
+		var clientId = await keyVaultService.GetSecretAsync($"{prefix}-client-id", cancellationToken);
+		var tenantId = await keyVaultService.GetSecretAsync($"{prefix}-tenant-id", cancellationToken);
+
+		if (string.IsNullOrWhiteSpace(clientId))
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("Key Vault secret '{Prefix}-client-id' is not set; cannot build graph client for account '{AccountName}'.", prefix, accountName);
+			}
+
+			return null;
+		}
+
+		if (string.IsNullOrWhiteSpace(tenantId))
+		{
+			tenantId = "common";
+		}
 
 		var credentialOptions = new DeviceCodeCredentialOptions
 		{
 			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
-			ClientId = options.ClientId,
+			ClientId = clientId,
 			TenantId = tenantId,
 			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
 		};
@@ -169,4 +191,15 @@ public partial class CalendarGraphService(IAccountService accountService, IKeyVa
 
 	[GeneratedRegex(@"<[^>]+>", RegexOptions.None)]
 	private static partial Regex HtmlTagPattern();
+
+	/// <summary>
+	/// Returns the Key Vault secret name prefix for the given account type.
+	/// Personal accounts use <c>hotmail</c>; work/school accounts use <c>exchange</c>.
+	/// </summary>
+	private static string AccountTypeKeyVaultPrefix(AccountType accountType) => accountType switch
+	{
+		AccountType.Personal => "hotmail",
+		AccountType.Work => "exchange",
+		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
+	};
 }
