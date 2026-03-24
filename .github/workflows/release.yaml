@@ -48,8 +48,8 @@ jobs:
       - name: Create and push tag
         if: github.event_name == 'workflow_dispatch'
         run: |
-          if git rev-parse "${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
-            echo "::error::Tag '${{ steps.version.outputs.tag }}' already exists. Bump the version and try again."
+          if git ls-remote --tags origin "refs/tags/${{ steps.version.outputs.tag }}" | grep -q .; then
+            echo "::error::Tag '${{ steps.version.outputs.tag }}' already exists on the remote. Bump the version and try again."
             exit 1
           fi
           git config user.name "github-actions[bot]"
