@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2025-01-01
+
 ### Added
 - Account management commands: `account add`, `account list`, `account set`, `account delete`
 - Login command using Entra ID device code flow with `AuthenticationRecord` stored in Azure Key Vault
@@ -17,15 +19,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CI workflow with build, unit tests, and format checks
 - Release workflow that publishes binaries to GitHub Releases
 - Developer setup guide in `docs/architecture/`
-
-## [0.1.0] - 2025-01-01
-
-### Added
-- Initial project skeleton with .NET 10 / C# 13
-- Spectre.Console.Cli command structure
-- Azure Identity device code authentication
-- Azure Key Vault integration for secure token storage
-- Microsoft Graph SDK integration for mail and calendar access
 
 [Unreleased]: https://github.com/jwendl/claw-mail-cal-cli/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/jwendl/claw-mail-cal-cli/releases/tag/v0.1.0
