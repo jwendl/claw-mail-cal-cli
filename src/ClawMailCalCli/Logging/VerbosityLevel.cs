@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Logging;
+﻿namespace ClawMailCalCli.Logging;
 
 /// <summary>
 /// Controls how much log output is written to stderr.

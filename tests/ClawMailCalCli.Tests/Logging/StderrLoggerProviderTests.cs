@@ -1,4 +1,4 @@
-using ClawMailCalCli.Logging;
+﻿using ClawMailCalCli.Logging;
 using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Tests.Logging;
