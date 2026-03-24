@@ -47,8 +47,7 @@ jobs:
         id: changelog
         run: |
           # Extract the content of the [Unreleased] section (between ## [Unreleased] and the next versioned ## heading)
-          awk '/^## \[Unreleased\]/{found=1; next} found && /^## \[[0-9]/{exit} found{print}' CHANGELOG.md \
-            | sed '/^[[:space:]]*$/d' > /tmp/release-notes.md
+          awk '/^## \[Unreleased\]/{found=1; next} found && /^## \[[0-9]/{exit} found{print}' CHANGELOG.md > /tmp/release-notes.md
           # Fall back to a generic message if the section has no actual entries
           # Treat the section as empty unless it has at least one list item or non-heading/non-whitespace line
           if ! grep -qE '^[[:space:]]*[-*] ' /tmp/release-notes.md \
