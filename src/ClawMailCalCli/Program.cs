@@ -176,8 +176,12 @@ static string[] StripVerbosityFlag(string[] arguments)
 	{
 		if (arguments[argumentIndex] == "--verbosity" && argumentIndex + 1 < arguments.Length)
 		{
-			argumentIndex++; // skip the value as well
-			continue;
+			var potentialVerbosityValue = arguments[argumentIndex + 1].ToLowerInvariant();
+			if (potentialVerbosityValue is "quiet" or "normal" or "debug")
+			{
+				argumentIndex++; // skip the value as well
+				continue;
+			}
 		}
 
 		filtered.Add(arguments[argumentIndex]);
