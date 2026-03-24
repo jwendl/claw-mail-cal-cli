@@ -17,4 +17,10 @@ internal sealed class ReadCalendarSettings
 	/// </summary>
 	[CommandOption("--account|-a")]
 	public string? AccountName { get; init; }
+
+	/// <summary>
+	/// When <see langword="true"/>, outputs raw JSON to stdout instead of formatted text.
+	/// </summary>
+	[CommandOption("--json")]
+	public bool Json { get; init; }
 }

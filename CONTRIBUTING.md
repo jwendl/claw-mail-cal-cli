@@ -1,6 +1,6 @@
-# Contributing to PTT Game Library
+# Contributing to claw-mail-cal-cli
 
-Thank you for your interest in contributing to PTT Game Library! This document provides guidelines for both human developers and AI agents working on this project.
+Thank you for your interest in contributing to claw-mail-cal-cli! This document provides guidelines for both human developers and AI agents working on this project.
 
 ## Table of Contents
 
@@ -9,6 +9,7 @@ Thank you for your interest in contributing to PTT Game Library! This document p
 - [Development Workflow](#development-workflow)
 - [Coding Standards](#coding-standards)
 - [Testing Requirements](#testing-requirements)
+- [Changelog](#changelog)
 - [Pull Request Process](#pull-request-process)
 - [Issue Guidelines](#issue-guidelines)
 
@@ -35,7 +36,7 @@ This repository is optimized for agentic coding practices. Follow these guidelin
 ### 🔄 Agent Workflow
 
 1. **Pick a Task**
-   - Check [GitHub Issues](https://github.com/jwendl/ptt-game-library/issues) for open tasks
+   - Check [GitHub Issues](https://github.com/jwendl/claw-mail-cal-cli/issues) for open tasks
    - Review the [User Story Status Index](docs/summary-reports/user-story-status-index.md) for project progress
    - Or browse completed implementations in [`docs/summary-reports/`](docs/summary-reports/) for context
 
@@ -88,7 +89,7 @@ This repository is optimized for agentic coding practices. Follow these guidelin
 7. **Validate Your Changes**
    ```bash
    # Build
-   dotnet build src/PttGameLibrary.Web/PttGameLibrary.Web.csproj --configuration Release
+   dotnet build src/ClawMailCalCli/ClawMailCalCli.csproj --configuration Release
    
    # Run tests
    dotnet test tests/ --configuration Release --verbosity normal
@@ -224,11 +225,11 @@ Before creating a pull request, verify:
 1. **Fork the repository** (for external contributors)
    ```bash
    # Clone your fork
-   git clone https://github.com/YOUR_USERNAME/ptt-game-library.git
-   cd ptt-game-library
+   git clone https://github.com/YOUR_USERNAME/claw-mail-cal-cli.git
+   cd claw-mail-cal-cli
    
    # Add upstream remote
-   git remote add upstream https://github.com/jwendl/ptt-game-library.git
+   git remote add upstream https://github.com/jwendl/claw-mail-cal-cli.git
    ```
 
 2. **Set up your development environment**
@@ -237,7 +238,7 @@ Before creating a pull request, verify:
    - Configure User Secrets (see [README.md](README.md#secrets-management))
 
 3. **Pick an issue or create one**
-   - Check [GitHub Issues](https://github.com/jwendl/ptt-game-library/issues)
+   - Check [GitHub Issues](https://github.com/jwendl/claw-mail-cal-cli/issues)
    - Or review completed implementations in [`docs/summary-reports/`](docs/summary-reports/)
    - Check the [User Story Status Index](docs/summary-reports/user-story-status-index.md) for a full list of stories and their status
    - Comment on the issue to claim it
@@ -248,7 +249,7 @@ Before creating a pull request, verify:
 - Run tests frequently during development
 - Use `dotnet watch` for auto-rebuild during development:
   ```bash
-  dotnet watch --project src/PttGameLibrary.Web/PttGameLibrary.Web.csproj
+  dotnet watch --project src/ClawMailCalCli/ClawMailCalCli.csproj
   ```
 
 ---
@@ -344,6 +345,52 @@ For critical flows:
 
 ---
 
+## Changelog
+
+Every pull request that changes observable behavior **must** update [CHANGELOG.md](CHANGELOG.md).
+
+### What counts as a behavior-changing PR?
+
+- New commands or command options
+- Changes to command output or formatting
+- Bug fixes that alter how the tool behaves
+- Security fixes
+- Removed or deprecated functionality
+- Changes to configuration file format or environment variables
+
+### How to update the changelog
+
+1. Open `CHANGELOG.md` at the repository root.
+2. Under the `## [Unreleased]` section, add your change under the appropriate heading:
+   - **Added** — new features
+   - **Changed** — changes to existing functionality
+   - **Fixed** — bug fixes
+   - **Removed** — removed features
+   - **Security** — security-related changes
+3. Write a concise, user-facing description. Avoid internal implementation details.
+4. Reference the related issue number if applicable (e.g., `(#42)`).
+
+**Example:**
+
+```markdown
+## [Unreleased]
+
+### Added
+- `email search` command to search messages by subject or body text (#42)
+
+### Fixed
+- `calendar list` no longer crashes when no events exist in the selected time range (#37)
+```
+
+### What does NOT need a changelog entry?
+
+- Refactoring with no behavior change
+- Documentation-only updates
+- Test additions or changes
+- CI/CD infrastructure changes
+
+---
+
 ## Pull Request Process
 
 ### 1. Create Pull Request
@@ -434,9 +481,9 @@ As a **[user type]**, I want **[goal]** so that **[benefit]**.
 ## Questions?
 
 - **Documentation**: Check [README.md](README.md) and [`docs/`](docs/)
-- **Issues**: [GitHub Issues](https://github.com/jwendl/ptt-game-library/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/jwendl/ptt-game-library/discussions)
+- **Issues**: [GitHub Issues](https://github.com/jwendl/claw-mail-cal-cli/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/jwendl/claw-mail-cal-cli/discussions)
 
 ---
 
-**Thank you for contributing to PTT Game Library!** 🎮
+**Thank you for contributing to claw-mail-cal-cli!** 📧
