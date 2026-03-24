@@ -126,9 +126,14 @@ public class KeyVaultServiceTests
 		// Act
 		await keyVaultService.SetSecretAsync(secretName, secretValue);
 
-		// Assert — IsEnabled(Debug) was consulted before logging
+		// Assert — Debug log was written containing the secret name
 		mockLogger.Verify(
-			logger => logger.IsEnabled(LogLevel.Debug),
+			logger => logger.Log(
+				LogLevel.Debug,
+				It.IsAny<EventId>(),
+				It.Is<It.IsAnyType>((state, type) => state.ToString()!.Contains(secretName)),
+				It.IsAny<Exception?>(),
+				It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
 			Times.Once);
 	}
 
