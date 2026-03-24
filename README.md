@@ -21,6 +21,7 @@ Authentication uses Entra ID's **device code flow**, with the resulting `Authent
 - [Technology Stack](#technology-stack)
 - [Development](#development)
 - [Contributing](#contributing)
+- [Changelog](#changelog)
 - [License](#license)
 
 ## Prerequisites
@@ -310,6 +311,10 @@ See [`docs/architecture/requirements.md`](docs/architecture/requirements.md) for
 ## Contributing
 
 Contributions are welcome! See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on branching, coding standards, testing requirements, and the pull request process.
+
+## Changelog
+
+See [CHANGELOG.md](CHANGELOG.md) for a full list of notable changes per release.
 
 ## License
 
