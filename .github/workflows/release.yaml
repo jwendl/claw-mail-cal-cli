@@ -78,13 +78,14 @@ jobs:
           dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj
           -c Release -r linux-x64 --self-contained true
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
+          -p:IncludeNativeLibrariesForSelfExtract=true
           -p:Version=${{ steps.version.outputs.version }}
           -o ./publish/linux-x64
 
-      - name: Package Ubuntu x64 binary
+      - name: Package Linux x64 artifacts
         run: |
           cd publish/linux-x64
-          tar -czf ../claw-mail-cal-cli-linux-x64.tar.gz claw-mail-cal-cli
+          tar -czf ../claw-mail-cal-cli-linux-x64.tar.gz *
 
       - name: Extract release notes from CHANGELOG.md
         run: |
