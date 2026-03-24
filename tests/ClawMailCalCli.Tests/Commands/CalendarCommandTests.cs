@@ -14,10 +14,12 @@ namespace ClawMailCalCli.Tests.Commands;
 public class CalendarCommandTests
 {
 	private readonly Mock<ICalendarService> _mockCalendarService;
+	private readonly Mock<IOutputService> _mockOutputService;
 
 	public CalendarCommandTests()
 	{
 		_mockCalendarService = new Mock<ICalendarService>();
+		_mockOutputService = new Mock<IOutputService>();
 	}
 
 	private static CommandContext CreateCommandContext()
@@ -44,11 +46,11 @@ public class CalendarCommandTests
 			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync(events);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
-		var result = await command.ExecuteAsync(context, CancellationToken.None);
+		var result = await command.ExecuteAsync(context, new ListCalendarSettings(), CancellationToken.None);
 
 		// Assert
 		result.Should().Be(0);
@@ -62,11 +64,11 @@ public class CalendarCommandTests
 			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync([]);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
-		var result = await command.ExecuteAsync(context, CancellationToken.None);
+		var result = await command.ExecuteAsync(context, new ListCalendarSettings(), CancellationToken.None);
 
 		// Assert
 		result.Should().Be(0);
@@ -80,11 +82,11 @@ public class CalendarCommandTests
 			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync((IReadOnlyList<CalendarEventSummary>?)null);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
-		var result = await command.ExecuteAsync(context, CancellationToken.None);
+		var result = await command.ExecuteAsync(context, new ListCalendarSettings(), CancellationToken.None);
 
 		// Assert
 		result.Should().Be(1);
@@ -103,11 +105,11 @@ public class CalendarCommandTests
 			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync(events);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
-		var result = await command.ExecuteAsync(context, CancellationToken.None);
+		var result = await command.ExecuteAsync(context, new ListCalendarSettings(), CancellationToken.None);
 
 		// Assert
 		result.Should().Be(0);

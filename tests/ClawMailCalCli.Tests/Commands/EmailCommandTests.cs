@@ -14,10 +14,12 @@ namespace ClawMailCalCli.Tests.Commands;
 public class EmailCommandTests
 {
 	private readonly Mock<IEmailService> _mockEmailService;
+	private readonly Mock<IOutputService> _mockOutputService;
 
 	public EmailCommandTests()
 	{
 		_mockEmailService = new Mock<IEmailService>();
+		_mockOutputService = new Mock<IOutputService>();
 	}
 
 	private static CommandContext CreateCommandContext()
@@ -45,7 +47,7 @@ public class EmailCommandTests
 			.Setup(service => service.GetEmailsAsync(null, It.IsAny<CancellationToken>()))
 			.ReturnsAsync(emails);
 
-		var command = new ListEmailCommand(_mockEmailService.Object);
+		var command = new ListEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
 		var settings = new ListEmailSettings();
 		var context = CreateCommandContext();
 
@@ -64,7 +66,7 @@ public class EmailCommandTests
 			.Setup(service => service.GetEmailsAsync(null, It.IsAny<CancellationToken>()))
 			.ReturnsAsync([]);
 
-		var command = new ListEmailCommand(_mockEmailService.Object);
+		var command = new ListEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
 		var settings = new ListEmailSettings();
 		var context = CreateCommandContext();
 
@@ -91,7 +93,7 @@ public class EmailCommandTests
 			.Setup(service => service.ReadEmailAsync("work-account", "Test Subject", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(emailMessage);
 
-		var command = new ReadEmailCommand(_mockEmailService.Object);
+		var command = new ReadEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
 		var settings = new ReadEmailSettings { AccountName = "work-account", SubjectOrId = "Test Subject" };
 		var context = CreateCommandContext();
 
@@ -110,7 +112,7 @@ public class EmailCommandTests
 			.Setup(service => service.ReadEmailAsync("work-account", "nonexistent", It.IsAny<CancellationToken>()))
 			.ReturnsAsync((EmailMessage?)null);
 
-		var command = new ReadEmailCommand(_mockEmailService.Object);
+		var command = new ReadEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
 		var settings = new ReadEmailSettings { AccountName = "work-account", SubjectOrId = "nonexistent" };
 		var context = CreateCommandContext();
 
@@ -137,7 +139,7 @@ public class EmailCommandTests
 			.Setup(service => service.ReadEmailAsync("work-account", "No Date", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(emailMessage);
 
-		var command = new ReadEmailCommand(_mockEmailService.Object);
+		var command = new ReadEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
 		var settings = new ReadEmailSettings { AccountName = "work-account", SubjectOrId = "No Date" };
 		var context = CreateCommandContext();
 
