@@ -100,9 +100,9 @@ public class GraphServiceClientBuilderTests
 	}
 
 	[Fact]
-	public async Task BuildAsync_WhenClientIdIsNullAfterAuthRecord_ReturnsNull()
+	public async Task BuildAsync_WhenAuthRecordDeserializationFails_DoesNotFetchClientIdSecret()
 	{
-		// Arrange — use a base64 value that is valid base64 but deserializes to nothing meaningful (covers the invalid record path)
+		// Arrange
 		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
 		var validBase64NotAuthRecord = Convert.ToBase64String("not-a-valid-auth-record-json"u8.ToArray());
 
@@ -110,17 +110,16 @@ public class GraphServiceClientBuilderTests
 			.Setup(service => service.GetSecretAsync("auth-record-work-account", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(validBase64NotAuthRecord);
 
-		_mockKeyVaultService
-			.Setup(service => service.GetSecretAsync("exchange-client-id", It.IsAny<CancellationToken>()))
-			.ReturnsAsync((string?)null);
-
 		var graphServiceClientBuilder = CreateGraphServiceClientBuilder();
 
 		// Act
 		var result = await graphServiceClientBuilder.BuildAsync(account);
 
-		// Assert — returns null because deserialization fails (base64 decodes but isn't a valid auth record JSON)
+		// Assert — deserialization of the auth record fails, so the method returns null before ever fetching client-id
 		result.Should().BeNull();
+		_mockKeyVaultService.Verify(
+			service => service.GetSecretAsync("exchange-client-id", It.IsAny<CancellationToken>()),
+			Times.Never);
 	}
 
 	[Theory]

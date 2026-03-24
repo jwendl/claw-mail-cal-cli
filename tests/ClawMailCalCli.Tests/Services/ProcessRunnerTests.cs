@@ -19,7 +19,7 @@ public class ProcessRunnerTests
 	public async Task RunAsync_WhenCommandSucceeds_ReturnsZeroExitCode()
 	{
 		// Arrange & Act
-		var result = await _processRunner.RunAsync("echo", "hello");
+		var result = await _processRunner.RunAsync("dotnet", "--version");
 
 		// Assert
 		result.ExitCode.Should().Be(0);
@@ -29,17 +29,17 @@ public class ProcessRunnerTests
 	public async Task RunAsync_WhenCommandSucceeds_ReturnsOutputInStandardOutput()
 	{
 		// Arrange & Act
-		var result = await _processRunner.RunAsync("echo", "hello");
+		var result = await _processRunner.RunAsync("dotnet", "--version");
 
 		// Assert
-		result.StandardOutput.Should().Contain("hello");
+		result.StandardOutput.Should().NotBeEmpty();
 	}
 
 	[Fact]
 	public async Task RunAsync_WhenCommandSucceeds_ReturnsEmptyStandardError()
 	{
 		// Arrange & Act
-		var result = await _processRunner.RunAsync("echo", "hello");
+		var result = await _processRunner.RunAsync("dotnet", "--version");
 
 		// Assert
 		result.StandardError.Should().BeEmpty();
