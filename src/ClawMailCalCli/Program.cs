@@ -140,7 +140,7 @@ app.Configure(config =>
 	});
 });
 
-return app.Run(args);
+return app.Run(StripVerbosityFlag(args));
 
 /// <summary>
 /// Parses the <c>--verbosity</c> option from the raw argument list.
@@ -162,6 +162,27 @@ static VerbosityLevel ParseVerbosityLevel(string[] arguments)
 	}
 
 	return VerbosityLevel.Normal;
+}
+
+/// <summary>
+/// Returns a new argument array with the <c>--verbosity &lt;value&gt;</c> pair removed so that
+/// Spectre.Console.Cli strict parsing does not reject the unknown flag.
+/// </summary>
+static string[] StripVerbosityFlag(string[] arguments)
+{
+	var filtered = new List<string>(arguments.Length);
+	for (var argumentIndex = 0; argumentIndex < arguments.Length; argumentIndex++)
+	{
+		if (arguments[argumentIndex] == "--verbosity" && argumentIndex + 1 < arguments.Length)
+		{
+			argumentIndex++; // skip the value as well
+			continue;
+		}
+
+		filtered.Add(arguments[argumentIndex]);
+	}
+
+	return [.. filtered];
 }
 
 /// <summary>

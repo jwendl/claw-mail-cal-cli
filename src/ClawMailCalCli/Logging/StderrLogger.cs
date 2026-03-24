@@ -50,7 +50,7 @@ internal sealed class StderrLogger(string categoryName, LogLevel minimumLevel)
 				Console.Error.WriteLine(exception.ToString());
 			}
 		}
-		catch (Exception exceptionDuringLogging)
+		catch (Exception)
 		{
 			// Swallow all exceptions from logging to avoid crashing the application.
 		}

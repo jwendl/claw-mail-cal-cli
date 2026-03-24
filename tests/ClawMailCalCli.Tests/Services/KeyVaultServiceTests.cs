@@ -29,7 +29,7 @@ public class KeyVaultServiceTests
 		// Arrange
 		var secretName = "my-secret";
 		var secretValue = "my-value";
-		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var keyVaultSecret = new KeyVaultSecret(secretName, secretValue);
 		var response = Response.FromValue(keyVaultSecret, Mock.Of<Response>());
 
 		_mockSecretClient
@@ -69,7 +69,7 @@ public class KeyVaultServiceTests
 		// Arrange
 		var secretName = "logged-secret";
 		var secretValue = "value";
-		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var keyVaultSecret = new KeyVaultSecret(secretName, secretValue);
 		var response = Response.FromValue(keyVaultSecret, Mock.Of<Response>());
 
 		_mockSecretClient
@@ -97,7 +97,7 @@ public class KeyVaultServiceTests
 		// Arrange
 		var secretName = "silent-secret";
 		var secretValue = "value";
-		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var keyVaultSecret = new KeyVaultSecret(secretName, secretValue);
 		var response = Response.FromValue(keyVaultSecret, Mock.Of<Response>());
 
 		_mockSecretClient
@@ -130,7 +130,7 @@ public class KeyVaultServiceTests
 		// Arrange
 		var secretName = "write-secret";
 		var secretValue = "write-value";
-		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var keyVaultSecret = new KeyVaultSecret(secretName, secretValue);
 		var response = Response.FromValue(keyVaultSecret, Mock.Of<Response>());
 
 		_mockSecretClient
@@ -158,7 +158,7 @@ public class KeyVaultServiceTests
 		// Arrange
 		var secretName = "silent-write";
 		var secretValue = "silent-value";
-		var keyVaultSecret = SecretModelFactory.KeyVaultSecret(new SecretProperties(secretName), secretValue);
+		var keyVaultSecret = new KeyVaultSecret(secretName, secretValue);
 		var response = Response.FromValue(keyVaultSecret, Mock.Of<Response>());
 
 		_mockSecretClient
