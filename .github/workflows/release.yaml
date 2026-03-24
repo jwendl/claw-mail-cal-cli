@@ -44,7 +44,6 @@ jobs:
           tar -czf ../ClawMailCalCli-linux-x64.tar.gz ClawMailCalCli
 
       - name: Extract release notes from CHANGELOG.md
-        id: changelog
         run: |
           # Extract the content of the [Unreleased] section (between ## [Unreleased] and the next versioned ## heading)
           awk '/^## \[Unreleased\]/{found=1; next} found && /^## \[[0-9]/{exit} found{print}' CHANGELOG.md > /tmp/release-notes.md
