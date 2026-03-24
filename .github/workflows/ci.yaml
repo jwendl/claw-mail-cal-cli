@@ -30,8 +30,48 @@ jobs:
       - name: Build
         run: dotnet build claw-mail-cal-cli.slnx --configuration Release --no-restore
 
-      - name: Run tests
-        run: dotnet test tests/ClawMailCalCli.Tests/ --configuration Release --no-build --verbosity normal --filter "Category=Unit"
+      - name: Run tests with coverage
+        run: |
+          dotnet test tests/ClawMailCalCli.Tests/ \
+            --configuration Release \
+            --no-build \
+            --verbosity normal \
+            --filter "Category=Unit" \
+            /p:CollectCoverage=true \
+            /p:CoverletOutputFormat=cobertura \
+            /p:CoverletOutput=./coverage/ \
+            /p:ExcludeByFile="**/Program.cs" \
+            /p:Threshold=70 \
+            /p:ThresholdType=line \
+            /p:ThresholdStat=total
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: tests/ClawMailCalCli.Tests/coverage/
+
+      - name: Publish coverage summary
+        if: always()
+        run: |
+          COBERTURA_FILE="tests/ClawMailCalCli.Tests/coverage/coverage.cobertura.xml"
+          if [ -f "$COBERTURA_FILE" ]; then
+            LINE_RATE=$(python3 -c "import xml.etree.ElementTree as ET; root = ET.parse('$COBERTURA_FILE').getroot(); print(f\"{float(root.get('line-rate', 0)) * 100:.1f}%\")")
+            BRANCH_RATE=$(python3 -c "import xml.etree.ElementTree as ET; root = ET.parse('$COBERTURA_FILE').getroot(); print(f\"{float(root.get('branch-rate', 0)) * 100:.1f}%\")")
+            LINES_COVERED=$(python3 -c "import xml.etree.ElementTree as ET; root = ET.parse('$COBERTURA_FILE').getroot(); print(root.get('lines-covered', '0'))")
+            LINES_VALID=$(python3 -c "import xml.etree.ElementTree as ET; root = ET.parse('$COBERTURA_FILE').getroot(); print(root.get('lines-valid', '0'))")
+            echo "## Code Coverage Summary" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Metric | Value |" >> "$GITHUB_STEP_SUMMARY"
+            echo "|--------|-------|" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Line Coverage | $LINE_RATE |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Branch Coverage | $BRANCH_RATE |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Lines Covered | $LINES_COVERED / $LINES_VALID |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Threshold | 70% line coverage |" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Coverage report not found." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Check formatting
         run: dotnet format claw-mail-cal-cli.slnx --verify-no-changes
