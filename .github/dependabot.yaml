@@ -4,13 +4,30 @@ updates:
     directory: "/src/ClawMailCalCli"
     schedule:
       interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
+    groups:
+      azure-packages:
+        patterns:
+          - "Azure.*"
+      graph-packages:
+        patterns:
+          - "Microsoft.Graph*"
 
-  - package-ecosystem: "npm"
-    directory: "/tools/azurite"
+  - package-ecosystem: "nuget"
+    directory: "/tests/ClawMailCalCli.Tests"
     schedule:
       interval: "weekly"
+      day: "monday"
+    labels:
+      - "dependencies"
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+      day: "monday"
+    labels:
+      - "github-actions"
+      - "dependencies"
