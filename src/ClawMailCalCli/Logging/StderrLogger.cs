@@ -1,7 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
-using Spectre.Console;
-
-namespace ClawMailCalCli.Logging;
+﻿namespace ClawMailCalCli.Logging;
 
 /// <summary>
 /// An <see cref="ILogger"/> implementation that writes colour-coded log messages to stderr

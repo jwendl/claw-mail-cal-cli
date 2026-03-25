@@ -1,6 +1,4 @@
-﻿using ClawMailCalCli.Commands.Settings;
-using ClawMailCalCli.Configuration;
-using ClawMailCalCli.Services.Interfaces;
+﻿using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Calendar;
 

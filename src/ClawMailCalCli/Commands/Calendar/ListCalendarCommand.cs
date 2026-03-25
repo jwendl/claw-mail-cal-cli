@@ -1,5 +1,4 @@
-﻿using ClawMailCalCli.Commands.Settings;
-using ClawMailCalCli.Models;
+﻿using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Calendar;

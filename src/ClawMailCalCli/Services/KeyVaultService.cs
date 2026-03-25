@@ -1,7 +1,6 @@
 ﻿using Azure;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli.Services.Interfaces;
-using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Services;
 

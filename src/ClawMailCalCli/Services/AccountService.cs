@@ -2,7 +2,6 @@
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Services;
 

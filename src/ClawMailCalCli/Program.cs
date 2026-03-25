@@ -14,10 +14,10 @@ var verbosityLevel = ParseVerbosityLevel(args);
 var minimumLogLevel = MapToLogLevel(verbosityLevel);
 
 var configuration = new ConfigurationBuilder()
-.SetBasePath(AppContext.BaseDirectory)
-.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-.AddEnvironmentVariables()
-.Build();
+	.SetBasePath(AppContext.BaseDirectory)
+	.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+	.AddEnvironmentVariables()
+	.Build();
 
 var services = new ServiceCollection();
 

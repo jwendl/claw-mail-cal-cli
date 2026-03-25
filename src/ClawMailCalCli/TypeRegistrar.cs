@@ -5,7 +5,7 @@
 /// dependency injection model.
 /// </summary>
 internal sealed class TypeRegistrar(IServiceCollection services)
-: ITypeRegistrar
+	: ITypeRegistrar
 {
 	/// <inheritdoc />
 	public ITypeResolver Build() => new TypeResolver(services.BuildServiceProvider());
@@ -24,7 +24,7 @@ internal sealed class TypeRegistrar(IServiceCollection services)
 	/// Resolves services from a built <see cref="IServiceProvider"/>.
 	/// </summary>
 	private sealed class TypeResolver(IServiceProvider serviceProvider)
-	: ITypeResolver, IDisposable
+		: ITypeResolver, IDisposable
 	{
 		/// <inheritdoc />
 		public object? Resolve(Type? type)
