@@ -34,7 +34,17 @@ internal sealed class TypeRegistrar(IServiceCollection services)
 				return null;
 			}
 
-			return serviceProvider.GetService(type);
+			// Return null for types that are not registered so Spectre.Console.Cli can handle
+			// unknown types gracefully. For registered types, use GetRequiredService so that any
+			// transitive construction failure surfaces its actual exception instead of being
+			// silently swallowed and replaced with Spectre's generic "Could not resolve type" error.
+			var serviceRegistry = serviceProvider.GetRequiredService<IServiceProviderIsService>();
+			if (!serviceRegistry.IsService(type))
+			{
+				return null;
+			}
+
+			return serviceProvider.GetRequiredService(type);
 		}
 
 		/// <inheritdoc />

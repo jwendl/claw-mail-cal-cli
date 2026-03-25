@@ -90,6 +90,24 @@ public class TypeRegistrarTests
 	}
 
 	[Fact]
+	public void Resolve_WhenRegisteredServiceHasBrokenFactory_SurfacesActualException()
+	{
+		// Arrange
+		var services = new ServiceCollection();
+		var typeRegistrar = new TypeRegistrar(services);
+		typeRegistrar.RegisterLazy(typeof(IGreeter), () => throw new InvalidOperationException("dependency is not configured"));
+
+		// Act
+		var resolver = typeRegistrar.Build();
+		var act = () => resolver.Resolve(typeof(IGreeter));
+
+		// Assert – the real construction error must propagate, not be masked as null
+		// (which would produce Spectre's generic "Could not resolve type" error instead).
+		act.Should().Throw<InvalidOperationException>()
+			.WithMessage("dependency is not configured");
+	}
+
+	[Fact]
 	public void Dispose_WhenCalled_DisposesUnderlyingServiceProvider()
 	{
 		// Arrange
