@@ -23,21 +23,24 @@ public class TypeRegistrarTests
 		// Assert
 		resolved.Should().NotBeNull();
 		resolved.Should().BeOfType<HelloGreeter>();
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
-	public void Build_ReturnsTypeResolverThatReturnsNullForUnregisteredType()
+	public void Resolve_WhenRegisteredTypeHasFailingDependency_ThrowsActualException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
+		services.AddTransient<IGreeter>(_ => throw new InvalidOperationException("Dependency construction failed."));
 		var typeRegistrar = new TypeRegistrar(services);
+		var resolver = typeRegistrar.Build();
 
 		// Act
-		var resolver = typeRegistrar.Build();
-		var resolved = resolver.Resolve(typeof(IGreeter));
+		var act = () => resolver.Resolve(typeof(IGreeter));
 
 		// Assert
-		resolved.Should().BeNull();
+		act.Should().Throw<InvalidOperationException>().WithMessage("*Dependency construction failed*");
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -53,6 +56,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		resolved.Should().BeNull();
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -70,6 +74,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		resolved.Should().BeSameAs(instance);
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -87,6 +92,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		resolved.Should().NotBeNull();
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
