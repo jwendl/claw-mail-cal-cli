@@ -63,6 +63,7 @@ services.AddSingleton<IGraphClientService, GraphClientService>();
 services.AddTransient<ICalendarService, CalendarService>();
 services.AddTransient<IEmailService, EmailService>();
 services.AddSingleton<IConfigurationService, ConfigurationService>();
+services.AddSingleton<IAzureCliChecker, AzureCliChecker>();
 services.AddSingleton<IKeyVaultChecker, KeyVaultChecker>();
 services.AddTransient<IDoctorService, DoctorService>();
 services.AddSingleton<IOutputService, OutputService>();

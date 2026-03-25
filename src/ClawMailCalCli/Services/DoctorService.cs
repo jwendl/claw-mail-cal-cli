@@ -9,7 +9,7 @@ namespace ClawMailCalCli.Services;
 /// <summary>
 /// Performs prerequisite environment checks for the <c>doctor</c> command.
 /// </summary>
-public partial class DoctorService(IConfigurationService configurationService, IKeyVaultChecker keyVaultChecker)
+public partial class DoctorService(IConfigurationService configurationService, IAzureCliChecker azureCliChecker, IKeyVaultChecker keyVaultChecker)
 	: IDoctorService
 {
 	/// <inheritdoc />
@@ -17,23 +17,10 @@ public partial class DoctorService(IConfigurationService configurationService, I
 	{
 		var results = new List<DoctorCheckResult>();
 
-		var defaultAzureCredentialOptions = new DefaultAzureCredentialOptions()
+		var isAzureCliAuthenticated = await azureCliChecker.IsAuthenticatedAsync(cancellationToken);
+		if (isAzureCliAuthenticated)
 		{
-			ExcludeBrokerCredential = true,
-			ExcludeAzureDeveloperCliCredential = true,
-			ExcludeEnvironmentCredential = true,
-			ExcludeInteractiveBrowserCredential = true,
-			ExcludeManagedIdentityCredential = true,
-			ExcludeVisualStudioCredential = true,
-			ExcludeVisualStudioCodeCredential = true,
-			ExcludeWorkloadIdentityCredential = true,
-			ExcludeAzurePowerShellCredential = true,
-		};
-		var defaultAzureCredential = new DefaultAzureCredential(defaultAzureCredentialOptions);
-		var accessToken = await defaultAzureCredential.GetTokenAsync(new TokenRequestContext(["https://vault.azure.net/.default"]), cancellationToken);
-		if (!string.IsNullOrWhiteSpace(accessToken.Token))
-		{
-			results.Add(new DoctorCheckResult("Azure CLI installed", true, accessToken.TokenType));
+			results.Add(new DoctorCheckResult("Azure CLI installed", true, "Azure CLI is installed and authenticated"));
 		}
 		else
 		{

@@ -12,6 +12,7 @@ namespace ClawMailCalCli.Tests.Services;
 public class DoctorServiceTests
 {
 	private readonly Mock<IConfigurationService> _mockConfigurationService;
+	private readonly Mock<IAzureCliChecker> _mockAzureCliChecker;
 	private readonly Mock<IKeyVaultChecker> _mockKeyVaultChecker;
 	private readonly DoctorService _doctorService;
 
@@ -21,14 +22,19 @@ public class DoctorServiceTests
 	public DoctorServiceTests()
 	{
 		_mockConfigurationService = new Mock<IConfigurationService>();
+		_mockAzureCliChecker = new Mock<IAzureCliChecker>();
 		_mockKeyVaultChecker = new Mock<IKeyVaultChecker>();
-		_doctorService = new DoctorService(_mockConfigurationService.Object, _mockKeyVaultChecker.Object);
+		_doctorService = new DoctorService(_mockConfigurationService.Object, _mockAzureCliChecker.Object, _mockKeyVaultChecker.Object);
 	}
 
 	[Fact]
 	public async Task RunAllChecksAsync_WhenAllChecksPass_ReturnsAllPassedResults()
 	{
-		// Arrange		SetupConfigFileValid("https://my-kv.vault.azure.net/", "work");
+		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+		SetupConfigFileValid("https://my-kv.vault.azure.net/", "work");
 		_mockKeyVaultChecker
 			.Setup(checker => checker.IsReachableAsync("https://my-kv.vault.azure.net/", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(true);
@@ -37,7 +43,7 @@ public class DoctorServiceTests
 		var results = await _doctorService.RunAllChecksAsync();
 
 		// Assert
-		results.Should().HaveCount(5);
+		results.Should().HaveCount(4);
 		results.Should().AllSatisfy(result => result.Passed.Should().BeTrue());
 	}
 
@@ -45,6 +51,9 @@ public class DoctorServiceTests
 	public async Task RunAllChecksAsync_WhenConfigFileMissing_ReturnsFailedConfigCheck()
 	{
 		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 		_mockConfigurationService
 			.Setup(service => service.ReadConfigurationAsync())
 			.ThrowsAsync(new InvalidOperationException("Configuration file not found."));
@@ -65,6 +74,9 @@ public class DoctorServiceTests
 	public async Task RunAllChecksAsync_WhenConfigFileMissing_KeyVaultCheckIsSkipped()
 	{
 		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 		_mockConfigurationService
 			.Setup(service => service.ReadConfigurationAsync())
 			.ThrowsAsync(new InvalidOperationException("Configuration file not found."));
@@ -83,6 +95,9 @@ public class DoctorServiceTests
 	public async Task RunAllChecksAsync_WhenKeyVaultReachable_ReturnsPassedKeyVaultCheck()
 	{
 		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 		SetupConfigFileValid("https://my-kv.vault.azure.net/", null);
 		_mockKeyVaultChecker
 			.Setup(checker => checker.IsReachableAsync("https://my-kv.vault.azure.net/", It.IsAny<CancellationToken>()))
@@ -101,6 +116,9 @@ public class DoctorServiceTests
 	public async Task RunAllChecksAsync_WhenKeyVaultNotReachable_ReturnsFailedKeyVaultCheck()
 	{
 		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 		SetupConfigFileValid("https://my-kv.vault.azure.net/", null);
 		_mockKeyVaultChecker
 			.Setup(checker => checker.IsReachableAsync("https://my-kv.vault.azure.net/", It.IsAny<CancellationToken>()))
@@ -119,6 +137,9 @@ public class DoctorServiceTests
 	public async Task RunAllChecksAsync_WhenDefaultAccountSet_ReturnsPassedAccountCheck()
 	{
 		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 		SetupConfigFileValid("https://my-kv.vault.azure.net/", "work");
 		_mockKeyVaultChecker
 			.Setup(checker => checker.IsReachableAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
@@ -137,6 +158,9 @@ public class DoctorServiceTests
 	public async Task RunAllChecksAsync_WhenConfigFileMissing_DefaultAccountCheckIsSkipped()
 	{
 		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 		_mockConfigurationService
 			.Setup(service => service.ReadConfigurationAsync())
 			.ThrowsAsync(new InvalidOperationException("Configuration file not found."));
@@ -154,6 +178,9 @@ public class DoctorServiceTests
 	public async Task RunAllChecksAsync_WhenNoDefaultAccount_ReturnsFailedAccountCheck()
 	{
 		// Arrange
+		_mockAzureCliChecker
+			.Setup(checker => checker.IsAuthenticatedAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
 		SetupConfigFileValid("https://my-kv.vault.azure.net/", null);
 		_mockKeyVaultChecker
 			.Setup(checker => checker.IsReachableAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
