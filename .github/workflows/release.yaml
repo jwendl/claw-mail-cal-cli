@@ -85,7 +85,7 @@ jobs:
       - name: Package Linux x64 artifacts
         run: |
           cd publish/linux-x64
-          tar -czf ../claw-mail-cal-cli-linux-x64.tar.gz *
+          tar -czf ../claw-mail-cal-cli-linux-x64.tar.gz .
 
       - name: Extract release notes from CHANGELOG.md
         run: |
