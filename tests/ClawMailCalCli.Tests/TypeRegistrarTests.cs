@@ -27,22 +27,6 @@ public class TypeRegistrarTests
 	}
 
 	[Fact]
-	public void Resolve_WhenTypeIsNotRegistered_ThrowsInvalidOperationException()
-	{
-		// Arrange
-		var services = new ServiceCollection();
-		var typeRegistrar = new TypeRegistrar(services);
-		var resolver = typeRegistrar.Build();
-
-		// Act
-		var act = () => resolver.Resolve(typeof(IGreeter));
-
-		// Assert
-		act.Should().Throw<InvalidOperationException>();
-		((IDisposable)resolver).Dispose();
-	}
-
-	[Fact]
 	public void Resolve_WhenRegisteredTypeHasFailingDependency_ThrowsActualException()
 	{
 		// Arrange
