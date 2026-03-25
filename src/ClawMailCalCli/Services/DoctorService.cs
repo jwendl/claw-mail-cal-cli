@@ -1,5 +1,3 @@
-using Azure.Core;
-using Azure.Identity;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 
