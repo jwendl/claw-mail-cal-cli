@@ -17,21 +17,8 @@ public class KeyVaultChecker
 	{
 		try
 		{
-			var defaultAzureCredentialOptions = new DefaultAzureCredentialOptions()
-			{
-				ExcludeBrokerCredential = true,
-				ExcludeAzureDeveloperCliCredential = true,
-				ExcludeEnvironmentCredential = true,
-				ExcludeInteractiveBrowserCredential = true,
-				ExcludeManagedIdentityCredential = true,
-				ExcludeVisualStudioCredential = true,
-				ExcludeVisualStudioCodeCredential = true,
-				ExcludeWorkloadIdentityCredential = true,
-				ExcludeAzurePowerShellCredential = true,
-			};
-			var defaultAzureCredential = new DefaultAzureCredential(defaultAzureCredentialOptions);
-
-			var client = new SecretClient(new Uri(vaultUri), defaultAzureCredential);
+			var azureCliCredential = new AzureCliCredential();
+			var client = new SecretClient(new Uri(vaultUri), azureCliCredential);
 			await client.GetSecretAsync("doctor-probe", cancellationToken: cancellationToken);
 			return true;
 		}
