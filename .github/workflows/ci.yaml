@@ -25,10 +25,10 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore claw-mail-cal-cli.slnx
+        run: dotnet restore ClawMailCalCli.slnx
 
       - name: Build
-        run: dotnet build claw-mail-cal-cli.slnx --configuration Release --no-restore
+        run: dotnet build ClawMailCalCli.slnx --configuration Release --no-restore
 
       - name: Run tests with coverage
         run: |
