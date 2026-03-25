@@ -1,4 +1,3 @@
-﻿using System.Text.RegularExpressions;
 using Azure.Core;
 using Azure.Identity;
 using ClawMailCalCli.Models;
