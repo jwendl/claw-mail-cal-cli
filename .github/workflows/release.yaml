@@ -92,12 +92,13 @@ jobs:
       - name: Verify Linux x64 dependencies
         run: |
           echo "Shared library dependencies:"
-          ldd ./publish/linux-x64/claw-mail-cal-cli
+          deps_output="$(ldd ./publish/linux-x64/claw-mail-cal-cli 2>&1)"
+          echo "$deps_output"
           echo ""
           echo "Checking for missing dependencies..."
-          if ldd ./publish/linux-x64/claw-mail-cal-cli 2>&1 | grep -q "not found"; then
+          if echo "$deps_output" | grep -q "not found"; then
             echo "::error::Missing shared library dependencies detected"
-            ldd ./publish/linux-x64/claw-mail-cal-cli 2>&1 | grep "not found"
+            echo "$deps_output" | grep "not found"
             exit 1
           fi
           echo "All dependencies satisfied"
