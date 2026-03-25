@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using System.Reflection;
+using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
 using ClawMailCalCli.Commands.Calendar;
@@ -85,9 +86,12 @@ await using (var startupContext = new ApplicationDbContext(new DbContextOptionsB
 var registrar = new TypeRegistrar(services);
 var app = new CommandApp<DefaultCommand>(registrar);
 
+var applicationVersion = Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "0.0.0";
+
 app.Configure(config =>
 {
 	config.SetApplicationName("claw-mail-cal-cli");
+	config.SetApplicationVersion(applicationVersion);
 	config.UseStrictParsing();
 
 	config.AddBranch("account", account =>

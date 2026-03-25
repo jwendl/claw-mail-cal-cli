@@ -82,10 +82,41 @@ jobs:
           -p:Version=${{ steps.version.outputs.version }}
           -o ./publish/linux-x64
 
+      - name: Validate Linux x64 binary
+        run: |
+          chmod +x ./publish/linux-x64/claw-mail-cal-cli
+          echo "Running smoke test: --help"
+          ./publish/linux-x64/claw-mail-cal-cli --help
+          echo "Running smoke test: --version"
+          ./publish/linux-x64/claw-mail-cal-cli --version
+
+      - name: Verify Linux x64 dependencies
+        run: |
+          echo "Shared library dependencies:"
+          deps_output="$(ldd ./publish/linux-x64/claw-mail-cal-cli 2>&1)"
+          echo "$deps_output"
+          echo ""
+          echo "Checking for missing dependencies..."
+          if echo "$deps_output" | grep -q "not found"; then
+            echo "::error::Missing shared library dependencies detected"
+            echo "$deps_output" | grep "not found"
+            exit 1
+          fi
+          echo "All dependencies satisfied"
+
       - name: Package Linux x64 artifacts
         run: |
           cd publish/linux-x64
           tar -czf ../claw-mail-cal-cli-linux-x64.tar.gz .
+
+      - name: Generate checksums
+        run: |
+          sha256sum publish/claw-mail-cal-cli-linux-x64.tar.gz > publish/claw-mail-cal-cli-linux-x64.tar.gz.sha256
+          sha256sum publish/win-x64/ClawMailCalCli.exe > publish/ClawMailCalCli.exe.sha256
+          echo "Linux x64 checksum:"
+          cat publish/claw-mail-cal-cli-linux-x64.tar.gz.sha256
+          echo "Windows x64 checksum:"
+          cat publish/ClawMailCalCli.exe.sha256
 
       - name: Extract release notes from CHANGELOG.md
         run: |
@@ -107,3 +138,5 @@ jobs:
           files: |
             publish/win-x64/ClawMailCalCli.exe
             publish/claw-mail-cal-cli-linux-x64.tar.gz
+            publish/claw-mail-cal-cli-linux-x64.tar.gz.sha256
+            publish/ClawMailCalCli.exe.sha256
