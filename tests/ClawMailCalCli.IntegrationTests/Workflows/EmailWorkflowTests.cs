@@ -136,7 +136,7 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		var mockAuthenticationService = new Mock<IAuthenticationService>();
 		mockAuthenticationService
 			.Setup(authService => authService.AuthenticateAsync("work-user", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
+			.ReturnsAsync(true);
 
 		// Arrange — mock GraphServiceClientBuilder that returns a usable fake client on every call
 		var mockGraphServiceClientBuilder = new Mock<IGraphServiceClientBuilder>();
