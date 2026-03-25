@@ -182,7 +182,7 @@ public class GraphClientServiceTests
 
 		_mockAuthenticationService
 			.Setup(authService => authService.AuthenticateAsync("work-account", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
+			.ReturnsAsync(true);
 
 		var callCount = 0;
 		Func<GraphServiceClient, Task<string>> operation = _ =>
@@ -224,7 +224,7 @@ public class GraphClientServiceTests
 
 		_mockAuthenticationService
 			.Setup(authService => authService.AuthenticateAsync("work-account", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
+			.ReturnsAsync(true);
 
 		var callCount = 0;
 		Func<GraphServiceClient, Task<string>> operation = _ =>
@@ -265,7 +265,7 @@ public class GraphClientServiceTests
 
 		_mockAuthenticationService
 			.Setup(authService => authService.AuthenticateAsync("work-account", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
+			.ReturnsAsync(true);
 
 		Func<GraphServiceClient, Task<string>> operation = _ =>
 			throw new ODataError { ResponseStatusCode = 401 };
@@ -330,7 +330,7 @@ public class GraphClientServiceTests
 
 		_mockAuthenticationService
 			.Setup(authService => authService.AuthenticateAsync("personal-account", It.IsAny<CancellationToken>()))
-			.Returns(Task.CompletedTask);
+			.ReturnsAsync(true);
 
 		var callCount = 0;
 		Func<GraphServiceClient, Task<string>> operation = _ =>

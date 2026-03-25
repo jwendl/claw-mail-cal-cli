@@ -47,7 +47,7 @@ public class AuthenticationServiceTests
 			_logger);
 
 	[Fact]
-	public async Task AuthenticateAsync_WhenAccountNotFound_WritesErrorAndReturns()
+	public async Task AuthenticateAsync_WhenAccountNotFound_ReturnsFalse()
 	{
 		// Arrange
 		_mockAccountService
@@ -57,16 +57,42 @@ public class AuthenticationServiceTests
 		var authenticationService = CreateAuthenticationService();
 
 		// Act
-		await authenticationService.AuthenticateAsync("unknown");
+		var result = await authenticationService.AuthenticateAsync("unknown");
 
-		// Assert — no credential provider calls should happen
+		// Assert — no credential provider calls should happen and false is returned
+		result.Should().BeFalse();
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
 			Times.Never);
 	}
 
 	[Fact]
-	public async Task AuthenticateAsync_WhenCachedRecordExists_SkipsDeviceCodeFlow()
+	public async Task AuthenticateAsync_WhenClientIdMissing_ReturnsFalse()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("exchange-client-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string?)null);
+
+		var authenticationService = CreateAuthenticationService();
+
+		// Act
+		var result = await authenticationService.AuthenticateAsync("work-account");
+
+		// Assert — missing client ID should prevent authentication
+		result.Should().BeFalse();
+		_mockDeviceCodeCredentialProvider.Verify(
+			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
+			Times.Never);
+	}
+
+	[Fact]
+	public async Task AuthenticateAsync_WhenCachedRecordExists_ReturnsTrueAndSkipsDeviceCodeFlow()
 	{
 		// Arrange
 		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
@@ -88,9 +114,10 @@ public class AuthenticationServiceTests
 		var authenticationService = CreateAuthenticationService();
 
 		// Act
-		await authenticationService.AuthenticateAsync("work-account");
+		var result = await authenticationService.AuthenticateAsync("work-account");
 
 		// Assert — the cached record was found so the device code flow should not be triggered
+		result.Should().BeTrue();
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
 			Times.Never);
@@ -121,9 +148,10 @@ public class AuthenticationServiceTests
 		var authenticationService = CreateAuthenticationService();
 
 		// Act
-		await authenticationService.AuthenticateAsync("personal-account");
+		var result = await authenticationService.AuthenticateAsync("personal-account");
 
 		// Assert
+		result.Should().BeTrue();
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(
 				It.Is<DeviceCodeCredentialOptions>(options =>
@@ -159,9 +187,10 @@ public class AuthenticationServiceTests
 		var authenticationService = CreateAuthenticationService();
 
 		// Act
-		await authenticationService.AuthenticateAsync("work-account");
+		var result = await authenticationService.AuthenticateAsync("work-account");
 
 		// Assert — work accounts should use the organisation TenantId, not "common"
+		result.Should().BeTrue();
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(
 				It.Is<DeviceCodeCredentialOptions>(options =>
@@ -196,9 +225,10 @@ public class AuthenticationServiceTests
 		var authenticationService = CreateAuthenticationService();
 
 		// Act
-		await authenticationService.AuthenticateAsync("personal-account");
+		var result = await authenticationService.AuthenticateAsync("personal-account");
 
 		// Assert
+		result.Should().BeTrue();
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(
 				It.Is<DeviceCodeCredentialOptions>(options =>
@@ -233,9 +263,10 @@ public class AuthenticationServiceTests
 		var authenticationService = CreateAuthenticationService();
 
 		// Act
-		await authenticationService.AuthenticateAsync("personal-account");
+		var result = await authenticationService.AuthenticateAsync("personal-account");
 
 		// Assert — the authentication record is persisted under the correct secret name
+		result.Should().BeTrue();
 		_mockKeyVaultService.Verify(
 			keyVaultService => keyVaultService.SetSecretAsync(
 				"auth-record-personal-account",

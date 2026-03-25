@@ -15,5 +15,7 @@ public interface IAuthenticationService
 	/// </summary>
 	/// <param name="accountName">The short name of the account to authenticate.</param>
 	/// <param name="cancellationToken">Cancellation token.</param>
-	Task AuthenticateAsync(string accountName, CancellationToken cancellationToken = default);
+	/// <returns><see langword="true"/> if authentication succeeded; <see langword="false"/> if a
+	/// configuration or lookup error prevented authentication.</returns>
+	Task<bool> AuthenticateAsync(string accountName, CancellationToken cancellationToken = default);
 }
