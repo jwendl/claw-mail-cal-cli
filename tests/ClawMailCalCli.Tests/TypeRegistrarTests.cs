@@ -26,18 +26,34 @@ public class TypeRegistrarTests
 	}
 
 	[Fact]
-	public void Build_ReturnsTypeResolverThatReturnsNullForUnregisteredType()
+	public void Resolve_WhenTypeIsNotRegistered_ThrowsInvalidOperationException()
 	{
 		// Arrange
 		var services = new ServiceCollection();
 		var typeRegistrar = new TypeRegistrar(services);
+		var resolver = typeRegistrar.Build();
 
 		// Act
-		var resolver = typeRegistrar.Build();
-		var resolved = resolver.Resolve(typeof(IGreeter));
+		var act = () => resolver.Resolve(typeof(IGreeter));
 
 		// Assert
-		resolved.Should().BeNull();
+		act.Should().Throw<InvalidOperationException>();
+	}
+
+	[Fact]
+	public void Resolve_WhenRegisteredTypeHasFailingDependency_ThrowsActualException()
+	{
+		// Arrange
+		var services = new ServiceCollection();
+		services.AddTransient<IGreeter>(_ => throw new InvalidOperationException("Dependency construction failed."));
+		var typeRegistrar = new TypeRegistrar(services);
+		var resolver = typeRegistrar.Build();
+
+		// Act
+		var act = () => resolver.Resolve(typeof(IGreeter));
+
+		// Assert
+		act.Should().Throw<InvalidOperationException>().WithMessage("*Dependency construction failed*");
 	}
 
 	[Fact]

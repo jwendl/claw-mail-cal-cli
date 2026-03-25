@@ -34,7 +34,7 @@ internal sealed class TypeRegistrar(IServiceCollection services)
 				return null;
 			}
 
-			return serviceProvider.GetService(type);
+			return serviceProvider.GetRequiredService(type);
 		}
 
 		/// <inheritdoc />
