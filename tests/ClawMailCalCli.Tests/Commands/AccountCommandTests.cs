@@ -2,7 +2,7 @@
 using ClawMailCalCli.Commands.Account;
 using ClawMailCalCli.Commands.Settings;
 using ClawMailCalCli.Models;
-using ClawMailCalCli.Services;
+using ClawMailCalCli.Services.Interfaces;
 using Spectre.Console.Cli;
 
 namespace ClawMailCalCli.Tests.Commands;

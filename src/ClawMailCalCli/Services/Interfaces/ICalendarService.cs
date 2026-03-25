@@ -1,6 +1,6 @@
 ﻿using ClawMailCalCli.Models;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Provides business logic for reading calendar events from Microsoft Graph

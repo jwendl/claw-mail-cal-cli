@@ -1,6 +1,7 @@
 ﻿using Azure;
 using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Services;
 
@@ -16,7 +17,21 @@ public class KeyVaultChecker
 	{
 		try
 		{
-			var client = new SecretClient(new Uri(vaultUri), new AzureCliCredential());
+			var defaultAzureCredentialOptions = new DefaultAzureCredentialOptions()
+			{
+				ExcludeBrokerCredential = true,
+				ExcludeAzureDeveloperCliCredential = true,
+				ExcludeEnvironmentCredential = true,
+				ExcludeInteractiveBrowserCredential = true,
+				ExcludeManagedIdentityCredential = true,
+				ExcludeVisualStudioCredential = true,
+				ExcludeVisualStudioCodeCredential = true,
+				ExcludeWorkloadIdentityCredential = true,
+				ExcludeAzurePowerShellCredential = true,
+			};
+			var defaultAzureCredential = new DefaultAzureCredential(defaultAzureCredentialOptions);
+
+			var client = new SecretClient(new Uri(vaultUri), defaultAzureCredential);
 			await client.GetSecretAsync("doctor-probe", cancellationToken: cancellationToken);
 			return true;
 		}

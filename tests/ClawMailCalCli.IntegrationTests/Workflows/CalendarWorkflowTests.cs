@@ -1,4 +1,5 @@
-﻿using Microsoft.Graph.Models;
+﻿using ClawMailCalCli.Services.Interfaces;
+using Microsoft.Graph.Models;
 
 namespace ClawMailCalCli.IntegrationTests.Workflows;
 

@@ -1,6 +1,6 @@
 ﻿using ClawMailCalCli.Models;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Abstraction for running external processes, enabling testability of services

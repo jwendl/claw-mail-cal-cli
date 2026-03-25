@@ -1,4 +1,4 @@
-﻿namespace ClawMailCalCli.Services;
+﻿namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Checks whether an Azure Key Vault is reachable over the network with the current credentials, regardless of secret access permissions.

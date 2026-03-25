@@ -1,6 +1,6 @@
 ﻿using ClawMailCalCli.Models;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Runs a series of environment checks and returns the results.

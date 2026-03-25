@@ -2,6 +2,7 @@
 using System.Text.RegularExpressions;
 using Azure.Identity;
 using ClawMailCalCli.Models;
+using ClawMailCalCli.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 using Microsoft.Graph;
 using Microsoft.Graph.Models;

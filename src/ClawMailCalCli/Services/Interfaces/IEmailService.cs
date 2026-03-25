@@ -1,6 +1,6 @@
 ﻿using ClawMailCalCli.Models;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Defines email operations against the Microsoft Graph API.

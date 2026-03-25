@@ -1,5 +1,6 @@
 ﻿using Azure.Core;
 using Azure.Identity;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Services;
 

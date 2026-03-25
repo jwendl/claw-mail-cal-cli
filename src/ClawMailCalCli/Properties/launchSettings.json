@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ClawMailCalCli": {
+      "commandName": "Project",
+      "commandLineArgs": "doctor"
+    }
+  }
+}

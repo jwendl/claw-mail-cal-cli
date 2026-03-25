@@ -1,4 +1,4 @@
-﻿using ClawMailCalCli.Services;
+﻿using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Account;
 
