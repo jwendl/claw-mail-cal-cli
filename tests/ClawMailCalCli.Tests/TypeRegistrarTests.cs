@@ -23,6 +23,7 @@ public class TypeRegistrarTests
 		// Assert
 		resolved.Should().NotBeNull();
 		resolved.Should().BeOfType<HelloGreeter>();
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -38,6 +39,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		act.Should().Throw<InvalidOperationException>();
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -54,6 +56,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		act.Should().Throw<InvalidOperationException>().WithMessage("*Dependency construction failed*");
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -69,6 +72,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		resolved.Should().BeNull();
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -86,6 +90,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		resolved.Should().BeSameAs(instance);
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
@@ -103,6 +108,7 @@ public class TypeRegistrarTests
 
 		// Assert
 		resolved.Should().NotBeNull();
+		((IDisposable)resolver).Dispose();
 	}
 
 	[Fact]
