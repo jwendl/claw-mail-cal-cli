@@ -74,4 +74,4 @@ jobs:
           fi
 
       - name: Check formatting
-        run: dotnet format claw-mail-cal-cli.slnx --verify-no-changes
+        run: dotnet format ClawMailCalCli.slnx --verify-no-changes
