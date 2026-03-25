@@ -113,10 +113,13 @@ jobs:
         run: |
           sha256sum publish/claw-mail-cal-cli-linux-x64.tar.gz > publish/claw-mail-cal-cli-linux-x64.tar.gz.sha256
           sha256sum publish/win-x64/claw-mail-cal-cli.exe > publish/claw-mail-cal-cli.exe.sha256
+          sha256sum publish/win-x64/appsettings.json > publish/appsettings.json.sha256
           echo "Linux x64 checksum:"
           cat publish/claw-mail-cal-cli-linux-x64.tar.gz.sha256
           echo "Windows x64 checksum:"
           cat publish/claw-mail-cal-cli.exe.sha256
+          echo "Windows appsettings.json checksum:"
+          cat publish/appsettings.json.sha256
 
       - name: Extract release notes from CHANGELOG.md
         run: |
@@ -137,6 +140,8 @@ jobs:
           body_path: /tmp/release-notes.md
           files: |
             publish/win-x64/claw-mail-cal-cli.exe
+            publish/win-x64/appsettings.json
             publish/claw-mail-cal-cli-linux-x64.tar.gz
             publish/claw-mail-cal-cli-linux-x64.tar.gz.sha256
             publish/claw-mail-cal-cli.exe.sha256
+            publish/appsettings.json.sha256
