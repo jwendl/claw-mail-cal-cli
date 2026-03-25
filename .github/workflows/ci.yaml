@@ -32,7 +32,7 @@ jobs:
 
       - name: Publish Linux x64 for smoke testing
         run: >
-          dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj --no-restore
+          dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj
           -c Release -r linux-x64 --self-contained true
           -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true
           -o ./publish/linux-x64
