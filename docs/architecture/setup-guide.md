@@ -241,10 +241,10 @@ dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj \
   --output ./publish/linux-x64
 ```
 
-The executable is at `./publish/linux-x64/ClawMailCalCli`. Make it runnable:
+The executable is at `./publish/linux-x64/claw-mail-cal-cli`. Make it runnable:
 
 ```bash
-chmod +x ./publish/linux-x64/ClawMailCalCli
+chmod +x ./publish/linux-x64/claw-mail-cal-cli
 ```
 
 **Windows x64:**
@@ -257,11 +257,11 @@ dotnet publish src/ClawMailCalCli/ClawMailCalCli.csproj `
   --output .\publish\win-x64
 ```
 
-The executable is at `.\publish\win-x64\ClawMailCalCli.exe`.
+The executable is at `.\publish\win-x64\claw-mail-cal-cli.exe`.
 
 ---
 
-> **Tip:** Add the published directory to your `PATH` (or create a shell alias) so you can call `ClawMailCalCli` from any directory.
+> **Tip:** Add the published directory to your `PATH` (or create a shell alias) so you can call `claw-mail-cal-cli` from any directory.
 
 ---
 
@@ -269,12 +269,12 @@ Run the `doctor` command to verify your environment:
 
 **Linux:**
 ```bash
-./publish/linux-x64/ClawMailCalCli doctor
+./publish/linux-x64/claw-mail-cal-cli doctor
 ```
 
 **Windows:**
 ```powershell
-.\publish\win-x64\ClawMailCalCli.exe doctor
+.\publish\win-x64\claw-mail-cal-cli.exe doctor
 ```
 
 Expected output when all checks pass:
@@ -297,18 +297,18 @@ If any check fails, the output includes a **Fix** hint explaining the corrective
 
 ## Step 9 — Add an Account and Log In
 
-The examples below use the Linux executable path. Replace `./publish/linux-x64/ClawMailCalCli` with `.\publish\win-x64\ClawMailCalCli.exe` on Windows.
+The examples below use the Linux executable path. Replace `./publish/linux-x64/claw-mail-cal-cli` with `.\publish\win-x64\claw-mail-cal-cli.exe` on Windows.
 
 Add a named account (this stores the account name and email in a local SQLite database):
 
 ```bash
-./publish/linux-x64/ClawMailCalCli account add myaccount user@example.com
+./publish/linux-x64/claw-mail-cal-cli account add myaccount user@example.com
 ```
 
 Authenticate the account using the device code flow:
 
 ```bash
-./publish/linux-x64/ClawMailCalCli login myaccount
+./publish/linux-x64/claw-mail-cal-cli login myaccount
 ```
 
 Follow the prompt to open the displayed URL in a browser and enter the code.
@@ -316,7 +316,7 @@ Follow the prompt to open the displayed URL in a browser and enter the code.
 Set the account as the default so commands use it automatically:
 
 ```bash
-./publish/linux-x64/ClawMailCalCli account set myaccount
+./publish/linux-x64/claw-mail-cal-cli account set myaccount
 ```
 
 ---
@@ -348,6 +348,6 @@ dotnet test tests/ClawMailCalCli.Tests/ --configuration Release --filter "Catego
 
 Once the executable is on your `PATH` (or aliased), use it directly:
 
-- Explore available commands: `ClawMailCalCli --help`
-- Read calendar events: `ClawMailCalCli calendar list`
-- Send an email: `ClawMailCalCli email send user@example.com "Subject" "Body"`
+- Explore available commands: `claw-mail-cal-cli --help`
+- Read calendar events: `claw-mail-cal-cli calendar list`
+- Send an email: `claw-mail-cal-cli email send user@example.com "Subject" "Body"`
