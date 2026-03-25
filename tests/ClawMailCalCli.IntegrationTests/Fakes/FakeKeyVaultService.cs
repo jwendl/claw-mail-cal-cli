@@ -1,4 +1,6 @@
-﻿namespace ClawMailCalCli.IntegrationTests.Fakes;
+﻿using ClawMailCalCli.Services.Interfaces;
+
+namespace ClawMailCalCli.IntegrationTests.Fakes;
 
 /// <summary>
 /// An in-memory implementation of <see cref="IKeyVaultService"/> for integration tests.

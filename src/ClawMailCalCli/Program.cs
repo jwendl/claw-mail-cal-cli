@@ -1,15 +1,12 @@
 ﻿using Azure.Identity;
 using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
-using ClawMailCalCli.Commands.Calendar;
 using ClawMailCalCli.Data;
 using ClawMailCalCli.Logging;
 using ClawMailCalCli.Models;
-using ClawMailCalCli.Services;
+using ClawMailCalCli.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 var verbosityLevel = ParseVerbosityLevel(args);
@@ -33,14 +30,11 @@ services.AddLogging(loggingBuilder =>
 
 // SQLite database for account data (names, emails, default selection).
 // Key Vault is reserved for secrets such as OAuth tokens.
-var dbDirectory = Path.Combine(
-Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-".claw-mail-cal-cli");
+var dbDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claw-mail-cal-cli");
 Directory.CreateDirectory(dbDirectory);
 var dbPath = Path.Combine(dbDirectory, "accounts.db");
 
-services.AddDbContextFactory<ApplicationDbContext>(options =>
-options.UseSqlite($"Data Source={dbPath}"));
+services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
 
 // Key Vault client for OAuth token storage (not account data).
 services.AddSingleton(serviceProvider =>
@@ -69,7 +63,6 @@ services.AddSingleton<IGraphClientService, GraphClientService>();
 services.AddTransient<ICalendarService, CalendarService>();
 services.AddTransient<IEmailService, EmailService>();
 services.AddSingleton<IConfigurationService, ConfigurationService>();
-services.AddSingleton<IProcessRunner, ProcessRunner>();
 services.AddSingleton<IKeyVaultChecker, KeyVaultChecker>();
 services.AddTransient<IDoctorService, DoctorService>();
 services.AddSingleton<IOutputService, OutputService>();
@@ -93,16 +86,16 @@ app.Configure(config =>
 	config.AddBranch("account", account =>
 	{
 		account.AddCommand<AddAccountCommand>("add")
-	.WithDescription("Add a new account.")
-	.WithExample("account add myaccount user@example.com");
+			.WithDescription("Add a new account.")
+			.WithExample("account add myaccount user@example.com");
 		account.AddCommand<ListAccountsCommand>("list")
-	.WithDescription("List all accounts.");
+			.WithDescription("List all accounts.");
 		account.AddCommand<DeleteAccountCommand>("delete")
-	.WithDescription("Delete an account.")
-	.WithExample("account delete myaccount");
+			.WithDescription("Delete an account.")
+			.WithExample("account delete myaccount");
 		account.AddCommand<SetAccountCommand>("set")
-	.WithDescription("Set the default account.")
-	.WithExample("account set myaccount");
+			.WithDescription("Set the default account.")
+			.WithExample("account set myaccount");
 	});
 
 	config.AddBranch("calendar", calendar =>
@@ -129,15 +122,15 @@ app.Configure(config =>
 	config.AddBranch("email", email =>
 	{
 		email.AddCommand<SendEmailCommand>("send")
-		.WithDescription("Send an email via Microsoft Graph.")
-		.WithExample("email send user@example.com \"Hello\" \"This is the body.\"");
+			.WithDescription("Send an email via Microsoft Graph.")
+			.WithExample("email send user@example.com \"Hello\" \"This is the body.\"");
 		email.AddCommand<ListEmailCommand>("list")
-		.WithDescription("List the 20 most recent messages from the inbox or a named folder.")
-		.WithExample("email list")
-		.WithExample("email list", "sentitems");
+			.WithDescription("List the 20 most recent messages from the inbox or a named folder.")
+			.WithExample("email list")
+			.WithExample("email list", "sentitems");
 		email.AddCommand<ReadEmailCommand>("read")
-		.WithDescription("Read an email by subject or message ID.")
-		.WithExample("email", "read", "my-account", "Meeting notes");
+			.WithDescription("Read an email by subject or message ID.")
+			.WithExample("email", "read", "my-account", "Meeting notes");
 	});
 });
 

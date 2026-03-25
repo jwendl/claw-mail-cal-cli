@@ -1,4 +1,6 @@
-﻿namespace ClawMailCalCli.Commands;
+﻿using ClawMailCalCli.Services.Interfaces;
+
+namespace ClawMailCalCli.Commands;
 
 /// <summary>
 /// Checks the developer environment for required prerequisites and reports

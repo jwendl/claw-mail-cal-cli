@@ -1,7 +1,7 @@
 ﻿using ClawMailCalCli.Models;
 using Microsoft.Graph;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Provides Microsoft Graph API operations with automatic 401 retry and re-authentication.

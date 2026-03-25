@@ -1,6 +1,6 @@
 ﻿using ClawMailCalCli.Models;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Defines operations for managing email/calendar accounts.

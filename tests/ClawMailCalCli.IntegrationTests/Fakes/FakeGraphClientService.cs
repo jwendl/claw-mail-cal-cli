@@ -1,4 +1,5 @@
-﻿using Microsoft.Graph;
+﻿using ClawMailCalCli.Services.Interfaces;
+using Microsoft.Graph;
 
 namespace ClawMailCalCli.IntegrationTests.Fakes;
 

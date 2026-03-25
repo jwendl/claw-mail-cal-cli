@@ -4,7 +4,7 @@
     <OutputType>Exe</OutputType>
     <RootNamespace>ClawMailCalCli</RootNamespace>
     <AssemblyName>claw-mail-cal-cli</AssemblyName>
-    <AssemblyName Condition="('$(RuntimeIdentifier)' != '' AND $(RuntimeIdentifier.StartsWith('win'))) OR $([MSBuild]::IsOSPlatform('Windows'))">ClawMailCalCli</AssemblyName>
+    <AssemblyName Condition="('$(RuntimeIdentifier)' != '' AND $(RuntimeIdentifier.StartsWith('win'))) OR $([MSBuild]::IsOSPlatform('Windows'))">claw-mail-cal-cli</AssemblyName>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
 

@@ -1,7 +1,7 @@
 ﻿using System.Reflection;
 using ClawMailCalCli.Commands;
 using ClawMailCalCli.Models;
-using ClawMailCalCli.Services;
+using ClawMailCalCli.Services.Interfaces;
 using Spectre.Console.Cli;
 
 namespace ClawMailCalCli.Tests.Commands;

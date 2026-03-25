@@ -1,4 +1,6 @@
-﻿namespace ClawMailCalCli.Commands;
+﻿using ClawMailCalCli.Services.Interfaces;
+
+namespace ClawMailCalCli.Commands;
 
 /// <summary>
 /// Authenticates a named account using the Entra ID device code flow.

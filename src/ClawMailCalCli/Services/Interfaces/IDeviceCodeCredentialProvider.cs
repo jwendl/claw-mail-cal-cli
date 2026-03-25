@@ -1,6 +1,6 @@
 ﻿using Azure.Identity;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Abstracts the creation of <see cref="DeviceCodeCredential"/> instances and the

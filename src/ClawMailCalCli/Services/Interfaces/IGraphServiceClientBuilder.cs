@@ -1,7 +1,7 @@
 ﻿using ClawMailCalCli.Models;
 using Microsoft.Graph;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Creates a <see cref="GraphServiceClient"/> for a given account using the account's cached

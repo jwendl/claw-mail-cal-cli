@@ -1,6 +1,6 @@
 ﻿using Azure.Identity;
 
-namespace ClawMailCalCli.Services;
+namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Provides methods for authenticating CLI accounts using the Entra ID device code flow

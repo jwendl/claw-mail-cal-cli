@@ -1,6 +1,7 @@
 ﻿using Azure.Identity;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
+using ClawMailCalCli.Services.Interfaces;
 using Microsoft.Extensions.Logging;
 
 namespace ClawMailCalCli.Tests.Services;

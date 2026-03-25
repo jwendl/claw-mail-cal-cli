@@ -1,4 +1,4 @@
-﻿namespace ClawMailCalCli.Services;
+﻿namespace ClawMailCalCli.Services.Interfaces;
 
 /// <summary>
 /// Provides formatted and structured output capabilities for commands.
