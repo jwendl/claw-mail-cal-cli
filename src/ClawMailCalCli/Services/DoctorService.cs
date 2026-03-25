@@ -6,7 +6,7 @@ namespace ClawMailCalCli.Services;
 /// <summary>
 /// Performs prerequisite environment checks for the <c>doctor</c> command.
 /// </summary>
-public partial class DoctorService(IConfigurationService configurationService, IAzureCliChecker azureCliChecker, IKeyVaultChecker keyVaultChecker)
+public partial class DoctorService(IConfigurationService configurationService, IAzureCliChecker azureCliChecker, IKeyVaultChecker keyVaultChecker, IAccountService accountService)
 	: IDoctorService
 {
 	/// <inheritdoc />
@@ -40,7 +40,7 @@ public partial class DoctorService(IConfigurationService configurationService, I
 		}
 
 		results.Add(await CheckKeyVaultAsync(configuration, cancellationToken));
-		results.Add(CheckDefaultAccount(configuration));
+		results.Add(await CheckDefaultAccountAsync(cancellationToken));
 
 		return results;
 	}
@@ -56,16 +56,12 @@ public partial class DoctorService(IConfigurationService configurationService, I
 		return new DoctorCheckResult("Key Vault reachable", isReachable, isReachable ? configuration.KeyVaultUri : "Key Vault is not reachable", isReachable ? null : "Ensure the Key Vault URI is correct and run 'az login'");
 	}
 
-	private static DoctorCheckResult CheckDefaultAccount(ClawConfiguration? configuration)
+	private async Task<DoctorCheckResult> CheckDefaultAccountAsync(CancellationToken cancellationToken)
 	{
-		if (configuration is null)
+		var defaultAccount = await accountService.GetDefaultAccountAsync(cancellationToken);
+		if (defaultAccount is not null)
 		{
-			return new DoctorCheckResult("Default account set", false, "Skipped (config file not found or invalid)", "Fix the config file first");
-		}
-
-		if (!string.IsNullOrWhiteSpace(configuration.DefaultAccount))
-		{
-			return new DoctorCheckResult("Default account set", true, configuration.DefaultAccount);
+			return new DoctorCheckResult("Default account set", true, defaultAccount.Name);
 		}
 
 		return new DoctorCheckResult("Default account set", false, "No default account configured", "Run 'claw-mail-cal-cli account set <name>' to set a default account");
