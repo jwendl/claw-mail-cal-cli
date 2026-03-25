@@ -35,13 +35,13 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 	}
 
 	/// <inheritdoc />
-	public async Task AuthenticateAsync(string accountName, CancellationToken cancellationToken = default)
+	public async Task<bool> AuthenticateAsync(string accountName, CancellationToken cancellationToken = default)
 	{
 		var account = await accountService.GetAccountAsync(accountName, cancellationToken);
 		if (account is null)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[bold]{accountName}[/]' not found. Use [bold]account add[/] to create it first.");
-			return;
+			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[bold]{Markup.Escape(accountName)}[/]' not found. Use [bold]account add[/] to create it first.");
+			return false;
 		}
 
 		var prefix = AccountTypeKeyVaultPrefix(account.Type);
@@ -51,7 +51,7 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		if (string.IsNullOrWhiteSpace(clientId))
 		{
 			AnsiConsole.MarkupLine($"[red]Error:[/] Key Vault secret '[bold]{prefix}-client-id[/]' is not set. Add it to Key Vault before authenticating.");
-			return;
+			return false;
 		}
 
 		if (string.IsNullOrWhiteSpace(tenantId))
@@ -67,8 +67,8 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
 			DeviceCodeCallback = (deviceCodeInfo, _) =>
 			{
-				AnsiConsole.MarkupLine($"[bold]Authenticating account:[/] {accountName}");
-				AnsiConsole.MarkupLine(deviceCodeInfo.Message);
+				AnsiConsole.MarkupLine($"[bold]Authenticating account:[/] {Markup.Escape(accountName)}");
+				AnsiConsole.WriteLine(deviceCodeInfo.Message);
 				return Task.CompletedTask;
 			},
 		};
@@ -82,8 +82,8 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			}
 
 			credentialOptions.AuthenticationRecord = existingRecord;
-			AnsiConsole.MarkupLine($"[green]✓[/] Account '[bold]{accountName}[/]' is already authenticated.");
-			return;
+			AnsiConsole.MarkupLine($"[green]✓[/] Account '[bold]{Markup.Escape(accountName)}[/]' is already authenticated.");
+			return true;
 		}
 
 		if (logger.IsEnabled(LogLevel.Debug))
@@ -94,7 +94,8 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		var authenticationRecord = await deviceCodeCredentialProvider.AuthenticateAsync(credentialOptions, GraphScopes, cancellationToken);
 		await SaveAuthenticationRecordAsync(accountName, authenticationRecord, cancellationToken);
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Account '[bold]{accountName}[/]' authenticated successfully.");
+		AnsiConsole.MarkupLine($"[green]✓[/] Account '[bold]{Markup.Escape(accountName)}[/]' authenticated successfully.");
+		return true;
 	}
 
 	private async Task<AuthenticationRecord?> LoadAuthenticationRecordAsync(string accountName, CancellationToken cancellationToken)
@@ -126,7 +127,7 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			}
 		}
 
-		AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{accountName}[/]' is invalid. Please re-authenticate. You may need to delete the Key Vault secret '[bold]{AuthRecordSecretName(accountName)}[/]'.");
+		AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{Markup.Escape(accountName)}[/]' is invalid. Please re-authenticate. You may need to delete the Key Vault secret '[bold]{Markup.Escape(AuthRecordSecretName(accountName))}[/]'.");
 		return null;
 	}
 
