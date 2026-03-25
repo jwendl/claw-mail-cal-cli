@@ -16,20 +16,8 @@ public class AzureCliChecker
 	{
 		try
 		{
-			var defaultAzureCredentialOptions = new DefaultAzureCredentialOptions()
-			{
-				ExcludeBrokerCredential = true,
-				ExcludeAzureDeveloperCliCredential = true,
-				ExcludeEnvironmentCredential = true,
-				ExcludeInteractiveBrowserCredential = true,
-				ExcludeManagedIdentityCredential = true,
-				ExcludeVisualStudioCredential = true,
-				ExcludeVisualStudioCodeCredential = true,
-				ExcludeWorkloadIdentityCredential = true,
-				ExcludeAzurePowerShellCredential = true,
-			};
-			var defaultAzureCredential = new DefaultAzureCredential(defaultAzureCredentialOptions);
-			var accessToken = await defaultAzureCredential.GetTokenAsync(new TokenRequestContext(["https://vault.azure.net/.default"]), cancellationToken);
+			var azureCliCredential = new AzureCliCredential();
+			var accessToken = await azureCliCredential.GetTokenAsync(new TokenRequestContext(["https://vault.azure.net/.default"]), cancellationToken);
 			return !string.IsNullOrWhiteSpace(accessToken.Token);
 		}
 		catch (OperationCanceledException)
