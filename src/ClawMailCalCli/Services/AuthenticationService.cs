@@ -177,13 +177,25 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 	};
 
 	/// <summary>
+	/// Centralized defaults for account-type-specific configuration values.
+	/// </summary>
+	private static class TenantDefaults
+	{
+		/// <summary>
+		/// Returns the default tenant ID for the given account type when not explicitly configured in Key Vault.
+		/// Personal Microsoft accounts use <c>consumers</c>; work/school accounts use <c>organizations</c>.
+		/// </summary>
+		public static string GetDefaultTenantId(AccountType accountType) => accountType switch
+		{
+			AccountType.Personal => "consumers",
+			AccountType.Work => "organizations",
+			_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
+		};
+	}
+
+	/// <summary>
 	/// Returns the default tenant ID for the given account type when not explicitly configured in Key Vault.
 	/// Personal Microsoft accounts use <c>consumers</c>; work/school accounts use <c>organizations</c>.
 	/// </summary>
-	private static string GetDefaultTenantId(AccountType accountType) => accountType switch
-	{
-		AccountType.Personal => "consumers",
-		AccountType.Work => "organizations",
-		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
-	};
+	private static string GetDefaultTenantId(AccountType accountType) => TenantDefaults.GetDefaultTenantId(accountType);
 }
