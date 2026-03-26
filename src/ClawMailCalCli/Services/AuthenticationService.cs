@@ -69,7 +69,7 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
 			ClientId = clientId,
 			TenantId = tenantId,
-			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
+			TokenCachePersistenceOptions = new TokenCachePersistenceOptions { UnsafeAllowUnencryptedStorage = true },
 			DeviceCodeCallback = (deviceCodeInfo, _) =>
 			{
 				AnsiConsole.MarkupLine($"[bold]Authenticating account:[/] {Markup.Escape(accountName)}");

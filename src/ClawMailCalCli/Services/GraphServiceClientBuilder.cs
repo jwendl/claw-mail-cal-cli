@@ -98,7 +98,7 @@ public class GraphServiceClientBuilder(IKeyVaultService keyVaultService, ILogger
 			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
 			ClientId = clientId,
 			TenantId = tenantId,
-			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
+			TokenCachePersistenceOptions = new TokenCachePersistenceOptions { UnsafeAllowUnencryptedStorage = true },
 			AuthenticationRecord = authenticationRecord,
 		};
 

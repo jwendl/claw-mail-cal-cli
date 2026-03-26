@@ -276,7 +276,7 @@ public class AuthenticationServiceTests
 	}
 
 	[Fact]
-	public async Task AuthenticateAsync_ConfiguresTokenCachePersistence()
+	public async Task AuthenticateAsync_ConfiguresTokenCachePersistenceWithUnencryptedStorageAllowed()
 	{
 		// Arrange
 		var account = new Account("personal-account", "user@hotmail.com", AccountType.Personal);
@@ -302,10 +302,13 @@ public class AuthenticationServiceTests
 		// Act
 		await authenticationService.AuthenticateAsync("personal-account");
 
-		// Assert — TokenCachePersistenceOptions must be set on the credential options
+		// Assert — TokenCachePersistenceOptions must be set with UnsafeAllowUnencryptedStorage = true
+		// to prevent crashes on Linux systems where libsecret is unavailable (e.g., Ubuntu 24.04).
 		_mockDeviceCodeCredentialProvider.Verify(
 			provider => provider.AuthenticateAsync(
-				It.Is<DeviceCodeCredentialOptions>(options => options.TokenCachePersistenceOptions != null),
+				It.Is<DeviceCodeCredentialOptions>(options =>
+					options.TokenCachePersistenceOptions != null &&
+					options.TokenCachePersistenceOptions.UnsafeAllowUnencryptedStorage),
 				It.IsAny<string[]>(),
 				It.IsAny<CancellationToken>()),
 			Times.Once);

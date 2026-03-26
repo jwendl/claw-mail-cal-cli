@@ -180,6 +180,38 @@ public class GraphServiceClientBuilderTests
 		result.Should().NotBeNull();
 	}
 
+	[Theory]
+	[InlineData(AccountType.Personal, "hotmail", "consumers")]
+	[InlineData(AccountType.Work, "exchange", "test-tenant-id")]
+	public async Task BuildAsync_WhenValidInputsProvided_ReturnsNonNullClient(AccountType accountType, string prefix, string tenantId)
+	{
+		// Arrange — regression test: BuildAsync must not throw when libsecret is unavailable on Linux.
+		// UnsafeAllowUnencryptedStorage = true ensures token cache falls back to plaintext when
+		// the OS secure storage (libsecret on Ubuntu 24.04) encounters an error.
+		var account = new Account("test-account", "test@example.com", accountType);
+		var serializedRecord = BuildFakeAuthenticationRecordBase64();
+
+		_mockKeyVaultService
+			.Setup(service => service.GetSecretAsync("auth-record-test-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(serializedRecord);
+
+		_mockKeyVaultService
+			.Setup(service => service.GetSecretAsync($"{prefix}-client-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync("test-client-id");
+
+		_mockKeyVaultService
+			.Setup(service => service.GetSecretAsync($"{prefix}-tenant-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(tenantId);
+
+		var graphServiceClientBuilder = CreateGraphServiceClientBuilder();
+
+		// Act
+		var result = await graphServiceClientBuilder.BuildAsync(account);
+
+		// Assert
+		result.Should().NotBeNull();
+	}
+
 	/// <summary>
 	/// Builds a minimal valid <see cref="AuthenticationRecord"/> and returns it as a Base64-encoded string,
 	/// matching the format stored in Key Vault by <see cref="AuthenticationService"/>.
