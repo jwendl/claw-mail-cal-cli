@@ -1,4 +1,4 @@
-using ClawMailCalCli.Models;
+﻿using ClawMailCalCli.Models;
 using ClawMailCalCli.Services;
 
 namespace ClawMailCalCli.Tests.Services;
