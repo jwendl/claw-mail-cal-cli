@@ -23,14 +23,24 @@ internal static partial class TokenCacheFileProtector
 			return;
 		}
 
-		Chmod(directoryPath, OwnerReadWriteExecute);
+		var directoryResult = Chmod(directoryPath, OwnerReadWriteExecute);
+		if (directoryResult != 0)
+		{
+			var lastError = Marshal.GetLastPInvokeError();
+			throw new IOException($"Failed to set permissions on cache directory '{directoryPath}' (chmod returned {directoryResult}, errno {lastError}).");
+		}
 
 		foreach (var filePath in Directory.GetFiles(directoryPath))
 		{
-			Chmod(filePath, OwnerReadWrite);
+			var fileResult = Chmod(filePath, OwnerReadWrite);
+			if (fileResult != 0)
+			{
+				var lastError = Marshal.GetLastPInvokeError();
+				throw new IOException($"Failed to set permissions on cache file '{filePath}' (chmod returned {fileResult}, errno {lastError}).");
+			}
 		}
 	}
 
-	[LibraryImport("libc", EntryPoint = "chmod", StringMarshalling = StringMarshalling.Utf8)]
+	[LibraryImport("libc", EntryPoint = "chmod", StringMarshalling = StringMarshalling.Utf8, SetLastError = true)]
 	private static partial int Chmod(string path, int mode);
 }
