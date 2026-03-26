@@ -6,7 +6,6 @@ using ClawMailCalCli.Data;
 using ClawMailCalCli.Logging;
 using ClawMailCalCli.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 var verbosityLevel = ParseVerbosityLevel(args);
 var minimumLogLevel = MapToLogLevel(verbosityLevel);
