@@ -63,5 +63,5 @@ Add any other context, diagrams, or references here.
 **For AI Agents:** 
 - Create a feature branch: `task/issue-XX-description`
 - Follow [`.github/instructions/`](../../.github/instructions/)
-- In your PR description, use `Closes #XX` to auto-close this task when merged
+- **Required**: In your PR description, use `Closes #XX` to auto-close this task when the PR is merged to `main`
 - Read [`CONTRIBUTING.md`](../../CONTRIBUTING.md#for-ai-agents) before starting work

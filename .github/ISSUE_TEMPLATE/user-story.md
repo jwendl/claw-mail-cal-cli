@@ -54,6 +54,6 @@ Add any other context, mockups, or screenshots about the feature request here.
 **For AI Agents:** 
 - Create a feature branch: `feature/user-story-XX-description`
 - Follow [`.github/instructions/`](../../.github/instructions/)
-- In your PR description, use `Closes #XX` to auto-close this user story when merged
+- **Required**: In your PR description, use `Closes #XX` to auto-close this user story when the PR is merged to `main`
 - Create an implementation summary in [`docs/user-stories/`](../../docs/summary-reports/user-stories-status.md) when complete
 - Read [`CONTRIBUTING.md`](../../CONTRIBUTING.md#for-ai-agents) before starting work

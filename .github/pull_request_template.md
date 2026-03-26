@@ -4,18 +4,17 @@ Clear description of what this PR changes and why.
 
 ## Related Issues
 
-**Use closing keywords to automatically close issues when this PR is merged:**
+> **Required** — every PR must link to at least one issue using a closing keyword so the issue is automatically closed when this PR is merged to `main`.
 
-- Closes #XX (e.g., "Closes #123" - will auto-close issue #123 when merged)
-- Fixes #YY (for bug fixes - will auto-close issue #YY when merged)
-- Resolves #ZZ (for any issue type - will auto-close issue #ZZ when merged)
+<!-- Replace the number below. Use `Closes` for user stories/tasks, `Fixes` for bugs. -->
+Closes #
 
-**Other references (won't auto-close):**
-- Related to #AA
-- Part of #BB
-- See also #CC
+**Supported closing keywords** (case-insensitive): `closes`, `fixes`, `resolves`
 
-**Supported keywords**: `closes`, `fixes`, `resolves` (case-insensitive, with or without colon)
+**Non-closing references** (won't auto-close the issue):
+- Related to #
+- Part of #
+- See also #
 
 ## Type of Change
 
