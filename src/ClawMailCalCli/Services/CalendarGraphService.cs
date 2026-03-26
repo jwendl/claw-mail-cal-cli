@@ -134,6 +134,16 @@ public partial class CalendarGraphService(IAccountService accountService, IKeyVa
 			}
 		}
 
+		// When an AuthenticationRecord is available, prefer its TenantId over the Key Vault
+		// configured tenant. MSAL stores tokens under the real tenant authority resolved during
+		// the initial device code flow (e.g. a specific GUID), not under the generic "organizations"
+		// endpoint. Using the auth record's TenantId ensures the authority matches the cache key
+		// so that silent token refresh works instead of triggering a new device code prompt.
+		if (authRecord is not null && !string.IsNullOrWhiteSpace(authRecord.TenantId))
+		{
+			tenantId = authRecord.TenantId;
+		}
+
 		var credentialOptions = new DeviceCodeCredentialOptions
 		{
 			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
