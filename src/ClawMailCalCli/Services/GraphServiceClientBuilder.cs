@@ -85,7 +85,7 @@ public class GraphServiceClientBuilder(IKeyVaultService keyVaultService, ILogger
 
 		if (string.IsNullOrWhiteSpace(tenantId))
 		{
-			tenantId = GetDefaultTenantId(account.Type);
+			tenantId = TenantDefaults.GetDefaultTenantId(account.Type);
 
 			if (logger.IsEnabled(LogLevel.Debug))
 			{
@@ -114,17 +114,6 @@ public class GraphServiceClientBuilder(IKeyVaultService keyVaultService, ILogger
 	{
 		AccountType.Personal => "hotmail",
 		AccountType.Work => "exchange",
-		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
-	};
-
-	/// <summary>
-	/// Returns the default tenant ID for the given account type when not explicitly configured in Key Vault.
-	/// Personal Microsoft accounts use <c>consumers</c>; work/school accounts use <c>organizations</c>.
-	/// </summary>
-	private static string GetDefaultTenantId(AccountType accountType) => accountType switch
-	{
-		AccountType.Personal => "consumers",
-		AccountType.Work => "organizations",
 		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
 	};
 }

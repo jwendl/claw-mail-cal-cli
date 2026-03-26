@@ -145,4 +145,63 @@ public class GraphServiceClientBuilderTests
 			service => service.GetSecretAsync($"{expectedPrefix}-client-id", It.IsAny<CancellationToken>()),
 			Times.Never);
 	}
+
+	[Theory]
+	[InlineData(AccountType.Personal, "hotmail", null)]
+	[InlineData(AccountType.Personal, "hotmail", "")]
+	[InlineData(AccountType.Personal, "hotmail", "   ")]
+	[InlineData(AccountType.Work, "exchange", null)]
+	[InlineData(AccountType.Work, "exchange", "")]
+	[InlineData(AccountType.Work, "exchange", "   ")]
+	public async Task BuildAsync_WhenTenantIdMissingOrWhitespace_ReturnsNonNullClient(AccountType accountType, string prefix, string? tenantId)
+	{
+		// Arrange
+		var account = new Account("test-account", "test@example.com", accountType);
+		var serializedRecord = BuildFakeAuthenticationRecordBase64();
+
+		_mockKeyVaultService
+			.Setup(service => service.GetSecretAsync("auth-record-test-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(serializedRecord);
+
+		_mockKeyVaultService
+			.Setup(service => service.GetSecretAsync($"{prefix}-client-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync("test-client-id");
+
+		_mockKeyVaultService
+			.Setup(service => service.GetSecretAsync($"{prefix}-tenant-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(tenantId);
+
+		var graphServiceClientBuilder = CreateGraphServiceClientBuilder();
+
+		// Act
+		var result = await graphServiceClientBuilder.BuildAsync(account);
+
+		// Assert — a valid GraphServiceClient is returned even when tenant-id is not set
+		result.Should().NotBeNull();
+	}
+
+	/// <summary>
+	/// Builds a minimal valid <see cref="AuthenticationRecord"/> and returns it as a Base64-encoded string,
+	/// matching the format stored in Key Vault by <see cref="AuthenticationService"/>.
+	/// </summary>
+	private static string BuildFakeAuthenticationRecordBase64()
+	{
+		var json = """
+			{
+				"username": "user@example.com",
+				"authority": "https://login.microsoftonline.com/common",
+				"homeAccountId": "00000000-0000-0000-0000-000000000001.00000000-0000-0000-0000-000000000002",
+				"tenantId": "common",
+				"clientId": "test-client-id",
+				"version": "1.0"
+			}
+			""";
+		// Synchronous deserialization and serialization are acceptable in this static test helper
+		// because it runs outside of any synchronization context that could deadlock.
+		using var readStream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+		var authRecord = Azure.Identity.AuthenticationRecord.DeserializeAsync(readStream).GetAwaiter().GetResult();
+		using var writeStream = new MemoryStream();
+		authRecord.SerializeAsync(writeStream).GetAwaiter().GetResult();
+		return Convert.ToBase64String(writeStream.ToArray());
+	}
 }
