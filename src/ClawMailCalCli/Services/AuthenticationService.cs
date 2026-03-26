@@ -56,7 +56,7 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 
 		if (string.IsNullOrWhiteSpace(tenantId))
 		{
-			tenantId = GetDefaultTenantId(account.Type);
+			tenantId = TenantDefaults.GetDefaultTenantId(account.Type);
 
 			if (logger.IsEnabled(LogLevel.Debug))
 			{
@@ -104,19 +104,19 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			AnsiConsole.MarkupLine($"[green]✓[/] Account '[bold]{Markup.Escape(accountName)}[/]' authenticated successfully.");
 			return true;
 		}
-		catch (AuthenticationFailedException authException)
+		catch (AuthenticationFailedException authenticationFailedException)
 		{
 			if (logger.IsEnabled(LogLevel.Error))
 			{
-				logger.LogError(authException, "Device code authentication failed for account '{AccountName}'.", accountName);
+				logger.LogError(authenticationFailedException, "Device code authentication failed for account '{AccountName}'.", accountName);
 			}
 
 			AnsiConsole.MarkupLine($"[red]Error:[/] DeviceCodeCredential authentication failed.");
-			AnsiConsole.MarkupLine($"[red]Details:[/] {Markup.Escape(authException.Message)}");
+			AnsiConsole.MarkupLine($"[red]Details:[/] {Markup.Escape(authenticationFailedException.Message)}");
 
-			if (authException.InnerException is not null)
+			if (authenticationFailedException.InnerException is not null)
 			{
-				AnsiConsole.MarkupLine($"[yellow]Inner error:[/] {Markup.Escape(authException.InnerException.Message)}");
+				AnsiConsole.MarkupLine($"[yellow]Inner error:[/] {Markup.Escape(authenticationFailedException.InnerException.Message)}");
 			}
 
 			return false;
@@ -175,27 +175,4 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		AccountType.Work => "exchange",
 		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
 	};
-
-	/// <summary>
-	/// Centralized defaults for account-type-specific configuration values.
-	/// </summary>
-	private static class TenantDefaults
-	{
-		/// <summary>
-		/// Returns the default tenant ID for the given account type when not explicitly configured in Key Vault.
-		/// Personal Microsoft accounts use <c>consumers</c>; work/school accounts use <c>organizations</c>.
-		/// </summary>
-		public static string GetDefaultTenantId(AccountType accountType) => accountType switch
-		{
-			AccountType.Personal => "consumers",
-			AccountType.Work => "organizations",
-			_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
-		};
-	}
-
-	/// <summary>
-	/// Returns the default tenant ID for the given account type when not explicitly configured in Key Vault.
-	/// Personal Microsoft accounts use <c>consumers</c>; work/school accounts use <c>organizations</c>.
-	/// </summary>
-	private static string GetDefaultTenantId(AccountType accountType) => TenantDefaults.GetDefaultTenantId(accountType);
 }

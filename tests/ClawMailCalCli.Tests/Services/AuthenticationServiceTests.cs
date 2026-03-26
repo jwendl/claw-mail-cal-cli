@@ -311,6 +311,94 @@ public class AuthenticationServiceTests
 			Times.Once);
 	}
 
+	[Theory]
+	[InlineData(null)]
+	[InlineData("")]
+	[InlineData("   ")]
+	public async Task AuthenticateAsync_WhenPersonalAccountTenantIdMissingOrWhitespace_UsesConsumersDefault(string? tenantId)
+	{
+		// Arrange
+		var account = new Account("personal-account", "user@hotmail.com", AccountType.Personal);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("personal-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("hotmail-tenant-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(tenantId);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-personal-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string?)null);
+
+		var fakeRecord = BuildFakeAuthenticationRecord();
+		_mockDeviceCodeCredentialProvider
+			.Setup(provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeRecord);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.Returns(Task.CompletedTask);
+
+		var authenticationService = CreateAuthenticationService();
+
+		// Act
+		var result = await authenticationService.AuthenticateAsync("personal-account");
+
+		// Assert — personal accounts fall back to 'consumers' when tenant ID is not set in Key Vault
+		result.Should().BeTrue();
+		_mockDeviceCodeCredentialProvider.Verify(
+			provider => provider.AuthenticateAsync(
+				It.Is<DeviceCodeCredentialOptions>(options => options.TenantId == "consumers"),
+				It.IsAny<string[]>(),
+				It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Theory]
+	[InlineData(null)]
+	[InlineData("")]
+	[InlineData("   ")]
+	public async Task AuthenticateAsync_WhenWorkAccountTenantIdMissingOrWhitespace_UsesOrganizationsDefault(string? tenantId)
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("exchange-tenant-id", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(tenantId);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string?)null);
+
+		var fakeRecord = BuildFakeAuthenticationRecord();
+		_mockDeviceCodeCredentialProvider
+			.Setup(provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeRecord);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.Returns(Task.CompletedTask);
+
+		var authenticationService = CreateAuthenticationService();
+
+		// Act
+		var result = await authenticationService.AuthenticateAsync("work-account");
+
+		// Assert — work accounts fall back to 'organizations' when tenant ID is not set in Key Vault
+		result.Should().BeTrue();
+		_mockDeviceCodeCredentialProvider.Verify(
+			provider => provider.AuthenticateAsync(
+				It.Is<DeviceCodeCredentialOptions>(options => options.TenantId == "organizations"),
+				It.IsAny<string[]>(),
+				It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
 	/// <summary>
 	/// Creates a minimal valid <see cref="AuthenticationRecord"/> that can be serialized and
 	/// used as a return value from a mocked <see cref="IDeviceCodeCredentialProvider"/>.
