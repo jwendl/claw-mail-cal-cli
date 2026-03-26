@@ -91,6 +91,28 @@ Do not modify or include in diffs:
 - `**/appsettings.*.json` (except `appsettings.json`)
 - `**/local.settings.json`
 
+## Pull Request — Issue Linking (Required)
+
+**Every pull request must reference a related issue using a GitHub closing keyword in the PR description.** This ensures the linked issue (user story, bug, or task) is automatically closed when the PR is merged to `main`.
+
+**Closing keywords** (case-insensitive):
+- `Closes #XX` — user stories and tasks
+- `Fixes #XX` — bugs
+- `Resolves #XX` — any issue type
+
+**Example:**
+
+```markdown
+## Related Issues
+
+Closes #42
+```
+
+- Use one closing keyword per primary issue.
+- Multiple issues can be closed in a single PR: `Closes #42, #43`.
+- Use `Related to #XX` for secondary references that should **not** be auto-closed.
+- Place the closing keyword in the PR **description**, not just in commit messages.
+
 ## Validation Checklist
 
 Before completing any task, verify:
@@ -100,6 +122,7 @@ Before completing any task, verify:
 3. ✅ Code is formatted: `dotnet format`
 4. ✅ No secrets in code
 5. ✅ Follows coding standards from `.github/instructions/`
+6. ✅ PR description contains a closing keyword that references the related issue (e.g., `Closes #XX`)
 
 ## Agent Personas
 

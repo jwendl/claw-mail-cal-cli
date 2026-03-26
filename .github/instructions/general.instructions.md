@@ -35,6 +35,13 @@ Use longer, human-readable file extensions wherever valid alternatives exist:
 - `.jpeg` instead of `.jpg` for JPEG image files
 - Other extensions remain unchanged (e.g., `.cs`, `.png`, `.md`, `.bicep`)
 
+## Pull Request — Issue Linking
+
+- **Every pull request must link a related issue** using a GitHub closing keyword (`Closes #XX`, `Fixes #XX`, or `Resolves #XX`) in the PR description.
+- Merging the PR to `main` will automatically close the linked issue (user story, bug, or task).
+- Place the closing keyword in the **PR description** (not just a commit message).
+- Use `Related to #XX` for secondary cross-references that should not be auto-closed.
+
 ## Iteration & Review
 
 - Copilot output should be reviewed and modified before committing.

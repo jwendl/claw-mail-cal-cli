@@ -56,5 +56,5 @@ Add any other context about the problem here.
 - Create a feature branch: `fix/issue-XX-description`
 - Add regression test before fixing
 - Follow [`.github/instructions/`](../../.github/instructions/)
-- In your PR description, use `Fixes #XX` to auto-close this issue when merged
+- **Required**: In your PR description, use `Fixes #XX` to auto-close this issue when the PR is merged to `main`
 - See [`CONTRIBUTING.md`](../../CONTRIBUTING.md#for-ai-agents)
