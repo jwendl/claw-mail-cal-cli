@@ -4,6 +4,7 @@ using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
 using ClawMailCalCli.Data;
 using ClawMailCalCli.Logging;
+using ClawMailCalCli.Services;
 using ClawMailCalCli.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -21,6 +22,7 @@ services.AddLogging(loggingBuilder =>
 // Key Vault is reserved for secrets such as OAuth tokens.
 var dbDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claw-mail-cal-cli");
 Directory.CreateDirectory(dbDirectory);
+TokenCacheFileProtector.ProtectCacheDirectory(dbDirectory);
 var dbPath = Path.Combine(dbDirectory, "accounts.db");
 
 services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));

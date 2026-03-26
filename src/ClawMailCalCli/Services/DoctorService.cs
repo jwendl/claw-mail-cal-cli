@@ -41,8 +41,29 @@ public partial class DoctorService(IConfigurationService configurationService, I
 
 		results.Add(await CheckKeyVaultAsync(configuration, cancellationToken));
 		results.Add(await CheckDefaultAccountAsync(cancellationToken));
+		results.Add(CheckTokenCacheStorageMode());
 
 		return results;
+	}
+
+	private static DoctorCheckResult CheckTokenCacheStorageMode()
+	{
+		if (OperatingSystem.IsLinux())
+		{
+			return new DoctorCheckResult("Token cache storage", true, "File-based (plaintext, chmod 600) — libsecret not required");
+		}
+
+		if (OperatingSystem.IsWindows())
+		{
+			return new DoctorCheckResult("Token cache storage", true, "DPAPI (Windows Data Protection)");
+		}
+
+		if (OperatingSystem.IsMacOS())
+		{
+			return new DoctorCheckResult("Token cache storage", true, "Keychain (macOS)");
+		}
+
+		return new DoctorCheckResult("Token cache storage", true, "Platform-default encrypted storage");
 	}
 
 	private async Task<DoctorCheckResult> CheckKeyVaultAsync(ClawConfiguration? configuration, CancellationToken cancellationToken)

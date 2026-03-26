@@ -34,6 +34,13 @@ Authentication uses Entra ID's **device code flow**, with the resulting `Authent
   - `Calendars.ReadWrite`
   - `People.Read`
 
+> **Linux token cache**: On Linux, MSAL token cache data is stored as a plaintext
+> file in `~/.claw-mail-cal-cli/` with `chmod 600` (owner-only read/write) permissions.
+> The directory itself is set to `chmod 700` (owner-only access) to prevent other users
+> from listing its contents. The sensitive `AuthenticationRecord` is stored separately in
+> Azure Key Vault. This design avoids requiring `libsecret`, GNOME Keyring, or any D-Bus daemon.
+> On Windows (DPAPI) and macOS (Keychain) the default encrypted storage is used.
+
 ## Installation
 
 ### Download Binary
