@@ -25,23 +25,30 @@ var dbPath = Path.Combine(dbDirectory, "accounts.db");
 
 services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
 
-// Read Key Vault URI from config at startup, where await is available, to avoid sync-over-async in DI factories.
-var startupConfigurationService = new ConfigurationService();
-var clawConfiguration = await startupConfigurationService.ReadConfigurationAsync();
+// IConfigurationService is registered as a singleton so all services share the same instance.
+services.AddSingleton<IConfigurationService, ConfigurationService>();
 
-if (string.IsNullOrWhiteSpace(clawConfiguration.KeyVaultUri))
+// SecretClient is registered as a lazy factory so that commands that do not need Key Vault
+// (e.g. --help, --version, account add) can run without a config.json being present.
+// Using GetAwaiter().GetResult() here is safe because console apps have no SynchronizationContext
+// and DI factories always run synchronously, eliminating any deadlock risk.
+services.AddSingleton(serviceProvider =>
 {
-	throw new InvalidOperationException("'keyVaultUri' is not set in '~/.claw-mail-cal-cli/config.json'. Set this value before running any commands that require Key Vault access.");
-}
+	var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+	var clawConfiguration = configurationService.ReadConfigurationAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 
-if (!Uri.TryCreate(clawConfiguration.KeyVaultUri, UriKind.Absolute, out var vaultUri))
-{
-	throw new InvalidOperationException($"'keyVaultUri' value '{clawConfiguration.KeyVaultUri}' in '~/.claw-mail-cal-cli/config.json' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
-}
+	if (string.IsNullOrWhiteSpace(clawConfiguration.KeyVaultUri))
+	{
+		throw new InvalidOperationException("'keyVaultUri' is not set in '~/.claw-mail-cal-cli/config.json'. Set this value before running any commands that require Key Vault access.");
+	}
 
-// Key Vault client for OAuth token storage (not account data).
-services.AddSingleton(new SecretClient(vaultUri, new AzureCliCredential()));
-services.AddSingleton<IConfigurationService>(startupConfigurationService);
+	if (!Uri.TryCreate(clawConfiguration.KeyVaultUri, UriKind.Absolute, out var vaultUri))
+	{
+		throw new InvalidOperationException($"'keyVaultUri' value '{clawConfiguration.KeyVaultUri}' in '~/.claw-mail-cal-cli/config.json' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
+	}
+
+	return new SecretClient(vaultUri, new AzureCliCredential());
+});
 
 services.AddSingleton<IKeyVaultService, KeyVaultService>();
 services.AddTransient<IAccountService, AccountService>();
