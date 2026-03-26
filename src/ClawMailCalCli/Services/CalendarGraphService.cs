@@ -126,7 +126,12 @@ public partial class CalendarGraphService(IAccountService accountService, IKeyVa
 
 		if (string.IsNullOrWhiteSpace(tenantId))
 		{
-			tenantId = "common";
+			tenantId = TenantDefaults.GetDefaultTenantId(account.Type);
+
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Key Vault secret '{Prefix}-tenant-id' not set. Using default tenant ID '{TenantId}' for account type {AccountType}.", prefix, tenantId, account.Type);
+			}
 		}
 
 		var credentialOptions = new DeviceCodeCredentialOptions
