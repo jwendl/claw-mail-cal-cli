@@ -1,4 +1,6 @@
-﻿namespace ClawMailCalCli.Commands.Settings;
+﻿using ClawMailCalCli.Models;
+
+namespace ClawMailCalCli.Commands.Settings;
 
 /// <summary>
 /// Settings for the <c>account add</c> command.
@@ -17,4 +19,10 @@ internal sealed class AddAccountSettings
 	/// </summary>
 	[CommandArgument(1, "<email>")]
 	public required string Email { get; init; }
+
+	/// <summary>
+	/// The type of account to add. Defaults to <see cref="AccountType.Personal"/>.
+	/// </summary>
+	[CommandOption("--type|-t")]
+	public AccountType Type { get; init; } = AccountType.Personal;
 }
