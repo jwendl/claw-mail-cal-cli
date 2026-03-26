@@ -55,6 +55,46 @@ public class AccountCommandTests
 	}
 
 	[Fact]
+	public async Task AddAccountCommand_WhenTypeIsWork_PassesWorkTypeToService()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.AddAccountAsync("work-account", "user@contoso.com", AccountType.Work, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new AddAccountCommand(_mockAccountService.Object);
+		var settings = new AddAccountSettings { Name = "work-account", Email = "user@contoso.com", Type = AccountType.Work };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockAccountService.Verify(service => service.AddAccountAsync("work-account", "user@contoso.com", AccountType.Work, It.IsAny<CancellationToken>()), Times.Once);
+	}
+
+	[Fact]
+	public async Task AddAccountCommand_WhenTypeIsNotSpecified_DefaultsToPersonal()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.AddAccountAsync("personal-account", "user@hotmail.com", AccountType.Personal, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new AddAccountCommand(_mockAccountService.Object);
+		var settings = new AddAccountSettings { Name = "personal-account", Email = "user@hotmail.com" };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockAccountService.Verify(service => service.AddAccountAsync("personal-account", "user@hotmail.com", AccountType.Personal, It.IsAny<CancellationToken>()), Times.Once);
+	}
+
+	[Fact]
 	public async Task AddAccountCommand_WhenAccountAlreadyExists_ReturnsOne()
 	{
 		// Arrange
