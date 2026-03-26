@@ -34,6 +34,17 @@ Authentication uses Entra ID's **device code flow**, with the resulting `Authent
   - `Calendars.ReadWrite`
   - `People.Read`
 
+> **Linux token cache**: On Linux, the MSAL token cache used by `Azure.Identity` is stored
+> under `~/.IdentityService/` (for example `~/.IdentityService/msal.cache.cae` and
+> `~/.IdentityService/msal.cache.nocae`) as a plaintext file protected by file-system
+> permissions. The `claw-mail-cal-cli` tool also creates a separate `~/.claw-mail-cal-cli/`
+> directory with `chmod 700` (owner-only access) and writes any files there with
+> `chmod 600` (owner-only read/write), but no access tokens or refresh tokens are stored
+> in that directory. The sensitive `AuthenticationRecord` is stored separately in Azure
+> Key Vault. This design avoids requiring `libsecret`, GNOME Keyring, or any D-Bus daemon
+> on Linux. On Windows (DPAPI) and macOS (Keychain), the default encrypted platform stores
+> used by `Azure.Identity` are used for token caching.
+
 ## Installation
 
 ### Download Binary

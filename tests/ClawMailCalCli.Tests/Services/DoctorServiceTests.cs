@@ -48,7 +48,7 @@ public class DoctorServiceTests
 		var results = await _doctorService.RunAllChecksAsync();
 
 		// Assert
-		results.Should().HaveCount(4);
+		results.Should().HaveCount(5);
 		results.Should().AllSatisfy(result => result.Passed.Should().BeTrue());
 	}
 
