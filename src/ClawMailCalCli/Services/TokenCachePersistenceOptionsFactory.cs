@@ -1,4 +1,4 @@
-using Azure.Identity;
+﻿using Azure.Identity;
 
 namespace ClawMailCalCli.Services;
 
