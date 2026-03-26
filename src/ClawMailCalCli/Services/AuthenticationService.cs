@@ -56,7 +56,12 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 
 		if (string.IsNullOrWhiteSpace(tenantId))
 		{
-			tenantId = "common";
+			tenantId = GetDefaultTenantId(account.Type);
+
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Key Vault secret '{Prefix}-tenant-id' not set. Using default tenant ID '{TenantId}' for account type {AccountType}.", prefix, tenantId, account.Type);
+			}
 		}
 
 		var credentialOptions = new DeviceCodeCredentialOptions
@@ -91,23 +96,43 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			logger.LogDebug("No cached AuthenticationRecord found for account '{AccountName}', starting device code flow.", accountName);
 		}
 
-		var authenticationRecord = await deviceCodeCredentialProvider.AuthenticateAsync(credentialOptions, GraphScopes, cancellationToken);
-		await SaveAuthenticationRecordAsync(accountName, authenticationRecord, cancellationToken);
+		try
+		{
+			var authenticationRecord = await deviceCodeCredentialProvider.AuthenticateAsync(credentialOptions, GraphScopes, cancellationToken);
+			await SaveAuthenticationRecordAsync(accountName, authenticationRecord, cancellationToken);
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Account '[bold]{Markup.Escape(accountName)}[/]' authenticated successfully.");
-		return true;
+			AnsiConsole.MarkupLine($"[green]✓[/] Account '[bold]{Markup.Escape(accountName)}[/]' authenticated successfully.");
+			return true;
+		}
+		catch (AuthenticationFailedException authException)
+		{
+			if (logger.IsEnabled(LogLevel.Error))
+			{
+				logger.LogError(authException, "Device code authentication failed for account '{AccountName}'.", accountName);
+			}
+
+			AnsiConsole.MarkupLine($"[red]Error:[/] DeviceCodeCredential authentication failed.");
+			AnsiConsole.MarkupLine($"[red]Details:[/] {Markup.Escape(authException.Message)}");
+
+			if (authException.InnerException is not null)
+			{
+				AnsiConsole.MarkupLine($"[yellow]Inner error:[/] {Markup.Escape(authException.InnerException.Message)}");
+			}
+
+			return false;
+		}
 	}
 
 	private async Task<AuthenticationRecord?> LoadAuthenticationRecordAsync(string accountName, CancellationToken cancellationToken)
 	{
-		var secretValue = await keyVaultService.GetSecretAsync(AuthRecordSecretName(accountName), cancellationToken);
-		if (string.IsNullOrWhiteSpace(secretValue))
-		{
-			return null;
-		}
-
 		try
 		{
+			var secretValue = await keyVaultService.GetSecretAsync(AuthRecordSecretName(accountName), cancellationToken);
+			if (string.IsNullOrWhiteSpace(secretValue))
+			{
+				return null;
+			}
+
 			var recordBytes = Convert.FromBase64String(secretValue);
 			using var memoryStream = new MemoryStream(recordBytes);
 			return await AuthenticationRecord.DeserializeAsync(memoryStream, cancellationToken);
@@ -118,16 +143,17 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 			{
 				logger.LogWarning(formatException, "Failed to parse cached AuthenticationRecord for account '{AccountName}'. Stored secret is not valid Base64. User must re-authenticate.", accountName);
 			}
+
+			AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{Markup.Escape(accountName)}[/]' is invalid. Please re-authenticate. You may need to delete the Key Vault secret '[bold]{Markup.Escape(AuthRecordSecretName(accountName))}[/]'.");
 		}
-		catch (Exception deserializationException) when (deserializationException is not FormatException)
+		catch (Exception exception) when (exception is not OperationCanceledException)
 		{
-			if (logger.IsEnabled(LogLevel.Warning))
+			if (logger.IsEnabled(LogLevel.Debug))
 			{
-				logger.LogWarning(deserializationException, "Failed to deserialize cached AuthenticationRecord for account '{AccountName}'. User must re-authenticate.", accountName);
+				logger.LogDebug(exception, "Failed to load cached AuthenticationRecord for account '{AccountName}'. This may be expected for first-time authentication or if Key Vault is unreachable. User will authenticate via device code flow.", accountName);
 			}
 		}
 
-		AnsiConsole.MarkupLine($"[yellow]Warning:[/] Cached authentication data for account '[bold]{Markup.Escape(accountName)}[/]' is invalid. Please re-authenticate. You may need to delete the Key Vault secret '[bold]{Markup.Escape(AuthRecordSecretName(accountName))}[/]'.");
 		return null;
 	}
 
@@ -147,6 +173,17 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 	{
 		AccountType.Personal => "hotmail",
 		AccountType.Work => "exchange",
+		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
+	};
+
+	/// <summary>
+	/// Returns the default tenant ID for the given account type when not explicitly configured in Key Vault.
+	/// Personal Microsoft accounts use <c>consumers</c>; work/school accounts use <c>organizations</c>.
+	/// </summary>
+	private static string GetDefaultTenantId(AccountType accountType) => accountType switch
+	{
+		AccountType.Personal => "consumers",
+		AccountType.Work => "organizations",
 		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
 	};
 }

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace ClawMailCalCli.Configuration;
 
@@ -9,15 +10,13 @@ namespace ClawMailCalCli.Configuration;
 public class ConfigurationService
 	: IConfigurationService
 {
-	private static readonly string DefaultConfigDirectory = Path.Combine(
-		Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-		".claw-mail-cal-cli");
+	private static readonly string DefaultConfigDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".claw-mail-cal-cli");
 
 	private static readonly JsonSerializerOptions JsonOptions = new()
 	{
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		WriteIndented = true,
-		DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
+		DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
 	};
 
 	private readonly string _configDirectory;
@@ -48,10 +47,7 @@ public class ConfigurationService
 	{
 		if (!File.Exists(_configFilePath))
 		{
-			throw new InvalidOperationException(
-				$"Configuration file not found at '{_configFilePath}'. " +
-				$"Please create it with a valid 'keyVaultUri' entry. " +
-				$"Example: {{\"keyVaultUri\": \"https://my-keyvault.vault.azure.net/\"}}");
+			throw new InvalidOperationException($"Configuration file not found at '{_configFilePath}'. Please create it with a valid 'keyVaultUri' entry. Example: {{\"keyVaultUri\": \"https://my-keyvault.vault.azure.net/\"}}");
 		}
 
 		var json = await File.ReadAllTextAsync(_configFilePath);
@@ -68,10 +64,7 @@ public class ConfigurationService
 			!Uri.TryCreate(configuration.KeyVaultUri, UriKind.Absolute, out var keyVaultUri) ||
 			!string.Equals(keyVaultUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase))
 		{
-			throw new InvalidOperationException(
-				$"Configuration file at '{_configFilePath}' contains an invalid 'keyVaultUri' value. " +
-				$"The value must be an absolute HTTPS URI. " +
-				$"Example: {{\"keyVaultUri\": \"https://my-keyvault.vault.azure.net/\"}}");
+			throw new InvalidOperationException($"Configuration file at '{_configFilePath}' contains an invalid 'keyVaultUri' value. The value must be an absolute HTTPS URI. Example: {{\"keyVaultUri\": \"https://my-keyvault.vault.azure.net/\"}}");
 		}
 
 		return configuration;

@@ -4,24 +4,13 @@ using Azure.Security.KeyVault.Secrets;
 using ClawMailCalCli;
 using ClawMailCalCli.Data;
 using ClawMailCalCli.Logging;
-using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 
 var verbosityLevel = ParseVerbosityLevel(args);
 var minimumLogLevel = MapToLogLevel(verbosityLevel);
-
-var configuration = new ConfigurationBuilder()
-	.SetBasePath(AppContext.BaseDirectory)
-	.AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-	.AddEnvironmentVariables()
-	.Build();
-
 var services = new ServiceCollection();
-
-services.Configure<KeyVaultOptions>(configuration.GetSection("keyVault"));
 
 services.AddLogging(loggingBuilder =>
 {
@@ -40,15 +29,17 @@ services.AddDbContextFactory<ApplicationDbContext>(options => options.UseSqlite(
 // Key Vault client for OAuth token storage (not account data).
 services.AddSingleton(serviceProvider =>
 {
-	var keyVaultOptions = serviceProvider.GetRequiredService<IOptions<KeyVaultOptions>>().Value;
-	if (string.IsNullOrWhiteSpace(keyVaultOptions.VaultUri))
+	var configurationService = serviceProvider.GetRequiredService<IConfigurationService>();
+	var clawConfiguration = configurationService.ReadConfigurationAsync().GetAwaiter().GetResult();
+
+	if (string.IsNullOrWhiteSpace(clawConfiguration.KeyVaultUri))
 	{
 		throw new InvalidOperationException("'keyVault:vaultUri' is not configured. Set this value before running any commands that require Key Vault access.");
 	}
 
-	if (!Uri.TryCreate(keyVaultOptions.VaultUri, UriKind.Absolute, out var vaultUri))
+	if (!Uri.TryCreate(clawConfiguration.KeyVaultUri, UriKind.Absolute, out var vaultUri))
 	{
-		throw new InvalidOperationException($"'keyVault:vaultUri' value '{keyVaultOptions.VaultUri}' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
+		throw new InvalidOperationException($"'keyVault:vaultUri' value '{clawConfiguration.KeyVaultUri}' is not a valid absolute URI. Provide a URI in the format 'https://my-vault.vault.azure.net/'.");
 	}
 
 	return new SecretClient(vaultUri, new AzureCliCredential());
@@ -71,8 +62,8 @@ services.AddSingleton<IOutputService, OutputService>();
 
 // Ensure the SQLite schema is up to date before running any commands.
 await using (var startupContext = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-.UseSqlite($"Data Source={dbPath}")
-.Options))
+	.UseSqlite($"Data Source={dbPath}")
+	.Options))
 {
 	await startupContext.Database.EnsureCreatedAsync();
 }
