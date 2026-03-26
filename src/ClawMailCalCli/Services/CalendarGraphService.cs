@@ -134,7 +134,7 @@ public partial class CalendarGraphService(IAccountService accountService, IKeyVa
 			AuthorityHost = AzureAuthorityHosts.AzurePublicCloud,
 			ClientId = clientId,
 			TenantId = tenantId,
-			TokenCachePersistenceOptions = new TokenCachePersistenceOptions(),
+			TokenCachePersistenceOptions = TokenCachePersistenceOptionsFactory.Create(),
 		};
 
 		if (authRecord is not null)
