@@ -17,6 +17,7 @@ internal static class TokenCachePersistenceOptionsFactory
 	internal static TokenCachePersistenceOptions Create() =>
 		new()
 		{
+			Name = "ClawMailCalCli",
 			UnsafeAllowUnencryptedStorage = OperatingSystem.IsLinux(),
 		};
 }
