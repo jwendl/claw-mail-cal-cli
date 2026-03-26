@@ -50,20 +50,20 @@ public partial class DoctorService(IConfigurationService configurationService, I
 	{
 		if (OperatingSystem.IsLinux())
 		{
-			return new DoctorCheckResult("Token cache storage", true, "File-based (plaintext, chmod 600) — libsecret not required");
+			return new DoctorCheckResult("Token cache storage", true, "Expected file-based token cache managed by Azure.Identity on Linux. This tool does not validate the actual cache path or permissions; see Azure.Identity documentation for details.");
 		}
 
 		if (OperatingSystem.IsWindows())
 		{
-			return new DoctorCheckResult("Token cache storage", true, "DPAPI (Windows Data Protection)");
+			return new DoctorCheckResult("Token cache storage", true, "Expected to use Windows DPAPI-based protected storage as per Azure.Identity defaults. This tool does not validate the underlying store.");
 		}
 
 		if (OperatingSystem.IsMacOS())
 		{
-			return new DoctorCheckResult("Token cache storage", true, "Keychain (macOS)");
+			return new DoctorCheckResult("Token cache storage", true, "Expected to use the macOS Keychain as per Azure.Identity defaults. This tool does not validate the underlying store.");
 		}
 
-		return new DoctorCheckResult("Token cache storage", true, "Platform-default encrypted storage");
+		return new DoctorCheckResult("Token cache storage", true, "Platform-default token cache behavior based on Azure.Identity. This tool does not validate the underlying store.");
 	}
 
 	private async Task<DoctorCheckResult> CheckKeyVaultAsync(ClawConfiguration? configuration, CancellationToken cancellationToken)
