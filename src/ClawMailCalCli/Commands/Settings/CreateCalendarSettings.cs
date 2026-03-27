@@ -4,7 +4,7 @@
 /// Settings for the <c>calendar create</c> command.
 /// </summary>
 internal sealed class CreateCalendarSettings
-	: CommandSettings
+	: JsonOutputSettings
 {
 	/// <summary>
 	/// The title (subject) of the calendar event.
@@ -29,4 +29,10 @@ internal sealed class CreateCalendarSettings
 	/// </summary>
 	[CommandArgument(3, "<content>")]
 	public required string Content { get; init; }
+
+	/// <summary>
+	/// The account to authenticate with. If omitted, the default account is used.
+	/// </summary>
+	[CommandOption("--account|-a")]
+	public string? AccountName { get; init; }
 }

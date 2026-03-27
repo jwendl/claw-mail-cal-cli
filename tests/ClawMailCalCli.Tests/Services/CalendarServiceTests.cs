@@ -25,7 +25,7 @@ public class CalendarServiceTests
 	{
 		_mockCalendarGraphService = new Mock<ICalendarGraphService>();
 		_mockGraphClientService = new Mock<IGraphClientService>();
-		_calendarService = new CalendarService(_mockCalendarGraphService.Object, _mockGraphClientService.Object, Mock.Of<ILogger<CalendarService>>());
+		_calendarService = new CalendarService(_mockCalendarGraphService.Object, _mockGraphClientService.Object, Mock.Of<ILogger<CalendarService>>(), Mock.Of<IOutputService>());
 	}
 
 	[Fact]

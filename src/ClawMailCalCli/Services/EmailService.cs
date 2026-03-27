@@ -1,6 +1,7 @@
 ﻿using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 using HtmlAgilityPack;
+using Microsoft.Graph;
 using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
@@ -10,7 +11,7 @@ namespace ClawMailCalCli.Services;
 /// <summary>
 /// Implements email operations (send, list, and read) using the Microsoft Graph API.
 /// </summary>
-public class EmailService(IGraphClientService graphClientService, ILogger<EmailService> logger)
+public class EmailService(IGraphClientService graphClientService, ILogger<EmailService> logger, IOutputService outputService)
 	: IEmailService
 {
 	private const int DefaultMessageCount = 20;
@@ -36,11 +37,11 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 	];
 
 	/// <inheritdoc />
-	public async Task<bool> SendEmailAsync(string to, string subject, string content, CancellationToken cancellationToken = default)
+	public async Task<bool> SendEmailAsync(string to, string subject, string content, string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
-			return await graphClientService.ExecuteWithRetryAsync(async graphClient =>
+			Func<GraphServiceClient, Task<bool>> operation = async graphClient =>
 			{
 				await graphClient.Me.SendMail.PostAsync(new SendMailPostRequestBody
 				{
@@ -55,7 +56,14 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 					},
 				}, cancellationToken: cancellationToken);
 				return true;
-			}, cancellationToken);
+			};
+
+			if (!string.IsNullOrWhiteSpace(accountName))
+			{
+				return await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken);
+			}
+
+			return await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 		}
 		catch (InvalidOperationException invalidOperationException)
 		{
@@ -69,7 +77,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		catch (ODataError oDataError)
 		{
 			var reason = oDataError.Error?.Message ?? "unknown Graph API error";
-			Console.Error.WriteLine($"Failed to send email: {reason}");
+			outputService.WriteError($"Failed to send email: {reason}");
 			if (logger.IsEnabled(LogLevel.Error))
 			{
 				logger.LogError(oDataError, "Graph API error sending email to '{To}'.", to);
@@ -79,7 +87,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		}
 		catch (Exception exception)
 		{
-			Console.Error.WriteLine($"Failed to send email: {exception.Message}");
+			outputService.WriteError($"Failed to send email: {exception.Message}");
 			if (logger.IsEnabled(LogLevel.Error))
 			{
 				logger.LogError(exception, "Unexpected error sending email to '{To}'.", to);
@@ -90,13 +98,13 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 	}
 
 	/// <inheritdoc />
-	public async Task<IReadOnlyList<EmailSummary>> GetEmailsAsync(string? folderName = null, CancellationToken cancellationToken = default)
+	public async Task<IReadOnlyList<EmailSummary>> GetEmailsAsync(string? folderName = null, string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		var normalizedFolderName = folderName?.Trim();
 
 		try
 		{
-			return await graphClientService.ExecuteWithRetryAsync(async graphClient =>
+			Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>> operation = async graphClient =>
 			{
 				MessageCollectionResponse? messageCollection;
 
@@ -120,7 +128,14 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 				}
 
 				return MapMessages(messageCollection?.Value);
-			}, cancellationToken);
+			};
+
+			if (!string.IsNullOrWhiteSpace(accountName))
+			{
+				return await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken);
+			}
+
+			return await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 		}
 		catch (InvalidOperationException invalidOperationException)
 		{
@@ -133,7 +148,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		}
 		catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
 		{
-			Console.Error.WriteLine($"Error: Folder '{normalizedFolderName}' was not found.");
+			outputService.WriteError($"Error: Folder '{normalizedFolderName}' was not found.");
 
 			if (logger.IsEnabled(LogLevel.Debug))
 			{
@@ -193,7 +208,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 				var firstMessage = response?.Value?.FirstOrDefault();
 				return firstMessage is null ? null : MapToEmailMessage(firstMessage);
 			}
-		}, cancellationToken);
+		}, accountName, cancellationToken);
 	}
 
 	private static IReadOnlyList<EmailSummary> MapMessages(IList<Message>? messages)

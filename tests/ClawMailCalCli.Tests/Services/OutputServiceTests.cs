@@ -252,6 +252,115 @@ public class OutputServiceTests
 	}
 
 	[Fact]
+	public void WriteJsonError_WritesStructuredJsonToStderr()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stderrWriter = new StringWriter();
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Account 'xyz' not found.", ErrorCodes.AccountNotFound);
+
+			// Assert
+			var output = stderrWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
+			document.RootElement.GetProperty("error").GetString().Should().Be("Account 'xyz' not found.");
+			document.RootElement.GetProperty("code").GetString().Should().Be(ErrorCodes.AccountNotFound);
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
+	public void WriteJsonError_DoesNotWriteToStdout()
+	{
+		// Arrange
+		var originalOut = Console.Out;
+		var originalError = Console.Error;
+		using var stdoutWriter = new StringWriter();
+		using var stderrWriter = new StringWriter();
+		Console.SetOut(stdoutWriter);
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Something failed.", ErrorCodes.GraphApiError);
+
+			// Assert
+			stdoutWriter.ToString().Should().BeEmpty();
+			stderrWriter.ToString().Should().NotBeEmpty();
+		}
+		finally
+		{
+			Console.SetOut(originalOut);
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
+	public void WriteJsonError_OutputIsValidJson()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stderrWriter = new StringWriter();
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Auth required.", ErrorCodes.AuthRequired);
+
+			// Assert
+			var output = stderrWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Theory]
+	[InlineData("ACCOUNT_NOT_FOUND")]
+	[InlineData("ACCOUNT_ALREADY_EXISTS")]
+	[InlineData("AUTH_REQUIRED")]
+	[InlineData("AUTH_FAILED")]
+	[InlineData("GRAPH_API_ERROR")]
+	[InlineData("INVALID_ARGUMENT")]
+	[InlineData("CONFIG_ERROR")]
+	[InlineData("KEYVAULT_UNREACHABLE")]
+	public void WriteJsonError_WithDefinedErrorCode_WritesCodeToStderr(string errorCode)
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stderrWriter = new StringWriter();
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Some error occurred.", errorCode);
+
+			// Assert
+			var output = stderrWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.GetProperty("code").GetString().Should().Be(errorCode);
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
 	public void WriteJson_OutputIsValidJson_WithEmptyArray()
 	{
 		// Arrange
@@ -310,6 +419,113 @@ public class OutputServiceTests
 		finally
 		{
 			Console.SetOut(originalOut);
+		}
+	}
+
+	[Fact]
+	public void WriteSuccess_WritesGreenCheckPrefixedMessageToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteSuccess("Operation completed successfully.");
+
+		// Assert
+		testConsole.Output.Should().Contain("✓");
+		testConsole.Output.Should().Contain("Operation completed successfully.");
+	}
+
+	[Fact]
+	public void WriteWarning_WritesPlainTextMessageToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteWarning("No items found.");
+
+		// Assert
+		testConsole.Output.Should().Contain("No items found.");
+	}
+
+	[Fact]
+	public void WriteMarkup_WritesMarkupLineToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteMarkup("Checking environment...");
+
+		// Assert
+		testConsole.Output.Should().Contain("Checking environment...");
+	}
+
+	[Fact]
+	public void WriteLine_WritesBlankLineToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteLine();
+
+		// Assert — a blank line produces at least a newline character
+		testConsole.Output.Should().NotBeEmpty();
+		testConsole.Output.Trim().Should().BeEmpty();
+	}
+
+	[Fact]
+	public void WriteJsonError_WritesJsonErrorObjectToStderr()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stringWriter = new StringWriter();
+		Console.SetError(stringWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Something went wrong.");
+
+			// Assert
+			var output = stringWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
+			document.RootElement.GetProperty("error").GetString().Should().Be("Something went wrong.");
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
+	public void WriteJsonError_UsesCamelCasePropertyName()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stringWriter = new StringWriter();
+		Console.SetError(stringWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Account not found.");
+
+			// Assert
+			var output = stringWriter.ToString();
+			output.Should().Contain("\"error\"");
+			output.Should().NotContain("\"Error\"");
+		}
+		finally
+		{
+			Console.SetError(originalError);
 		}
 	}
 }

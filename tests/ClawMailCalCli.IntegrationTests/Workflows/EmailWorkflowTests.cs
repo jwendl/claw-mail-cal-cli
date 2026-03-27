@@ -60,7 +60,7 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		var fakeGraphClientService = new FakeGraphClientService()
 			.Seed<IReadOnlyList<EmailSummary>>(seededEmails);
 
-		var emailService = new EmailService(fakeGraphClientService, new NullLogger<EmailService>());
+		var emailService = new EmailService(fakeGraphClientService, new NullLogger<EmailService>(), Mock.Of<IOutputService>());
 
 		// Act
 		var result = await emailService.GetEmailsAsync();
@@ -91,7 +91,7 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		var fakeGraphClientService = new FakeGraphClientService()
 			.Seed<EmailMessage?>(seededEmailMessage);
 
-		var emailService = new EmailService(fakeGraphClientService, new NullLogger<EmailService>());
+		var emailService = new EmailService(fakeGraphClientService, new NullLogger<EmailService>(), Mock.Of<IOutputService>());
 
 		// Act
 		var result = await emailService.ReadEmailAsync("bob", "Project Update");
@@ -116,7 +116,7 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 		var fakeGraphClientService = new FakeGraphClientService()
 			.Seed<bool>(true);
 
-		var emailService = new EmailService(fakeGraphClientService, new NullLogger<EmailService>());
+		var emailService = new EmailService(fakeGraphClientService, new NullLogger<EmailService>(), Mock.Of<IOutputService>());
 
 		// Act
 		var result = await emailService.SendEmailAsync("recipient@example.com", "Test Subject", "Test Body");
@@ -151,7 +151,8 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 			mockGraphServiceClientBuilder.Object,
 			mockAuthenticationService.Object,
 			new NonInteractiveMode(),
-			new NullLogger<GraphClientService>());
+			new NullLogger<GraphClientService>(),
+			Mock.Of<IOutputService>());
 
 		// The operation throws 401 on the first call and succeeds on the second (simulating token expiry)
 		var callCount = 0;

@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
+using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 
@@ -10,7 +11,7 @@ namespace ClawMailCalCli.Services;
 /// Provides business logic for calendar events — reading a single event by ID or subject
 /// and listing upcoming calendar events via Microsoft Graph.
 /// </summary>
-public class CalendarService(ICalendarGraphService calendarGraphService, IGraphClientService graphClientService, ILogger<CalendarService> logger)
+public class CalendarService(ICalendarGraphService calendarGraphService, IGraphClientService graphClientService, ILogger<CalendarService> logger, IOutputService outputService)
 	: ICalendarService
 {
 	/// <summary>
@@ -55,23 +56,26 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 	}
 
 	/// <inheritdoc />
-	public async Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(CancellationToken cancellationToken = default)
+	public async Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		var startDateTime = DateTimeOffset.UtcNow;
 		var endDateTime = startDateTime.AddDays(LookAheadDays);
 
 		try
 		{
-			var response = await graphClientService.ExecuteWithRetryAsync(
-				async graphClient => await graphClient.Me.CalendarView.GetAsync(config =>
+			Func<GraphServiceClient, Task<EventCollectionResponse?>> operation = async graphClient =>
+				await graphClient.Me.CalendarView.GetAsync(config =>
 				{
 					config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
 					config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
 					config.QueryParameters.Top = EventCount;
 					config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
 					config.QueryParameters.Orderby = ["start/dateTime asc"];
-				}, cancellationToken),
-				cancellationToken);
+				}, cancellationToken);
+
+			var response = !string.IsNullOrWhiteSpace(accountName)
+				? await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken)
+				: await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 
 			if (response is null)
 			{
@@ -100,7 +104,7 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 		}
 		catch (ODataError odataError)
 		{
-			Console.Error.WriteLine($"Error: Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
+			outputService.WriteError($"Error: Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
 			return null;
 		}
 	}
@@ -108,7 +112,7 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 	private static bool IsEventId(string query) => query.Length >= EventIdMinimumLength;
 
 	/// <inheritdoc />
-	public async Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default)
+	public async Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -120,9 +124,12 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 				Body = new ItemBody { ContentType = BodyType.Text, Content = content },
 			};
 
-			var createdEvent = await graphClientService.ExecuteWithRetryAsync(
-				async graphClient => await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken),
-				cancellationToken);
+			Func<GraphServiceClient, Task<Event?>> operation = async graphClient =>
+				await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken);
+
+			var createdEvent = !string.IsNullOrWhiteSpace(accountName)
+				? await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken)
+				: await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 
 			if (createdEvent is null)
 			{
