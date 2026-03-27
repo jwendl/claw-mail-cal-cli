@@ -316,42 +316,59 @@ public class OutputServiceTests
 	[Fact]
 	public void WriteSuccess_WritesGreenCheckPrefixedMessageToConsole()
 	{
-		// Arrange & Act — verifies WriteSuccess does not throw
-		// (AnsiConsole renders to the terminal; output capture is not straightforward in unit tests)
-		var act = () => _outputService.WriteSuccess("Operation completed successfully.");
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteSuccess("Operation completed successfully.");
 
 		// Assert
-		act.Should().NotThrow();
+		testConsole.Output.Should().Contain("✓");
+		testConsole.Output.Should().Contain("Operation completed successfully.");
 	}
 
 	[Fact]
 	public void WriteWarning_WritesPlainTextMessageToConsole()
 	{
-		// Arrange & Act — verifies WriteWarning does not throw
-		var act = () => _outputService.WriteWarning("No items found.");
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteWarning("No items found.");
 
 		// Assert
-		act.Should().NotThrow();
+		testConsole.Output.Should().Contain("No items found.");
 	}
 
 	[Fact]
 	public void WriteMarkup_WritesMarkupLineToConsole()
 	{
-		// Arrange & Act — verifies WriteMarkup does not throw
-		var act = () => _outputService.WriteMarkup("Checking environment...");
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteMarkup("Checking environment...");
 
 		// Assert
-		act.Should().NotThrow();
+		testConsole.Output.Should().Contain("Checking environment...");
 	}
 
 	[Fact]
 	public void WriteLine_WritesBlankLineToConsole()
 	{
-		// Arrange & Act — verifies WriteLine does not throw
-		var act = () => _outputService.WriteLine();
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
 
-		// Assert
-		act.Should().NotThrow();
+		// Act
+		outputService.WriteLine();
+
+		// Assert — a blank line produces at least a newline character
+		testConsole.Output.Should().NotBeEmpty();
+		testConsole.Output.Trim().Should().BeEmpty();
 	}
 
 	[Fact]
