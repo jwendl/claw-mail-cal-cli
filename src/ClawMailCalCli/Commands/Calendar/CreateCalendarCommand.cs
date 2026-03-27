@@ -5,10 +5,10 @@ using ClawMailCalCli.Services.Interfaces;
 namespace ClawMailCalCli.Commands.Calendar;
 
 /// <summary>
-/// Creates a new calendar event in the default account's primary calendar.
-/// Usage: <c>claw-mail-cal-cli calendar create &lt;title&gt; &lt;start-date-time&gt; &lt;end-date-time&gt; &lt;content&gt;</c>
+/// Creates a new calendar event in the specified (or default) account's primary calendar.
+/// Usage: <c>claw-mail-cal-cli calendar create &lt;title&gt; &lt;start-date-time&gt; &lt;end-date-time&gt; &lt;content&gt; [--account &lt;name&gt;]</c>
 /// </summary>
-internal sealed class CreateCalendarCommand(ICalendarService calendarService, IOutputService outputService)
+internal sealed class CreateCalendarCommand(ICalendarService calendarService, IAccountService accountService, IOutputService outputService)
 	: AsyncCommand<CreateCalendarSettings>
 {
 	/// <inheritdoc />
@@ -59,7 +59,19 @@ internal sealed class CreateCalendarCommand(ICalendarService calendarService, IO
 			return 1;
 		}
 
-		var eventId = await calendarService.CreateEventAsync(settings.Title, parsedStart, parsedEnd, settings.Content, cancellationToken);
+		var accountName = settings.AccountName;
+
+		if (!string.IsNullOrWhiteSpace(accountName))
+		{
+			var account = await accountService.GetAccountAsync(accountName, cancellationToken);
+			if (account is null)
+			{
+				AnsiConsole.MarkupLine($"[red]✗[/] Error: Account '{Markup.Escape(accountName)}' does not exist.");
+				return 1;
+			}
+		}
+
+		var eventId = await calendarService.CreateEventAsync(settings.Title, parsedStart, parsedEnd, settings.Content, accountName, cancellationToken);
 
 		if (eventId is null)
 		{

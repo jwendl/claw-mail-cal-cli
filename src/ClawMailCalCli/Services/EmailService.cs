@@ -1,6 +1,7 @@
 ﻿using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 using HtmlAgilityPack;
+using Microsoft.Graph;
 using Microsoft.Graph.Me.SendMail;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
@@ -36,11 +37,11 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 	];
 
 	/// <inheritdoc />
-	public async Task<bool> SendEmailAsync(string to, string subject, string content, CancellationToken cancellationToken = default)
+	public async Task<bool> SendEmailAsync(string to, string subject, string content, string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
-			return await graphClientService.ExecuteWithRetryAsync(async graphClient =>
+			Func<GraphServiceClient, Task<bool>> operation = async graphClient =>
 			{
 				await graphClient.Me.SendMail.PostAsync(new SendMailPostRequestBody
 				{
@@ -55,7 +56,14 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 					},
 				}, cancellationToken: cancellationToken);
 				return true;
-			}, cancellationToken);
+			};
+
+			if (!string.IsNullOrWhiteSpace(accountName))
+			{
+				return await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken);
+			}
+
+			return await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 		}
 		catch (InvalidOperationException invalidOperationException)
 		{
@@ -90,13 +98,13 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 	}
 
 	/// <inheritdoc />
-	public async Task<IReadOnlyList<EmailSummary>> GetEmailsAsync(string? folderName = null, CancellationToken cancellationToken = default)
+	public async Task<IReadOnlyList<EmailSummary>> GetEmailsAsync(string? folderName = null, string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		var normalizedFolderName = folderName?.Trim();
 
 		try
 		{
-			return await graphClientService.ExecuteWithRetryAsync(async graphClient =>
+			Func<GraphServiceClient, Task<IReadOnlyList<EmailSummary>>> operation = async graphClient =>
 			{
 				MessageCollectionResponse? messageCollection;
 
@@ -120,7 +128,14 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 				}
 
 				return MapMessages(messageCollection?.Value);
-			}, cancellationToken);
+			};
+
+			if (!string.IsNullOrWhiteSpace(accountName))
+			{
+				return await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken);
+			}
+
+			return await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 		}
 		catch (InvalidOperationException invalidOperationException)
 		{
@@ -193,7 +208,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 				var firstMessage = response?.Value?.FirstOrDefault();
 				return firstMessage is null ? null : MapToEmailMessage(firstMessage);
 			}
-		}, cancellationToken);
+		}, accountName, cancellationToken);
 	}
 
 	private static IReadOnlyList<EmailSummary> MapMessages(IList<Message>? messages)

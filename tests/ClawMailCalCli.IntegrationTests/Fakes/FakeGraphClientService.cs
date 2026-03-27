@@ -46,4 +46,21 @@ public sealed class FakeGraphClientService : IGraphClientService
 			$"FakeGraphClientService has no seeded value for return type '{typeof(T).Name}'. " +
 			$"Call Seed<{typeof(T).Name}>(...) in the test Arrange section before invoking this operation.");
 	}
+
+	/// <inheritdoc />
+	/// <remarks>
+	/// The account name is accepted but not used. The operation delegate is never invoked; instead
+	/// the pre-seeded value for type <typeparamref name="T"/> is returned directly.
+	/// </remarks>
+	public Task<T> ExecuteWithRetryAsync<T>(Func<GraphServiceClient, Task<T>> operation, string accountName, CancellationToken cancellationToken = default)
+	{
+		if (_seedData.TryGetValue(typeof(T), out var seeded))
+		{
+			return Task.FromResult((T)seeded!);
+		}
+
+		throw new InvalidOperationException(
+			$"FakeGraphClientService has no seeded value for return type '{typeof(T).Name}'. " +
+			$"Call Seed<{typeof(T).Name}>(...) in the test Arrange section before invoking this operation.");
+	}
 }

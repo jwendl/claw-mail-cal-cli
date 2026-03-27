@@ -14,11 +14,13 @@ namespace ClawMailCalCli.Tests.Commands;
 public class CalendarCommandTests
 {
 	private readonly Mock<ICalendarService> _mockCalendarService;
+	private readonly Mock<IAccountService> _mockAccountService;
 	private readonly Mock<IOutputService> _mockOutputService;
 
 	public CalendarCommandTests()
 	{
 		_mockCalendarService = new Mock<ICalendarService>();
+		_mockAccountService = new Mock<IAccountService>();
 		_mockOutputService = new Mock<IOutputService>();
 	}
 
@@ -43,10 +45,10 @@ public class CalendarCommandTests
 		];
 
 		_mockCalendarService
-			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
+			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync(events);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
@@ -61,10 +63,10 @@ public class CalendarCommandTests
 	{
 		// Arrange
 		_mockCalendarService
-			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
+			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync([]);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
@@ -79,10 +81,10 @@ public class CalendarCommandTests
 	{
 		// Arrange
 		_mockCalendarService
-			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
+			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync((IReadOnlyList<CalendarEventSummary>?)null);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
@@ -102,10 +104,10 @@ public class CalendarCommandTests
 		];
 
 		_mockCalendarService
-			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<CancellationToken>()))
+			.Setup(service => service.GetUpcomingEventsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync(events);
 
-		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var context = CreateCommandContext();
 
 		// Act
@@ -113,6 +115,55 @@ public class CalendarCommandTests
 
 		// Assert
 		result.Should().Be(0);
+	}
+
+	[Fact]
+	public async Task ListCalendarCommand_WithAccountFlag_PassesAccountNameToService()
+	{
+		// Arrange
+		var accountName = "work-account";
+		var account = new Account(accountName, "user@contoso.com", AccountType.Work);
+
+		_mockAccountService
+			.Setup(service => service.GetAccountAsync(accountName, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockCalendarService
+			.Setup(service => service.GetUpcomingEventsAsync(accountName, It.IsAny<CancellationToken>()))
+			.ReturnsAsync([]);
+
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ListCalendarSettings { AccountName = accountName };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockCalendarService.Verify(service => service.GetUpcomingEventsAsync(accountName, It.IsAny<CancellationToken>()), Times.Once);
+	}
+
+	[Fact]
+	public async Task ListCalendarCommand_WithNonExistentAccount_ReturnsOne()
+	{
+		// Arrange
+		var accountName = "nonexistent-account";
+
+		_mockAccountService
+			.Setup(service => service.GetAccountAsync(accountName, It.IsAny<CancellationToken>()))
+			.ReturnsAsync((Account?)null);
+
+		var command = new ListCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ListCalendarSettings { AccountName = accountName };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockCalendarService.Verify(service => service.GetUpcomingEventsAsync(It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
 	}
 
 	[Fact]
@@ -125,10 +176,11 @@ public class CalendarCommandTests
 				It.IsAny<DateTimeOffset>(),
 				It.IsAny<DateTimeOffset>(),
 				"Agenda: discuss Q2 goals",
+				It.IsAny<string?>(),
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync("event-id-123");
 
-		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Team Meeting",
@@ -149,7 +201,7 @@ public class CalendarCommandTests
 	public async Task CreateCalendarCommand_WhenStartDateIsInvalid_ReturnsOne()
 	{
 		// Arrange
-		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",
@@ -170,7 +222,7 @@ public class CalendarCommandTests
 	public async Task CreateCalendarCommand_WhenEndDateIsInvalid_ReturnsOne()
 	{
 		// Arrange
-		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",
@@ -191,7 +243,7 @@ public class CalendarCommandTests
 	public async Task CreateCalendarCommand_WhenEndDateBeforeStartDate_ReturnsOne()
 	{
 		// Arrange
-		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",
@@ -218,10 +270,11 @@ public class CalendarCommandTests
 				It.IsAny<DateTimeOffset>(),
 				It.IsAny<DateTimeOffset>(),
 				It.IsAny<string>(),
+				It.IsAny<string?>(),
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync((string?)null);
 
-		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",
@@ -239,6 +292,79 @@ public class CalendarCommandTests
 	}
 
 	[Fact]
+	public async Task CreateCalendarCommand_WithAccountFlag_PassesAccountNameToService()
+	{
+		// Arrange
+		var accountName = "work-account";
+		var account = new Account(accountName, "user@contoso.com", AccountType.Work);
+
+		_mockAccountService
+			.Setup(service => service.GetAccountAsync(accountName, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockCalendarService
+			.Setup(service => service.CreateEventAsync(
+				It.IsAny<string>(),
+				It.IsAny<DateTimeOffset>(),
+				It.IsAny<DateTimeOffset>(),
+				It.IsAny<string>(),
+				accountName,
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync("event-id-456");
+
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new CreateCalendarSettings
+		{
+			Title = "Meeting",
+			StartDateTime = "2026-03-25T09:00:00",
+			EndDateTime = "2026-03-25T10:00:00",
+			Content = "Content",
+			AccountName = accountName,
+		};
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockCalendarService.Verify(
+			service => service.CreateEventAsync(It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<string>(), accountName, It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task CreateCalendarCommand_WithNonExistentAccount_ReturnsOne()
+	{
+		// Arrange
+		var accountName = "nonexistent-account";
+
+		_mockAccountService
+			.Setup(service => service.GetAccountAsync(accountName, It.IsAny<CancellationToken>()))
+			.ReturnsAsync((Account?)null);
+
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new CreateCalendarSettings
+		{
+			Title = "Meeting",
+			StartDateTime = "2026-03-25T09:00:00",
+			EndDateTime = "2026-03-25T10:00:00",
+			Content = "Content",
+			AccountName = accountName,
+		};
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockCalendarService.Verify(
+			service => service.CreateEventAsync(It.IsAny<string>(), It.IsAny<DateTimeOffset>(), It.IsAny<DateTimeOffset>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()),
+			Times.Never);
+	}
+
+	[Fact]
 	public async Task CreateCalendarCommand_WhenJsonAndSuccess_WritesJsonResultWithEventId()
 	{
 		// Arrange
@@ -248,10 +374,11 @@ public class CalendarCommandTests
 				It.IsAny<DateTimeOffset>(),
 				It.IsAny<DateTimeOffset>(),
 				It.IsAny<string>(),
+				It.IsAny<string?>(),
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync("event-id-123");
 
-		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Team Meeting",
@@ -274,7 +401,7 @@ public class CalendarCommandTests
 	public async Task CreateCalendarCommand_WhenJsonAndInvalidStartDate_WritesJsonError()
 	{
 		// Arrange
-		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",

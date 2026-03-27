@@ -121,7 +121,7 @@ The `~/.claw-mail-cal-cli/config.json` file is used by specific commands (for ex
 | Field | Required | Description |
 |-------|----------|-------------|
 | `keyVaultUri` | **Yes** | The HTTPS URI of your Azure Key Vault, used by commands that read this file (e.g. `https://my-vault.vault.azure.net/`). |
-| `defaultAccount` | No | Account name used by the `calendar read` command when its `--account` option is not specified. Other commands use the default account set via `account set`. |
+| `defaultAccount` | No | Account name used by the `calendar read` command when its `--account` option is not specified. All other data commands (`email list`, `email read`, `email send`, `calendar list`, `calendar create`) fall back to the account set via `account set` when `--account` is omitted. |
 
 ### Azure Key Vault Setup
 
@@ -225,22 +225,22 @@ List emails in your inbox:
 claw-mail-cal-cli email list
 ```
 
-List emails in a specific folder:
+List emails in a specific folder (targeting a specific account):
 
 ```
-claw-mail-cal-cli email list <folder-name>
+claw-mail-cal-cli email list <folder-name> --account <account-name>
 ```
 
-Read a specific email:
+Read a specific email (uses default account if `--account` is omitted):
 
 ```
-claw-mail-cal-cli email read <account-name> <subject-or-id>
+claw-mail-cal-cli email read <subject-or-id> [--account <account-name>]
 ```
 
 Send an email:
 
 ```
-claw-mail-cal-cli email send <to> <subject> <content>
+claw-mail-cal-cli email send <to> <subject> <content> [--account <account-name>]
 ```
 
 > **Note:** Deleting emails is not available.
@@ -250,22 +250,20 @@ claw-mail-cal-cli email send <to> <subject> <content>
 List calendar events:
 
 ```
-claw-mail-cal-cli calendar list
+claw-mail-cal-cli calendar list [--account <account-name>]
 ```
 
 Read a specific calendar event:
 
 ```
-claw-mail-cal-cli calendar read <title-or-unique-calendar-item-id>
+claw-mail-cal-cli calendar read <title-or-unique-calendar-item-id> [--account <account-name>]
 ```
 
 Create a calendar event:
 
 ```
-claw-mail-cal-cli calendar create <title> <start-date-time> <end-date-time> <content>
+claw-mail-cal-cli calendar create <title> <start-date-time> <end-date-time> <content> [--account <account-name>]
 ```
-
-> **Note:** `calendar create` is planned and will be available in a future release.
 
 ## Authentication Flow
 
