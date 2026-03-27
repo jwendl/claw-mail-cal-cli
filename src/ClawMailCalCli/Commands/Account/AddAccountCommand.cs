@@ -1,11 +1,12 @@
-﻿using ClawMailCalCli.Services.Interfaces;
+﻿using ClawMailCalCli.Models;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Account;
 
 /// <summary>
 /// Adds a new account to the store.
 /// </summary>
-internal sealed class AddAccountCommand(IAccountService accountService)
+internal sealed class AddAccountCommand(IAccountService accountService, IOutputService outputService)
 	: AsyncCommand<AddAccountSettings>
 {
 	/// <inheritdoc />
@@ -14,11 +15,29 @@ internal sealed class AddAccountCommand(IAccountService accountService)
 		var added = await accountService.AddAccountAsync(settings.Name, settings.Email, settings.Type, cancellationToken);
 		if (!added)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");
+			var errorMessage = $"Account '{settings.Name}' already exists.";
+			if (settings.Json)
+			{
+				outputService.WriteJsonError(errorMessage);
+			}
+			else
+			{
+				AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");
+			}
+
 			return 1;
 		}
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' added successfully.");
+		var successMessage = $"Account '{settings.Name}' added successfully.";
+		if (settings.Json)
+		{
+			outputService.WriteJson(new CommandResult(true, successMessage));
+		}
+		else
+		{
+			AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' added successfully.");
+		}
+
 		return 0;
 	}
 }

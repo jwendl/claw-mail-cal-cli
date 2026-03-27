@@ -4,7 +4,7 @@
 /// Settings for the <c>email send</c> command.
 /// </summary>
 internal sealed class SendEmailSettings
-	: CommandSettings
+	: JsonOutputSettings
 {
 	/// <summary>
 	/// The recipient email address.
