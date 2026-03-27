@@ -204,8 +204,8 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		}
 		else
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Authentication required for account '[bold]{Markup.Escape(accountName)}[/]'.");
-			AnsiConsole.MarkupLine($"[yellow]Hint:[/] Run '[bold]claw-mail-cal-cli login {Markup.Escape(accountName)}[/]' interactively first, then use [bold]--non-interactive[/] for subsequent calls.");
+			Console.Error.WriteLine($"Error: Authentication required for account '{accountName}'.");
+			Console.Error.WriteLine($"Hint: Run 'claw-mail-cal-cli login {accountName}' interactively first, then use --non-interactive for subsequent calls.");
 		}
 	}
 }
