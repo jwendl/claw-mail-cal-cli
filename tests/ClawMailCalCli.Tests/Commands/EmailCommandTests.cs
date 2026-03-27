@@ -304,7 +304,7 @@ public class EmailCommandTests
 			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync(true);
 
-		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object);
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content" };
 		var context = CreateCommandContext();
 
@@ -323,7 +323,7 @@ public class EmailCommandTests
 			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
 			.ReturnsAsync(false);
 
-		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object);
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content" };
 		var context = CreateCommandContext();
 
@@ -349,7 +349,7 @@ public class EmailCommandTests
 			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", accountName, It.IsAny<CancellationToken>()))
 			.ReturnsAsync(true);
 
-		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object);
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content", AccountName = accountName };
 		var context = CreateCommandContext();
 
@@ -371,7 +371,7 @@ public class EmailCommandTests
 			.Setup(service => service.GetAccountAsync(accountName, It.IsAny<CancellationToken>()))
 			.ReturnsAsync((Account?)null);
 
-		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object);
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
 		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content", AccountName = accountName };
 		var context = CreateCommandContext();
 
@@ -381,5 +381,45 @@ public class EmailCommandTests
 		// Assert
 		result.Should().Be(1);
 		_mockEmailService.Verify(service => service.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
+	}
+
+	[Fact]
+	public async Task SendEmailCommand_WhenJsonAndSuccess_WritesJsonResult()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.Is<CommandResult>(commandResult => commandResult.Success)), Times.Once);
+	}
+
+	[Fact]
+	public async Task SendEmailCommand_WhenJsonAndFailure_WritesJsonError()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<string?>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJsonError(It.IsAny<string>()), Times.Once);
 	}
 }

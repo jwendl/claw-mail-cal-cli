@@ -53,12 +53,12 @@ internal sealed class ReadEmailCommand(IEmailService emailService, IAccountServi
 			? message.ReceivedDateTime.Value.ToLocalTime().ToString("f")
 			: "Unknown";
 
-		AnsiConsole.MarkupLine($"[bold]From:[/]    {Markup.Escape(message.From)}");
-		AnsiConsole.MarkupLine($"[bold]To:[/]      {Markup.Escape(message.To)}");
-		AnsiConsole.MarkupLine($"[bold]Subject:[/] {Markup.Escape(message.Subject)}");
-		AnsiConsole.MarkupLine($"[bold]Date:[/]    {receivedDisplay}");
-		AnsiConsole.WriteLine();
-		AnsiConsole.WriteLine(message.Body);
+		outputService.WriteMarkup($"[bold]From:[/]    {Markup.Escape(message.From)}");
+		outputService.WriteMarkup($"[bold]To:[/]      {Markup.Escape(message.To)}");
+		outputService.WriteMarkup($"[bold]Subject:[/] {Markup.Escape(message.Subject)}");
+		outputService.WriteMarkup($"[bold]Date:[/]    {receivedDisplay}");
+		outputService.WriteLine();
+		outputService.WriteMarkup(Markup.Escape(message.Body));
 
 		return 0;
 	}

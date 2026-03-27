@@ -4,7 +4,7 @@
 /// Settings for the <c>calendar create</c> command.
 /// </summary>
 internal sealed class CreateCalendarSettings
-	: CommandSettings
+	: JsonOutputSettings
 {
 	/// <summary>
 	/// The title (subject) of the calendar event.

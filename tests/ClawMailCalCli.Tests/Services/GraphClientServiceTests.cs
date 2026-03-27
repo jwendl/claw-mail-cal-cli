@@ -18,6 +18,7 @@ public class GraphClientServiceTests
 	private readonly Mock<IGraphServiceClientBuilder> _mockGraphServiceClientBuilder;
 	private readonly Mock<IAuthenticationService> _mockAuthenticationService;
 	private readonly ILogger<GraphClientService> _logger;
+	private readonly Mock<IOutputService> _mockOutputService;
 
 	public GraphClientServiceTests()
 	{
@@ -25,6 +26,7 @@ public class GraphClientServiceTests
 		_mockGraphServiceClientBuilder = new Mock<IGraphServiceClientBuilder>();
 		_mockAuthenticationService = new Mock<IAuthenticationService>();
 		_logger = new NullLogger<GraphClientService>();
+		_mockOutputService = new Mock<IOutputService>();
 	}
 
 	private GraphClientService CreateGraphClientService() =>
@@ -32,7 +34,8 @@ public class GraphClientServiceTests
 			_mockAccountService.Object,
 			_mockGraphServiceClientBuilder.Object,
 			_mockAuthenticationService.Object,
-			_logger);
+			_logger,
+			_mockOutputService.Object);
 
 	[Fact]
 	public async Task ExecuteWithRetryAsync_WhenNoDefaultAccount_ThrowsInvalidOperationException()
