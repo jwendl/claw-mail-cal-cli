@@ -150,6 +150,7 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 			_accountService,
 			mockGraphServiceClientBuilder.Object,
 			mockAuthenticationService.Object,
+			new NonInteractiveMode(),
 			new NullLogger<GraphClientService>());
 
 		// The operation throws 401 on the first call and succeeds on the second (simulating token expiry)
