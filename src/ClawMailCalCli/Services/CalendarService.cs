@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
+using Microsoft.Graph;
 using Microsoft.Graph.Models;
 using Microsoft.Graph.Models.ODataErrors;
 
@@ -62,28 +63,19 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 
 		try
 		{
+			Func<GraphServiceClient, Task<EventCollectionResponse?>> operation = async graphClient =>
+				await graphClient.Me.CalendarView.GetAsync(config =>
+				{
+					config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
+					config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
+					config.QueryParameters.Top = EventCount;
+					config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
+					config.QueryParameters.Orderby = ["start/dateTime asc"];
+				}, cancellationToken);
+
 			var response = !string.IsNullOrWhiteSpace(accountName)
-				? await graphClientService.ExecuteWithRetryAsync(
-					async graphClient => await graphClient.Me.CalendarView.GetAsync(config =>
-					{
-						config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
-						config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
-						config.QueryParameters.Top = EventCount;
-						config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
-						config.QueryParameters.Orderby = ["start/dateTime asc"];
-					}, cancellationToken),
-					accountName,
-					cancellationToken)
-				: await graphClientService.ExecuteWithRetryAsync(
-					async graphClient => await graphClient.Me.CalendarView.GetAsync(config =>
-					{
-						config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
-						config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
-						config.QueryParameters.Top = EventCount;
-						config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
-						config.QueryParameters.Orderby = ["start/dateTime asc"];
-					}, cancellationToken),
-					cancellationToken);
+				? await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken)
+				: await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 
 			if (response is null)
 			{
@@ -132,21 +124,12 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 				Body = new ItemBody { ContentType = BodyType.Text, Content = content },
 			};
 
-			Event? createdEvent;
+			Func<GraphServiceClient, Task<Event?>> operation = async graphClient =>
+				await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken);
 
-			if (!string.IsNullOrWhiteSpace(accountName))
-			{
-				createdEvent = await graphClientService.ExecuteWithRetryAsync(
-					async graphClient => await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken),
-					accountName,
-					cancellationToken);
-			}
-			else
-			{
-				createdEvent = await graphClientService.ExecuteWithRetryAsync(
-					async graphClient => await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken),
-					cancellationToken);
-			}
+			var createdEvent = !string.IsNullOrWhiteSpace(accountName)
+				? await graphClientService.ExecuteWithRetryAsync(operation, accountName, cancellationToken)
+				: await graphClientService.ExecuteWithRetryAsync(operation, cancellationToken);
 
 			if (createdEvent is null)
 			{
