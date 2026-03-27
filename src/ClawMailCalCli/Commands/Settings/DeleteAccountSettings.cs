@@ -4,7 +4,7 @@
 /// Settings for the <c>account delete</c> command.
 /// </summary>
 internal sealed class DeleteAccountSettings
-	: CommandSettings
+	: JsonOutputSettings
 {
 	/// <summary>
 	/// The name of the account to delete.

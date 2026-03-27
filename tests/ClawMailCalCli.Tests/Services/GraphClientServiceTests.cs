@@ -18,6 +18,7 @@ public class GraphClientServiceTests
 	private readonly Mock<IGraphServiceClientBuilder> _mockGraphServiceClientBuilder;
 	private readonly Mock<IAuthenticationService> _mockAuthenticationService;
 	private readonly ILogger<GraphClientService> _logger;
+	private readonly Mock<IOutputService> _mockOutputService;
 
 	public GraphClientServiceTests()
 	{
@@ -25,6 +26,7 @@ public class GraphClientServiceTests
 		_mockGraphServiceClientBuilder = new Mock<IGraphServiceClientBuilder>();
 		_mockAuthenticationService = new Mock<IAuthenticationService>();
 		_logger = new NullLogger<GraphClientService>();
+		_mockOutputService = new Mock<IOutputService>();
 	}
 
 	private GraphClientService CreateGraphClientService() =>
@@ -32,7 +34,8 @@ public class GraphClientServiceTests
 			_mockAccountService.Object,
 			_mockGraphServiceClientBuilder.Object,
 			_mockAuthenticationService.Object,
-			_logger);
+			_logger,
+			_mockOutputService.Object);
 
 	[Fact]
 	public async Task ExecuteWithRetryAsync_WhenNoDefaultAccount_ThrowsInvalidOperationException()
@@ -365,5 +368,179 @@ public class GraphClientServiceTests
 		var mockRequestAdapter = new Mock<IRequestAdapter>();
 		mockRequestAdapter.SetupGet(adapter => adapter.BaseUrl).Returns("https://graph.microsoft.com/v1.0");
 		return new GraphServiceClient(mockRequestAdapter.Object);
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WithAccountName_WhenAccountNotFound_ThrowsInvalidOperationException()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("nonexistent", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((Account?)null);
+
+		var graphClientService = CreateGraphClientService();
+
+		// Act
+		var act = async () => await graphClientService.ExecuteWithRetryAsync(_ => Task.FromResult("result"), "nonexistent");
+
+		// Assert
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*does not exist*");
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WithAccountName_WhenAccountNotAuthenticated_ThrowsInvalidOperationException()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync((GraphServiceClient?)null);
+
+		var graphClientService = CreateGraphClientService();
+
+		// Act
+		var act = async () => await graphClientService.ExecuteWithRetryAsync(_ => Task.FromResult("result"), "work-account");
+
+		// Assert
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*not authenticated*");
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WithAccountName_WhenOperationSucceeds_ReturnsResult()
+	{
+		// Arrange
+		var account = new Account("personal-account", "user@hotmail.com", AccountType.Personal);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("personal-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var fakeGraphClient = BuildFakeGraphServiceClient();
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeGraphClient);
+
+		var graphClientService = CreateGraphClientService();
+
+		// Act
+		var result = await graphClientService.ExecuteWithRetryAsync(_ => Task.FromResult("success"), "personal-account");
+
+		// Assert
+		result.Should().Be("success");
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WithAccountName_WhenOperationThrows401_TriggersReAuthentication()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var fakeGraphClient = BuildFakeGraphServiceClient();
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeGraphClient);
+
+		_mockAuthenticationService
+			.Setup(authService => authService.AuthenticateAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var callCount = 0;
+		Func<GraphServiceClient, Task<string>> operation = _ =>
+		{
+			callCount++;
+			if (callCount == 1)
+			{
+				throw new ODataError { ResponseStatusCode = 401 };
+			}
+
+			return Task.FromResult("retry-success");
+		};
+
+		var graphClientService = CreateGraphClientService();
+
+		// Act
+		var result = await graphClientService.ExecuteWithRetryAsync(operation, "work-account");
+
+		// Assert
+		result.Should().Be("retry-success");
+		_mockAuthenticationService.Verify(
+			authService => authService.AuthenticateAsync("work-account", It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WhenOperationThrows401AndReAuthReturnsFalse_ThrowsInvalidOperationException()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var fakeGraphClient = BuildFakeGraphServiceClient();
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeGraphClient);
+
+		_mockAuthenticationService
+			.Setup(authService => authService.AuthenticateAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		Func<GraphServiceClient, Task<string>> operation = _ =>
+			throw new ODataError { ResponseStatusCode = 401 };
+
+		var graphClientService = CreateGraphClientService();
+
+		// Act
+		var act = async () => await graphClientService.ExecuteWithRetryAsync(operation);
+
+		// Assert
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*Re-authentication failed*");
+		_mockGraphServiceClientBuilder.Verify(
+			builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WithAccountName_WhenOperationThrows401AndReAuthReturnsFalse_ThrowsInvalidOperationException()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var fakeGraphClient = BuildFakeGraphServiceClient();
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeGraphClient);
+
+		_mockAuthenticationService
+			.Setup(authService => authService.AuthenticateAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		Func<GraphServiceClient, Task<string>> operation = _ =>
+			throw new ODataError { ResponseStatusCode = 401 };
+
+		var graphClientService = CreateGraphClientService();
+
+		// Act
+		var act = async () => await graphClientService.ExecuteWithRetryAsync(operation, "work-account");
+
+		// Assert
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*Re-authentication failed*");
+		_mockGraphServiceClientBuilder.Verify(
+			builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()),
+			Times.Once);
 	}
 }

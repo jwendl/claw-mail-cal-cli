@@ -421,4 +421,111 @@ public class OutputServiceTests
 			Console.SetOut(originalOut);
 		}
 	}
+
+	[Fact]
+	public void WriteSuccess_WritesGreenCheckPrefixedMessageToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteSuccess("Operation completed successfully.");
+
+		// Assert
+		testConsole.Output.Should().Contain("✓");
+		testConsole.Output.Should().Contain("Operation completed successfully.");
+	}
+
+	[Fact]
+	public void WriteWarning_WritesPlainTextMessageToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteWarning("No items found.");
+
+		// Assert
+		testConsole.Output.Should().Contain("No items found.");
+	}
+
+	[Fact]
+	public void WriteMarkup_WritesMarkupLineToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteMarkup("Checking environment...");
+
+		// Assert
+		testConsole.Output.Should().Contain("Checking environment...");
+	}
+
+	[Fact]
+	public void WriteLine_WritesBlankLineToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteLine();
+
+		// Assert — a blank line produces at least a newline character
+		testConsole.Output.Should().NotBeEmpty();
+		testConsole.Output.Trim().Should().BeEmpty();
+	}
+
+	[Fact]
+	public void WriteJsonError_WritesJsonErrorObjectToStderr()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stringWriter = new StringWriter();
+		Console.SetError(stringWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Something went wrong.");
+
+			// Assert
+			var output = stringWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
+			document.RootElement.GetProperty("error").GetString().Should().Be("Something went wrong.");
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
+	public void WriteJsonError_UsesCamelCasePropertyName()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stringWriter = new StringWriter();
+		Console.SetError(stringWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Account not found.");
+
+			// Assert
+			var output = stringWriter.ToString();
+			output.Should().Contain("\"error\"");
+			output.Should().NotContain("\"Error\"");
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
 }
