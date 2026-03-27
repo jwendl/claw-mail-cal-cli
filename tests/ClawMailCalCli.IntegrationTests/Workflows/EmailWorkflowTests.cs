@@ -150,6 +150,7 @@ public sealed class EmailWorkflowTests : IAsyncLifetime
 			_accountService,
 			mockGraphServiceClientBuilder.Object,
 			mockAuthenticationService.Object,
+			new NonInteractiveMode(),
 			new NullLogger<GraphClientService>(),
 			Mock.Of<IOutputService>());
 

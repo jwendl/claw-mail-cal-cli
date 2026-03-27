@@ -1,4 +1,5 @@
-﻿using ClawMailCalCli.Services.Interfaces;
+﻿using System.Text.Json;
+using ClawMailCalCli.Services.Interfaces;
 using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
 
@@ -8,7 +9,7 @@ namespace ClawMailCalCli.Services;
 /// Wraps Microsoft Graph API calls with automatic 401 Unauthorized retry and re-authentication.
 /// When a 401 is received the default account is re-authenticated and the operation is retried once.
 /// </summary>
-public class GraphClientService(IAccountService accountService, IGraphServiceClientBuilder graphServiceClientBuilder, IAuthenticationService authenticationService, ILogger<GraphClientService> logger, IOutputService outputService)
+public class GraphClientService(IAccountService accountService, IGraphServiceClientBuilder graphServiceClientBuilder, IAuthenticationService authenticationService, NonInteractiveMode nonInteractiveMode, ILogger<GraphClientService> logger, IOutputService outputService)
 	: IGraphClientService
 {
 	/// <inheritdoc />
@@ -34,6 +35,24 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 		}
 		catch (ODataError odataError) when (odataError.ResponseStatusCode == 401)
 		{
+			if (nonInteractiveMode.IsNonInteractive)
+			{
+				const string message = "Authentication required. Run 'claw-mail-cal-cli login <account>' interactively first.";
+				const string code = "AUTH_REQUIRED";
+
+				if (nonInteractiveMode.IsJson)
+				{
+					var errorObject = new { error = message, code };
+					Console.Out.WriteLine(JsonSerializer.Serialize(errorObject));
+				}
+				else
+				{
+					Console.Error.WriteLine($"Error: Session expired for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' interactively first.");
+				}
+
+				throw new InvalidOperationException($"Authentication required for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' interactively first.");
+			}
+
 			if (logger.IsEnabled(LogLevel.Information))
 			{
 				logger.LogInformation("Received 401 Unauthorized for account '{AccountName}'. Triggering re-authentication.", defaultAccount.Name);

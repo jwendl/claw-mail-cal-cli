@@ -39,11 +39,12 @@ public class AuthenticationServiceTests
 			.ReturnsAsync("test-work-tenant-id");
 	}
 
-	private AuthenticationService CreateAuthenticationService() =>
+	private AuthenticationService CreateAuthenticationService(NonInteractiveMode? nonInteractiveMode = null) =>
 		new AuthenticationService(
 			_mockAccountService.Object,
 			_mockKeyVaultService.Object,
 			_mockDeviceCodeCredentialProvider.Object,
+			nonInteractiveMode ?? new NonInteractiveMode(),
 			_logger);
 
 	[Fact]
@@ -419,5 +420,97 @@ public class AuthenticationServiceTests
 			""";
 		using var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
 		return AuthenticationRecord.DeserializeAsync(stream).GetAwaiter().GetResult();
+	}
+
+	[Fact]
+	public async Task AuthenticateAsync_WhenNonInteractiveAndNoCachedRecord_ReturnsFalseWithoutDeviceCodeFlow()
+	{
+		// Arrange
+		var account = new Account("personal-account", "user@hotmail.com", AccountType.Personal);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("personal-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-personal-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string?)null);
+
+		var nonInteractiveMode = new NonInteractiveMode { IsNonInteractive = true };
+		var authenticationService = CreateAuthenticationService(nonInteractiveMode);
+
+		// Act
+		var result = await authenticationService.AuthenticateAsync("personal-account");
+
+		// Assert — device code flow must not be triggered in non-interactive mode
+		result.Should().BeFalse();
+		_mockDeviceCodeCredentialProvider.Verify(
+			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
+			Times.Never);
+	}
+
+	[Fact]
+	public async Task AuthenticateAsync_WhenNonInteractiveAndCachedRecordExists_ReturnsTrueSilently()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var validRecord = BuildFakeAuthenticationRecord();
+		using var recordStream = new MemoryStream();
+		await validRecord.SerializeAsync(recordStream);
+		var base64Record = Convert.ToBase64String(recordStream.ToArray());
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(base64Record);
+
+		var nonInteractiveMode = new NonInteractiveMode { IsNonInteractive = true };
+		var authenticationService = CreateAuthenticationService(nonInteractiveMode);
+
+		// Act
+		var result = await authenticationService.AuthenticateAsync("work-account");
+
+		// Assert — a cached record means silent auth is possible; non-interactive mode should not block it
+		result.Should().BeTrue();
+		_mockDeviceCodeCredentialProvider.Verify(
+			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
+			Times.Never);
+	}
+
+	[Fact]
+	public async Task AuthenticateAsync_WhenNonInteractiveAndForceInteractiveTrue_InvokesDeviceCodeFlow()
+	{
+		// Arrange
+		var account = new Account("personal-account", "user@hotmail.com", AccountType.Personal);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("personal-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-personal-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync((string?)null);
+
+		var fakeRecord = BuildFakeAuthenticationRecord();
+		_mockDeviceCodeCredentialProvider
+			.Setup(provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeRecord);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.Returns(Task.CompletedTask);
+
+		var nonInteractiveMode = new NonInteractiveMode { IsNonInteractive = true };
+		var authenticationService = CreateAuthenticationService(nonInteractiveMode);
+
+		// Act — forceInteractive: true should bypass the non-interactive check (used by login command)
+		var result = await authenticationService.AuthenticateAsync("personal-account", forceInteractive: true);
+
+		// Assert
+		result.Should().BeTrue();
+		_mockDeviceCodeCredentialProvider.Verify(
+			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
+			Times.Once);
 	}
 }

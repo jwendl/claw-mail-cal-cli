@@ -29,11 +29,12 @@ public class GraphClientServiceTests
 		_mockOutputService = new Mock<IOutputService>();
 	}
 
-	private GraphClientService CreateGraphClientService() =>
+	private GraphClientService CreateGraphClientService(NonInteractiveMode? nonInteractiveMode = null) =>
 		new GraphClientService(
 			_mockAccountService.Object,
 			_mockGraphServiceClientBuilder.Object,
 			_mockAuthenticationService.Object,
+			nonInteractiveMode ?? new NonInteractiveMode(),
 			_logger,
 			_mockOutputService.Object);
 
@@ -542,5 +543,59 @@ public class GraphClientServiceTests
 		_mockGraphServiceClientBuilder.Verify(
 			builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()),
 			Times.Once);
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WhenNonInteractiveAndOperationThrows401_ThrowsWithoutCallingAuthenticationService()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var fakeGraphClient = BuildFakeGraphServiceClient();
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeGraphClient);
+
+		Func<GraphServiceClient, Task<string>> operation = _ => throw new ODataError { ResponseStatusCode = 401 };
+
+		var nonInteractiveMode = new NonInteractiveMode { IsNonInteractive = true };
+		var graphClientService = CreateGraphClientService(nonInteractiveMode);
+
+		// Act
+		var act = async () => await graphClientService.ExecuteWithRetryAsync(operation);
+
+		// Assert — non-interactive mode must fail fast without attempting re-authentication
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*Authentication required*");
+		_mockAuthenticationService.Verify(
+			authService => authService.AuthenticateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()),
+			Times.Never);
+	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WhenNonInteractiveAndOperationSucceeds_ReturnsResultNormally()
+	{
+		// Arrange
+		var account = new Account("personal-account", "user@hotmail.com", AccountType.Personal);
+		_mockAccountService
+			.Setup(accountService => accountService.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var fakeGraphClient = BuildFakeGraphServiceClient();
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeGraphClient);
+
+		var nonInteractiveMode = new NonInteractiveMode { IsNonInteractive = true };
+		var graphClientService = CreateGraphClientService(nonInteractiveMode);
+
+		// Act
+		var result = await graphClientService.ExecuteWithRetryAsync(_ => Task.FromResult("success"));
+
+		// Assert — non-interactive mode does not affect successful operations
+		result.Should().Be("success");
 	}
 }

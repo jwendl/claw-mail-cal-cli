@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 var verbosityLevel = ParseVerbosityLevel(args);
 var minimumLogLevel = MapToLogLevel(verbosityLevel);
+var nonInteractiveMode = ParseNonInteractiveMode(args);
 var services = new ServiceCollection();
 
 services.AddLogging(loggingBuilder =>
@@ -59,6 +60,7 @@ services.AddSingleton(serviceProvider =>
 });
 
 services.AddSingleton<IKeyVaultService, KeyVaultService>();
+services.AddSingleton(nonInteractiveMode);
 services.AddTransient<IAccountService, AccountService>();
 services.AddSingleton<IDeviceCodeCredentialProvider, DeviceCodeCredentialProvider>();
 services.AddSingleton<IAuthenticationService, AuthenticationService>();
@@ -142,7 +144,7 @@ app.Configure(config =>
 	});
 });
 
-return app.Run(StripVerbosityFlag(args));
+return app.Run(StripGlobalFlags(args));
 
 /// <summary>
 /// Parses the <c>--verbosity</c> option from the raw argument list.
@@ -167,10 +169,39 @@ static VerbosityLevel ParseVerbosityLevel(string[] arguments)
 }
 
 /// <summary>
-/// Returns a new argument array with the <c>--verbosity &lt;value&gt;</c> pair removed so that
-/// Spectre.Console.Cli strict parsing does not reject the unknown flag.
+/// Builds a <see cref="NonInteractiveMode"/> from the raw argument list by detecting
+/// the presence of <c>--non-interactive</c> and <c>--json</c>.
 /// </summary>
-static string[] StripVerbosityFlag(string[] arguments)
+static NonInteractiveMode ParseNonInteractiveMode(string[] arguments)
+{
+	var isNonInteractive = false;
+	var isJson = false;
+
+	foreach (var argument in arguments)
+	{
+		if (argument == "--non-interactive")
+		{
+			isNonInteractive = true;
+		}
+		else if (argument == "--json")
+		{
+			isJson = true;
+		}
+	}
+
+	return new NonInteractiveMode
+	{
+		IsNonInteractive = isNonInteractive,
+		IsJson = isJson,
+	};
+}
+
+/// <summary>
+/// Returns a new argument array with global flags that Spectre.Console.Cli does not
+/// know about removed. Strips <c>--verbosity &lt;value&gt;</c> as a pair (flag + value token)
+/// and <c>--non-interactive</c> as a standalone boolean flag.
+/// </summary>
+static string[] StripGlobalFlags(string[] arguments)
 {
 	var filtered = new List<string>(arguments.Length);
 	for (var argumentIndex = 0; argumentIndex < arguments.Length; argumentIndex++)
@@ -183,6 +214,11 @@ static string[] StripVerbosityFlag(string[] arguments)
 				argumentIndex++; // skip the value as well
 				continue;
 			}
+		}
+
+		if (arguments[argumentIndex] == "--non-interactive")
+		{
+			continue;
 		}
 
 		filtered.Add(arguments[argumentIndex]);

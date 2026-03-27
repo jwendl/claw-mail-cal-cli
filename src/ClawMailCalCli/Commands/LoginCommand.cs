@@ -23,7 +23,7 @@ internal sealed class LoginCommand(IAuthenticationService authenticationService,
 	/// <inheritdoc />
 	public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
 	{
-		var authenticated = await authenticationService.AuthenticateAsync(settings.AccountName, cancellationToken);
+		var authenticated = await authenticationService.AuthenticateAsync(settings.AccountName, cancellationToken, forceInteractive: true);
 
 		if (!authenticated)
 		{
