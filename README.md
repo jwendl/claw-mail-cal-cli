@@ -24,6 +24,10 @@ Authentication uses Entra ID's **device code flow**, with the resulting `Authent
 - [Changelog](#changelog)
 - [License](#license)
 
+## OpenClaw Skills Reference
+
+If you are an AI agent (OpenClaw) integrating with this CLI, see [`docs/skills.md`](docs/skills.md) for a complete machine-readable command reference including JSON output schemas, exit codes, prerequisites, and example invocations.
+
 ## Prerequisites
 
 - [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
