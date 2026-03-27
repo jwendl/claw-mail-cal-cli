@@ -1,4 +1,4 @@
-namespace ClawMailCalCli.Services;
+﻿namespace ClawMailCalCli.Services;
 
 /// <summary>
 /// Holds global CLI flags that affect service-layer behavior.
