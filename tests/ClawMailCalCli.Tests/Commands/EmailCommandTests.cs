@@ -158,7 +158,7 @@ public class EmailCommandTests
 			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(true);
 
-		var command = new SendEmailCommand(_mockEmailService.Object);
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
 		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content" };
 		var context = CreateCommandContext();
 
@@ -177,7 +177,7 @@ public class EmailCommandTests
 			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<CancellationToken>()))
 			.ReturnsAsync(false);
 
-		var command = new SendEmailCommand(_mockEmailService.Object);
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
 		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content" };
 		var context = CreateCommandContext();
 

@@ -5,7 +5,7 @@ namespace ClawMailCalCli.Commands.Account;
 /// <summary>
 /// Lists all stored accounts in a table.
 /// </summary>
-internal sealed class ListAccountsCommand(IAccountService accountService)
+internal sealed class ListAccountsCommand(IAccountService accountService, IOutputService outputService)
 	: AsyncCommand
 {
 	/// <inheritdoc />
@@ -14,7 +14,7 @@ internal sealed class ListAccountsCommand(IAccountService accountService)
 		var accounts = await accountService.ListAccountsAsync(cancellationToken);
 		if (accounts.Count == 0)
 		{
-			AnsiConsole.MarkupLine("[yellow]No accounts found.[/]");
+			outputService.WriteWarning("No accounts found.");
 			return 0;
 		}
 
@@ -28,7 +28,7 @@ internal sealed class ListAccountsCommand(IAccountService accountService)
 			table.AddRow(new Text(account.Name), new Text(account.Email), new Text(account.Type.ToString()));
 		}
 
-		AnsiConsole.Write(table);
+		outputService.WriteTable(table);
 		return 0;
 	}
 }

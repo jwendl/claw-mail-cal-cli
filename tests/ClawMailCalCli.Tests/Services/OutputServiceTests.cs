@@ -312,4 +312,45 @@ public class OutputServiceTests
 			Console.SetOut(originalOut);
 		}
 	}
+
+	[Fact]
+	public void WriteSuccess_WritesGreenCheckPrefixedMessageToConsole()
+	{
+		// Arrange & Act — verifies WriteSuccess does not throw
+		// (AnsiConsole renders to the terminal; output capture is not straightforward in unit tests)
+		var act = () => _outputService.WriteSuccess("Operation completed successfully.");
+
+		// Assert
+		act.Should().NotThrow();
+	}
+
+	[Fact]
+	public void WriteWarning_WritesPlainTextMessageToConsole()
+	{
+		// Arrange & Act — verifies WriteWarning does not throw
+		var act = () => _outputService.WriteWarning("No items found.");
+
+		// Assert
+		act.Should().NotThrow();
+	}
+
+	[Fact]
+	public void WriteMarkup_WritesMarkupLineToConsole()
+	{
+		// Arrange & Act — verifies WriteMarkup does not throw
+		var act = () => _outputService.WriteMarkup("Checking environment...");
+
+		// Assert
+		act.Should().NotThrow();
+	}
+
+	[Fact]
+	public void WriteLine_WritesBlankLineToConsole()
+	{
+		// Arrange & Act — verifies WriteLine does not throw
+		var act = () => _outputService.WriteLine();
+
+		// Assert
+		act.Should().NotThrow();
+	}
 }

@@ -10,7 +10,7 @@ namespace ClawMailCalCli.Services;
 /// Provides business logic for calendar events — reading a single event by ID or subject
 /// and listing upcoming calendar events via Microsoft Graph.
 /// </summary>
-public class CalendarService(ICalendarGraphService calendarGraphService, IGraphClientService graphClientService, ILogger<CalendarService> logger)
+public class CalendarService(ICalendarGraphService calendarGraphService, IGraphClientService graphClientService, ILogger<CalendarService> logger, IOutputService outputService)
 	: ICalendarService
 {
 	/// <summary>
@@ -100,7 +100,7 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 		}
 		catch (ODataError odataError)
 		{
-			Console.Error.WriteLine($"Error: Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
+			outputService.WriteError($"Error: Microsoft Graph returned an error: {odataError.Error?.Message ?? odataError.Message}");
 			return null;
 		}
 	}

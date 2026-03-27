@@ -50,31 +50,31 @@ internal sealed class ReadCalendarCommand(ICalendarService calendarService, ICon
 		return 0;
 	}
 
-	private static void DisplayEvent(CalendarEvent calendarEvent)
+	private void DisplayEvent(CalendarEvent calendarEvent)
 	{
-		AnsiConsole.MarkupLine($"[bold]Title:[/]     {Markup.Escape(calendarEvent.Subject)}");
-		AnsiConsole.MarkupLine($"[bold]Start:[/]     {Markup.Escape(calendarEvent.Start ?? "(not set)")}");
-		AnsiConsole.MarkupLine($"[bold]End:[/]       {Markup.Escape(calendarEvent.End ?? "(not set)")}");
-		AnsiConsole.MarkupLine($"[bold]Location:[/]  {Markup.Escape(calendarEvent.Location ?? "(none)")}");
-		AnsiConsole.MarkupLine($"[bold]Organizer:[/] {Markup.Escape(calendarEvent.Organizer ?? "(unknown)")}");
+		outputService.WriteMarkup($"[bold]Title:[/]     {Markup.Escape(calendarEvent.Subject)}");
+		outputService.WriteMarkup($"[bold]Start:[/]     {Markup.Escape(calendarEvent.Start ?? "(not set)")}");
+		outputService.WriteMarkup($"[bold]End:[/]       {Markup.Escape(calendarEvent.End ?? "(not set)")}");
+		outputService.WriteMarkup($"[bold]Location:[/]  {Markup.Escape(calendarEvent.Location ?? "(none)")}");
+		outputService.WriteMarkup($"[bold]Organizer:[/] {Markup.Escape(calendarEvent.Organizer ?? "(unknown)")}");
 
 		if (calendarEvent.Attendees.Count > 0)
 		{
-			AnsiConsole.MarkupLine("[bold]Attendees:[/]");
+			outputService.WriteMarkup("[bold]Attendees:[/]");
 			foreach (var attendee in calendarEvent.Attendees)
 			{
-				AnsiConsole.MarkupLine($"  - {Markup.Escape(attendee)}");
+				outputService.WriteMarkup($"  - {Markup.Escape(attendee)}");
 			}
 		}
 		else
 		{
-			AnsiConsole.MarkupLine("[bold]Attendees:[/] (none)");
+			outputService.WriteMarkup("[bold]Attendees:[/] (none)");
 		}
 
 		if (!string.IsNullOrWhiteSpace(calendarEvent.Body))
 		{
-			AnsiConsole.MarkupLine("[bold]Body:[/]");
-			AnsiConsole.WriteLine(calendarEvent.Body);
+			outputService.WriteMarkup("[bold]Body:[/]");
+			outputService.WriteMarkup(Markup.Escape(calendarEvent.Body));
 		}
 	}
 }

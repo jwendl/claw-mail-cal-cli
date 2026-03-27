@@ -128,7 +128,7 @@ public class CalendarCommandTests
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync("event-id-123");
 
-		var command = new CreateCalendarCommand(_mockCalendarService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Team Meeting",
@@ -149,7 +149,7 @@ public class CalendarCommandTests
 	public async Task CreateCalendarCommand_WhenStartDateIsInvalid_ReturnsOne()
 	{
 		// Arrange
-		var command = new CreateCalendarCommand(_mockCalendarService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",
@@ -170,7 +170,7 @@ public class CalendarCommandTests
 	public async Task CreateCalendarCommand_WhenEndDateIsInvalid_ReturnsOne()
 	{
 		// Arrange
-		var command = new CreateCalendarCommand(_mockCalendarService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",
@@ -191,7 +191,7 @@ public class CalendarCommandTests
 	public async Task CreateCalendarCommand_WhenEndDateBeforeStartDate_ReturnsOne()
 	{
 		// Arrange
-		var command = new CreateCalendarCommand(_mockCalendarService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",
@@ -221,7 +221,7 @@ public class CalendarCommandTests
 				It.IsAny<CancellationToken>()))
 			.ReturnsAsync((string?)null);
 
-		var command = new CreateCalendarCommand(_mockCalendarService.Object);
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
 		var settings = new CreateCalendarSettings
 		{
 			Title = "Meeting",

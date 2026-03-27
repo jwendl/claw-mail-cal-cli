@@ -3,7 +3,7 @@
 /// <summary>
 /// Provides formatted and structured output capabilities for commands.
 /// </summary>
-internal interface IOutputService
+public interface IOutputService
 {
 	/// <summary>Writes a formatted <see cref="Table"/> to the console using AnsiConsole.</summary>
 	/// <param name="table">The table to render.</param>
@@ -17,4 +17,19 @@ internal interface IOutputService
 	/// <summary>Writes a diagnostic message (errors, warnings, or other non-fatal diagnostics) to standard error.</summary>
 	/// <param name="message">The plain-text diagnostic message.</param>
 	void WriteError(string message);
+
+	/// <summary>Writes a success message prefixed with a green check mark (<c>[green]✓[/]</c>).</summary>
+	/// <param name="message">The success message markup string (dynamic content must be escaped by the caller).</param>
+	void WriteSuccess(string message);
+
+	/// <summary>Writes a plain-text warning message rendered in yellow.</summary>
+	/// <param name="message">The plain-text warning message.</param>
+	void WriteWarning(string message);
+
+	/// <summary>Writes an arbitrary Spectre Console markup line to the console.</summary>
+	/// <param name="markup">The Spectre Console markup string to write.</param>
+	void WriteMarkup(string markup);
+
+	/// <summary>Writes a blank line to the console.</summary>
+	void WriteLine();
 }

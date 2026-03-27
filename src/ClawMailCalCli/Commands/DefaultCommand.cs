@@ -1,9 +1,11 @@
-﻿namespace ClawMailCalCli.Commands;
+﻿using ClawMailCalCli.Services.Interfaces;
+
+namespace ClawMailCalCli.Commands;
 
 /// <summary>
 /// Placeholder root command for the claw-mail-cal-cli application.
 /// </summary>
-internal sealed class DefaultCommand : Command<DefaultCommand.Settings>
+internal sealed class DefaultCommand(IOutputService outputService) : Command<DefaultCommand.Settings>
 {
 	/// <summary>
 	/// Settings for the <see cref="DefaultCommand"/>.
@@ -16,7 +18,7 @@ internal sealed class DefaultCommand : Command<DefaultCommand.Settings>
 	/// <inheritdoc />
 	public override int Execute(CommandContext context, Settings settings, CancellationToken cancellationToken)
 	{
-		AnsiConsole.MarkupLine("[green]claw-mail-cal-cli[/] is running.");
+		outputService.WriteMarkup("[green]claw-mail-cal-cli[/] is running.");
 		return 0;
 	}
 }

@@ -27,7 +27,7 @@ internal sealed class ListCalendarCommand(ICalendarService calendarService, IOut
 			}
 			else
 			{
-				AnsiConsole.MarkupLine("[yellow]No upcoming calendar events found in the next 30 days.[/]");
+				outputService.WriteWarning("No upcoming calendar events found in the next 30 days.");
 			}
 
 			return 0;

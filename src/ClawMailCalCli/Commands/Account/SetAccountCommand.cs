@@ -5,7 +5,7 @@ namespace ClawMailCalCli.Commands.Account;
 /// <summary>
 /// Sets the default account.
 /// </summary>
-internal sealed class SetAccountCommand(IAccountService accountService)
+internal sealed class SetAccountCommand(IAccountService accountService, IOutputService outputService)
 	: AsyncCommand<SetAccountSettings>
 {
 	/// <inheritdoc />
@@ -14,11 +14,11 @@ internal sealed class SetAccountCommand(IAccountService accountService)
 		var set = await accountService.SetDefaultAccountAsync(settings.Name, cancellationToken);
 		if (!set)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
+			outputService.WriteMarkup($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
 			return 1;
 		}
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Default account set to '[yellow]{Markup.Escape(settings.Name)}[/]'.");
+		outputService.WriteSuccess($"Default account set to '[yellow]{Markup.Escape(settings.Name)}[/]'.");
 		return 0;
 	}
 }

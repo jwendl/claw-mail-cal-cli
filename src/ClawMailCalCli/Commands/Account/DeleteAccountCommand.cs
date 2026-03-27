@@ -5,7 +5,7 @@ namespace ClawMailCalCli.Commands.Account;
 /// <summary>
 /// Deletes an account from the store.
 /// </summary>
-internal sealed class DeleteAccountCommand(IAccountService accountService)
+internal sealed class DeleteAccountCommand(IAccountService accountService, IOutputService outputService)
 	: AsyncCommand<DeleteAccountSettings>
 {
 	/// <inheritdoc />
@@ -14,11 +14,11 @@ internal sealed class DeleteAccountCommand(IAccountService accountService)
 		var deleted = await accountService.DeleteAccountAsync(settings.Name, cancellationToken);
 		if (!deleted)
 		{
-			AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
+			outputService.WriteMarkup($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
 			return 1;
 		}
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' deleted successfully.");
+		outputService.WriteSuccess($"Account '[yellow]{Markup.Escape(settings.Name)}[/]' deleted successfully.");
 		return 0;
 	}
 }

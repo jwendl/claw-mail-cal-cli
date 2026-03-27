@@ -34,4 +34,28 @@ internal sealed class OutputService
 	{
 		Console.Error.WriteLine(message);
 	}
+
+	/// <inheritdoc />
+	public void WriteSuccess(string message)
+	{
+		AnsiConsole.MarkupLine($"[green]✓[/] {message}");
+	}
+
+	/// <inheritdoc />
+	public void WriteWarning(string message)
+	{
+		AnsiConsole.MarkupLine($"[yellow]{Markup.Escape(message)}[/]");
+	}
+
+	/// <inheritdoc />
+	public void WriteMarkup(string markup)
+	{
+		AnsiConsole.MarkupLine(markup);
+	}
+
+	/// <inheritdoc />
+	public void WriteLine()
+	{
+		AnsiConsole.WriteLine();
+	}
 }

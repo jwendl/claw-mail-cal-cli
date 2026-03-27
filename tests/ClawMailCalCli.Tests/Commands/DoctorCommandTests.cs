@@ -13,10 +13,12 @@ namespace ClawMailCalCli.Tests.Commands;
 public class DoctorCommandTests
 {
 	private readonly Mock<IDoctorService> _mockDoctorService;
+	private readonly Mock<IOutputService> _mockOutputService;
 
 	public DoctorCommandTests()
 	{
 		_mockDoctorService = new Mock<IDoctorService>();
+		_mockOutputService = new Mock<IOutputService>();
 	}
 
 	private static CommandContext CreateCommandContext()
@@ -44,7 +46,7 @@ public class DoctorCommandTests
 			.Setup(service => service.RunAllChecksAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync(checkResults);
 
-		var command = new DoctorCommand(_mockDoctorService.Object);
+		var command = new DoctorCommand(_mockDoctorService.Object, _mockOutputService.Object);
 		var settings = new DoctorCommand.Settings();
 		var context = CreateCommandContext();
 
@@ -69,7 +71,7 @@ public class DoctorCommandTests
 			.Setup(service => service.RunAllChecksAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync(checkResults);
 
-		var command = new DoctorCommand(_mockDoctorService.Object);
+		var command = new DoctorCommand(_mockDoctorService.Object, _mockOutputService.Object);
 		var settings = new DoctorCommand.Settings();
 		var context = CreateCommandContext();
 
@@ -94,7 +96,7 @@ public class DoctorCommandTests
 			.Setup(service => service.RunAllChecksAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync(checkResults);
 
-		var command = new DoctorCommand(_mockDoctorService.Object);
+		var command = new DoctorCommand(_mockDoctorService.Object, _mockOutputService.Object);
 		var settings = new DoctorCommand.Settings();
 		var context = CreateCommandContext();
 
@@ -118,7 +120,7 @@ public class DoctorCommandTests
 			.Setup(service => service.RunAllChecksAsync(It.IsAny<CancellationToken>()))
 			.ReturnsAsync(checkResults);
 
-		var command = new DoctorCommand(_mockDoctorService.Object);
+		var command = new DoctorCommand(_mockDoctorService.Object, _mockOutputService.Object);
 		var settings = new DoctorCommand.Settings();
 		var context = CreateCommandContext();
 

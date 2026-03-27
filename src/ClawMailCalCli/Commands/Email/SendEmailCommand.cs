@@ -6,7 +6,7 @@ namespace ClawMailCalCli.Commands.Email;
 /// Sends an email to a recipient using the default authenticated account.
 /// Usage: <c>claw-mail-cal-cli email send &lt;to&gt; &lt;subject&gt; &lt;content&gt;</c>
 /// </summary>
-internal sealed class SendEmailCommand(IEmailService emailService)
+internal sealed class SendEmailCommand(IEmailService emailService, IOutputService outputService)
 	: AsyncCommand<SendEmailSettings>
 {
 	/// <inheritdoc />
@@ -18,7 +18,7 @@ internal sealed class SendEmailCommand(IEmailService emailService)
 			return 1;
 		}
 
-		AnsiConsole.MarkupLine($"[green]✓[/] Email sent to {Markup.Escape(settings.To)}");
+		outputService.WriteSuccess($"Email sent to {Markup.Escape(settings.To)}");
 		return 0;
 	}
 }
