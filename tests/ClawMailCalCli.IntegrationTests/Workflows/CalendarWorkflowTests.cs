@@ -79,7 +79,8 @@ public sealed class CalendarWorkflowTests : IAsyncLifetime
 		var calendarService = new CalendarService(
 			Mock.Of<ICalendarGraphService>(),
 			fakeGraphClientService,
-			new NullLogger<CalendarService>());
+			new NullLogger<CalendarService>(),
+			Mock.Of<IOutputService>());
 
 		// Act
 		var result = await calendarService.GetUpcomingEventsAsync();
@@ -110,7 +111,8 @@ public sealed class CalendarWorkflowTests : IAsyncLifetime
 		var calendarService = new CalendarService(
 			Mock.Of<ICalendarGraphService>(),
 			fakeGraphClientService,
-			new NullLogger<CalendarService>());
+			new NullLogger<CalendarService>(),
+			Mock.Of<IOutputService>());
 
 		var startDateTime = new DateTimeOffset(2025, 6, 15, 14, 0, 0, TimeSpan.Zero);
 		var endDateTime = new DateTimeOffset(2025, 6, 15, 15, 0, 0, TimeSpan.Zero);
