@@ -5,7 +5,8 @@ namespace ClawMailCalCli.Commands;
 /// <summary>
 /// Placeholder root command for the claw-mail-cal-cli application.
 /// </summary>
-internal sealed class DefaultCommand(IOutputService outputService) : Command<DefaultCommand.Settings>
+internal sealed class DefaultCommand(IOutputService outputService)
+	: Command<DefaultCommand.Settings>
 {
 	/// <summary>
 	/// Settings for the <see cref="DefaultCommand"/>.
