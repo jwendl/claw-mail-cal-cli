@@ -382,4 +382,55 @@ public class EmailCommandTests
 		result.Should().Be(1);
 		_mockEmailService.Verify(service => service.SendEmailAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string?>(), It.IsAny<CancellationToken>()), Times.Never);
 	}
+
+	[Fact]
+	public async Task ReadEmailCommand_WhenReadEmailAsyncThrowsInvalidOperationException_ReturnsOne()
+	{
+		// Arrange
+		var defaultAccount = new Account("default-account", "default@example.com", AccountType.Personal);
+
+		_mockAccountService
+			.Setup(service => service.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(defaultAccount);
+
+		_mockEmailService
+			.Setup(service => service.ReadEmailAsync("default-account", "Test Subject", It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("Account 'default-account' is not authenticated."));
+
+		var command = new ReadEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ReadEmailSettings { SubjectOrId = "Test Subject" };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteError(It.Is<string>(message => message.Contains("Failed to read email"))), Times.Once);
+	}
+
+	[Fact]
+	public async Task ReadEmailCommand_WhenReadEmailAsyncThrowsOperationCanceledException_Propagates()
+	{
+		// Arrange
+		var defaultAccount = new Account("default-account", "default@example.com", AccountType.Personal);
+
+		_mockAccountService
+			.Setup(service => service.GetDefaultAccountAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(defaultAccount);
+
+		_mockEmailService
+			.Setup(service => service.ReadEmailAsync("default-account", "Test Subject", It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new OperationCanceledException("Cancelled"));
+
+		var command = new ReadEmailCommand(_mockEmailService.Object, _mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ReadEmailSettings { SubjectOrId = "Test Subject" };
+		var context = CreateCommandContext();
+
+		// Act
+		var act = async () => await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		await act.Should().ThrowAsync<OperationCanceledException>();
+	}
 }

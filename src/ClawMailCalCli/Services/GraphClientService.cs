@@ -40,7 +40,12 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 			}
 
 			Console.Error.WriteLine($"Session expired for account '{defaultAccount.Name}'. Re-authenticating...");
-			await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken);
+			var authenticated = await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken);
+			if (!authenticated)
+			{
+				Console.Error.WriteLine($"Error: Re-authentication failed for account '{defaultAccount.Name}'. Please run 'login {defaultAccount.Name}' manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' manually.");
+			}
 
 			var retryClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
 			if (retryClient is null)
@@ -82,7 +87,12 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 			}
 
 			Console.Error.WriteLine($"Session expired for account '{accountName}'. Re-authenticating...");
-			await authenticationService.AuthenticateAsync(accountName, cancellationToken);
+			var authenticated = await authenticationService.AuthenticateAsync(accountName, cancellationToken);
+			if (!authenticated)
+			{
+				Console.Error.WriteLine($"Error: Re-authentication failed for account '{accountName}'. Please run 'login {accountName}' manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{accountName}'. Run 'login {accountName}' manually.");
+			}
 
 			var retryClient = await graphServiceClientBuilder.BuildAsync(account, cancellationToken);
 			if (retryClient is null)
