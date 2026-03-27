@@ -16,6 +16,11 @@ internal sealed class ListCalendarCommand(ICalendarService calendarService, IOut
 		var events = await calendarService.GetUpcomingEventsAsync(cancellationToken);
 		if (events is null)
 		{
+			if (settings.Json)
+			{
+				outputService.WriteJsonError("Failed to retrieve calendar events.", ErrorCodes.GraphApiError);
+			}
+
 			return 1;
 		}
 

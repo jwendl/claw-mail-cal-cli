@@ -1,4 +1,5 @@
-﻿using ClawMailCalCli.Services.Interfaces;
+﻿using ClawMailCalCli.Models;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Calendar;
 
@@ -28,7 +29,16 @@ internal sealed class ReadCalendarCommand(ICalendarService calendarService, ICon
 
 		if (string.IsNullOrWhiteSpace(accountName))
 		{
-			outputService.WriteError("Error: No account specified. Use --account to specify one or set a default with 'account set'.");
+			const string noAccountMessage = "No account specified. Use --account to specify one or set a default with 'account set'.";
+			if (settings.Json)
+			{
+				outputService.WriteJsonError(noAccountMessage, ErrorCodes.InvalidArgument);
+			}
+			else
+			{
+				outputService.WriteError($"Error: {noAccountMessage}");
+			}
+
 			return 1;
 		}
 
@@ -36,7 +46,16 @@ internal sealed class ReadCalendarCommand(ICalendarService calendarService, ICon
 
 		if (calendarEvent is null)
 		{
-			outputService.WriteError($"No event found matching '{settings.Query}'.");
+			var notFoundMessage = $"No event found matching '{settings.Query}'.";
+			if (settings.Json)
+			{
+				outputService.WriteJsonError(notFoundMessage, ErrorCodes.InvalidArgument);
+			}
+			else
+			{
+				outputService.WriteError(notFoundMessage);
+			}
+
 			return 1;
 		}
 

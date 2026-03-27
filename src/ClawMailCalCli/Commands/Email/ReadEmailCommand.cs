@@ -1,4 +1,5 @@
-﻿using ClawMailCalCli.Services.Interfaces;
+﻿using ClawMailCalCli.Models;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Email;
 
@@ -16,7 +17,16 @@ internal sealed class ReadEmailCommand(IEmailService emailService, IOutputServic
 
 		if (message is null)
 		{
-			outputService.WriteError($"No message found matching: {settings.SubjectOrId}");
+			var notFoundMessage = $"No message found matching: {settings.SubjectOrId}";
+			if (settings.Json)
+			{
+				outputService.WriteJsonError(notFoundMessage, ErrorCodes.InvalidArgument);
+			}
+			else
+			{
+				outputService.WriteError(notFoundMessage);
+			}
+
 			return 1;
 		}
 

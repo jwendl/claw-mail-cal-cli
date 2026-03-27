@@ -252,6 +252,115 @@ public class OutputServiceTests
 	}
 
 	[Fact]
+	public void WriteJsonError_WritesStructuredJsonToStderr()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stderrWriter = new StringWriter();
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Account 'xyz' not found.", ErrorCodes.AccountNotFound);
+
+			// Assert
+			var output = stderrWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
+			document.RootElement.GetProperty("error").GetString().Should().Be("Account 'xyz' not found.");
+			document.RootElement.GetProperty("code").GetString().Should().Be(ErrorCodes.AccountNotFound);
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
+	public void WriteJsonError_DoesNotWriteToStdout()
+	{
+		// Arrange
+		var originalOut = Console.Out;
+		var originalError = Console.Error;
+		using var stdoutWriter = new StringWriter();
+		using var stderrWriter = new StringWriter();
+		Console.SetOut(stdoutWriter);
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Something failed.", ErrorCodes.GraphApiError);
+
+			// Assert
+			stdoutWriter.ToString().Should().BeEmpty();
+			stderrWriter.ToString().Should().NotBeEmpty();
+		}
+		finally
+		{
+			Console.SetOut(originalOut);
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
+	public void WriteJsonError_OutputIsValidJson()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stderrWriter = new StringWriter();
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Auth required.", ErrorCodes.AuthRequired);
+
+			// Assert
+			var output = stderrWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Theory]
+	[InlineData("ACCOUNT_NOT_FOUND")]
+	[InlineData("ACCOUNT_ALREADY_EXISTS")]
+	[InlineData("AUTH_REQUIRED")]
+	[InlineData("AUTH_FAILED")]
+	[InlineData("GRAPH_API_ERROR")]
+	[InlineData("INVALID_ARGUMENT")]
+	[InlineData("CONFIG_ERROR")]
+	[InlineData("KEYVAULT_UNREACHABLE")]
+	public void WriteJsonError_WithDefinedErrorCode_WritesCodeToStderr(string errorCode)
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stderrWriter = new StringWriter();
+		Console.SetError(stderrWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Some error occurred.", errorCode);
+
+			// Assert
+			var output = stderrWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.GetProperty("code").GetString().Should().Be(errorCode);
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
 	public void WriteJson_OutputIsValidJson_WithEmptyArray()
 	{
 		// Arrange
