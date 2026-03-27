@@ -54,7 +54,16 @@ internal sealed class ReadEmailCommand(IEmailService emailService, IAccountServi
 
 		if (message is null)
 		{
-			outputService.WriteError($"No message found matching: {settings.SubjectOrId}");
+			var notFoundMessage = $"No message found matching: {settings.SubjectOrId}";
+			if (settings.Json)
+			{
+				outputService.WriteJsonError(notFoundMessage, ErrorCodes.InvalidArgument);
+			}
+			else
+			{
+				outputService.WriteError(notFoundMessage);
+			}
+
 			return 1;
 		}
 

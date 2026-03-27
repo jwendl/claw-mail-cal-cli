@@ -39,4 +39,16 @@ public interface IOutputService
 	/// </summary>
 	/// <param name="message">The error message to include in the JSON payload.</param>
 	void WriteJsonError(string message);
+
+	/// <summary>
+	/// Serializes a structured JSON error object to standard error.
+	/// Use this method instead of <see cref="WriteError"/> when <c>--json</c> mode is active so that
+	/// callers can programmatically detect the failure reason.
+	/// </summary>
+	/// <param name="message">A human-readable description of the error.</param>
+	/// <param name="code">
+	/// A machine-readable error code string.  Use one of the constants defined in
+	/// <see cref="ClawMailCalCli.Models.ErrorCodes"/>.
+	/// </param>
+	void WriteJsonError(string message, string code);
 }

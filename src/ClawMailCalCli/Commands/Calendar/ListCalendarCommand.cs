@@ -28,6 +28,11 @@ internal sealed class ListCalendarCommand(ICalendarService calendarService, IAcc
 		var events = await calendarService.GetUpcomingEventsAsync(accountName, cancellationToken);
 		if (events is null)
 		{
+			if (settings.Json)
+			{
+				outputService.WriteJsonError("Failed to retrieve calendar events.", ErrorCodes.GraphApiError);
+			}
+
 			return 1;
 		}
 

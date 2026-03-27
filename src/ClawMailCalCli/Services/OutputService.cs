@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Services;
@@ -66,6 +67,14 @@ internal sealed class OutputService(IAnsiConsole? ansiConsole = null)
 	{
 		var payload = new { error = message };
 		var json = JsonSerializer.Serialize(payload, JsonOptions);
+		Console.Error.WriteLine(json);
+	}
+
+	/// <inheritdoc />
+	public void WriteJsonError(string message, string code)
+	{
+		var errorResult = new ErrorResult(message, code);
+		var json = JsonSerializer.Serialize(errorResult, JsonOptions);
 		Console.Error.WriteLine(json);
 	}
 }
