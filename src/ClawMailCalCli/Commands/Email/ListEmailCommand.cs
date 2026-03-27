@@ -4,15 +4,27 @@ namespace ClawMailCalCli.Commands.Email;
 
 /// <summary>
 /// Lists the 20 most recent messages from the inbox or from a named folder.
-/// Usage: <c>claw-mail-cal-cli email list [folder-name]</c>
+/// Usage: <c>claw-mail-cal-cli email list [folder-name] [--account &lt;name&gt;]</c>
 /// </summary>
-internal sealed class ListEmailCommand(IEmailService emailService, IOutputService outputService)
+internal sealed class ListEmailCommand(IEmailService emailService, IAccountService accountService, IOutputService outputService)
 	: AsyncCommand<ListEmailSettings>
 {
 	/// <inheritdoc />
 	public override async Task<int> ExecuteAsync(CommandContext context, ListEmailSettings settings, CancellationToken cancellationToken)
 	{
-		var emails = await emailService.GetEmailsAsync(settings.FolderName, cancellationToken);
+		var accountName = settings.AccountName;
+
+		if (!string.IsNullOrWhiteSpace(accountName))
+		{
+			var account = await accountService.GetAccountAsync(accountName, cancellationToken);
+			if (account is null)
+			{
+				outputService.WriteError($"Error: Account '{accountName}' does not exist.");
+				return 1;
+			}
+		}
+
+		var emails = await emailService.GetEmailsAsync(settings.FolderName, accountName, cancellationToken);
 
 		if (settings.Json)
 		{

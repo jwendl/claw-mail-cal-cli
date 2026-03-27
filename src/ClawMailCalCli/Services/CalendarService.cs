@@ -55,23 +55,35 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 	}
 
 	/// <inheritdoc />
-	public async Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(CancellationToken cancellationToken = default)
+	public async Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		var startDateTime = DateTimeOffset.UtcNow;
 		var endDateTime = startDateTime.AddDays(LookAheadDays);
 
 		try
 		{
-			var response = await graphClientService.ExecuteWithRetryAsync(
-				async graphClient => await graphClient.Me.CalendarView.GetAsync(config =>
-				{
-					config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
-					config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
-					config.QueryParameters.Top = EventCount;
-					config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
-					config.QueryParameters.Orderby = ["start/dateTime asc"];
-				}, cancellationToken),
-				cancellationToken);
+			var response = !string.IsNullOrWhiteSpace(accountName)
+				? await graphClientService.ExecuteWithRetryAsync(
+					async graphClient => await graphClient.Me.CalendarView.GetAsync(config =>
+					{
+						config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
+						config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
+						config.QueryParameters.Top = EventCount;
+						config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
+						config.QueryParameters.Orderby = ["start/dateTime asc"];
+					}, cancellationToken),
+					accountName,
+					cancellationToken)
+				: await graphClientService.ExecuteWithRetryAsync(
+					async graphClient => await graphClient.Me.CalendarView.GetAsync(config =>
+					{
+						config.QueryParameters.StartDateTime = startDateTime.UtcDateTime.ToString("o");
+						config.QueryParameters.EndDateTime = endDateTime.UtcDateTime.ToString("o");
+						config.QueryParameters.Top = EventCount;
+						config.QueryParameters.Select = ["subject", "start", "end", "location", "isAllDay"];
+						config.QueryParameters.Orderby = ["start/dateTime asc"];
+					}, cancellationToken),
+					cancellationToken);
 
 			if (response is null)
 			{
@@ -108,7 +120,7 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 	private static bool IsEventId(string query) => query.Length >= EventIdMinimumLength;
 
 	/// <inheritdoc />
-	public async Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default)
+	public async Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, string? accountName = null, CancellationToken cancellationToken = default)
 	{
 		try
 		{
@@ -120,9 +132,21 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 				Body = new ItemBody { ContentType = BodyType.Text, Content = content },
 			};
 
-			var createdEvent = await graphClientService.ExecuteWithRetryAsync(
-				async graphClient => await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken),
-				cancellationToken);
+			Event? createdEvent;
+
+			if (!string.IsNullOrWhiteSpace(accountName))
+			{
+				createdEvent = await graphClientService.ExecuteWithRetryAsync(
+					async graphClient => await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken),
+					accountName,
+					cancellationToken);
+			}
+			else
+			{
+				createdEvent = await graphClientService.ExecuteWithRetryAsync(
+					async graphClient => await graphClient.Me.Events.PostAsync(newEvent, cancellationToken: cancellationToken),
+					cancellationToken);
+			}
 
 			if (createdEvent is null)
 			{

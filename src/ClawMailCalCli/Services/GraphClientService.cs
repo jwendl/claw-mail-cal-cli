@@ -52,4 +52,46 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 			return await operation(retryClient);
 		}
 	}
+
+	/// <inheritdoc />
+	public async Task<T> ExecuteWithRetryAsync<T>(Func<GraphServiceClient, Task<T>> operation, string accountName, CancellationToken cancellationToken = default)
+	{
+		var account = await accountService.GetAccountAsync(accountName, cancellationToken);
+		if (account is null)
+		{
+			Console.Error.WriteLine($"Error: Account '{accountName}' does not exist.");
+			throw new InvalidOperationException($"Account '{accountName}' does not exist.");
+		}
+
+		var graphClient = await graphServiceClientBuilder.BuildAsync(account, cancellationToken);
+		if (graphClient is null)
+		{
+			Console.Error.WriteLine($"Error: Account '{accountName}' is not authenticated. Run 'login {accountName}' first.");
+			throw new InvalidOperationException($"Account '{accountName}' is not authenticated. Run 'login {accountName}' first.");
+		}
+
+		try
+		{
+			return await operation(graphClient);
+		}
+		catch (ODataError odataError) when (odataError.ResponseStatusCode == 401)
+		{
+			if (logger.IsEnabled(LogLevel.Information))
+			{
+				logger.LogInformation("Received 401 Unauthorized for account '{AccountName}'. Triggering re-authentication.", accountName);
+			}
+
+			Console.Error.WriteLine($"Session expired for account '{accountName}'. Re-authenticating...");
+			await authenticationService.AuthenticateAsync(accountName, cancellationToken);
+
+			var retryClient = await graphServiceClientBuilder.BuildAsync(account, cancellationToken);
+			if (retryClient is null)
+			{
+				Console.Error.WriteLine("Error: Re-authentication failed. Please run 'login' manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{accountName}'. Run 'login {accountName}' manually.");
+			}
+
+			return await operation(retryClient);
+		}
+	}
 }

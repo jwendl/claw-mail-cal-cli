@@ -27,19 +27,25 @@ public interface ICalendarService
 	/// Returns <see langword="null"/> if the operation could not be completed (e.g., no default account set
 	/// or authentication error).
 	/// </summary>
+	/// <param name="accountName">
+	/// The name of the account to use. When <see langword="null"/> or empty, the default account is used.
+	/// </param>
 	/// <param name="cancellationToken">Cancellation token.</param>
-	Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(CancellationToken cancellationToken = default);
+	Task<IReadOnlyList<CalendarEventSummary>?> GetUpcomingEventsAsync(string? accountName = null, CancellationToken cancellationToken = default);
 
 	/// <summary>
-	/// Creates a new calendar event in the default account's primary calendar.
+	/// Creates a new calendar event in the specified (or default) account's primary calendar.
 	/// </summary>
 	/// <param name="title">The subject of the event.</param>
 	/// <param name="startDateTime">The event start date and time as a <see cref="DateTimeOffset"/>, preferably in UTC.</param>
 	/// <param name="endDateTime">The event end date and time as a <see cref="DateTimeOffset"/>, preferably in UTC.</param>
 	/// <param name="content">The plain-text body content of the event.</param>
+	/// <param name="accountName">
+	/// The name of the account to use. When <see langword="null"/> or empty, the default account is used.
+	/// </param>
 	/// <param name="cancellationToken">Cancellation token.</param>
 	/// <returns>
 	/// The Graph event ID of the created event, or <see langword="null"/> if creation failed.
 	/// </returns>
-	Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default);
+	Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, string? accountName = null, CancellationToken cancellationToken = default);
 }

@@ -23,4 +23,10 @@ internal sealed class SendEmailSettings
 	/// </summary>
 	[CommandArgument(2, "<content>")]
 	public required string Content { get; init; }
+
+	/// <summary>
+	/// The account to authenticate with. If omitted, the default account is used.
+	/// </summary>
+	[CommandOption("--account|-a")]
+	public string? AccountName { get; init; }
 }
