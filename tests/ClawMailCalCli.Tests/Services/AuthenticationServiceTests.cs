@@ -125,6 +125,46 @@ public class AuthenticationServiceTests
 	}
 
 	[Fact]
+	public async Task AuthenticateAsync_WhenForceInteractiveAndCachedRecordExists_BypassesCacheAndRunsDeviceCodeFlow()
+	{
+		// Arrange — a cached auth record exists in Key Vault (simulating a stale MSAL token cache)
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var validRecord = BuildFakeAuthenticationRecord();
+		using var recordStream = new MemoryStream();
+		await validRecord.SerializeAsync(recordStream);
+		var base64Record = Convert.ToBase64String(recordStream.ToArray());
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.GetSecretAsync("auth-record-work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(base64Record);
+
+		var freshRecord = BuildFakeAuthenticationRecord();
+		_mockDeviceCodeCredentialProvider
+			.Setup(provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(freshRecord);
+
+		_mockKeyVaultService
+			.Setup(keyVaultService => keyVaultService.SetSecretAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+			.Returns(Task.CompletedTask);
+
+		var authenticationService = CreateAuthenticationService();
+
+		// Act — forceInteractive: true simulates a call from GraphClientService after an
+		// AuthenticationFailedException, or from a user explicitly running the login command
+		var result = await authenticationService.AuthenticateAsync("work-account", forceInteractive: true);
+
+		// Assert — the cached record must be bypassed and a fresh device-code flow must be started
+		result.Should().BeTrue();
+		_mockDeviceCodeCredentialProvider.Verify(
+			provider => provider.AuthenticateAsync(It.IsAny<DeviceCodeCredentialOptions>(), It.IsAny<string[]>(), It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
 	public async Task AuthenticateAsync_WhenNoCachedRecord_InvokesDeviceCodeFlow()
 	{
 		// Arrange

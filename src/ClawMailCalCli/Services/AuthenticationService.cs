@@ -80,7 +80,7 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		};
 
 		var existingRecord = await LoadAuthenticationRecordAsync(accountName, cancellationToken);
-		if (existingRecord is not null)
+		if (existingRecord is not null && !forceInteractive)
 		{
 			if (logger.IsEnabled(LogLevel.Debug))
 			{

@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using Azure.Identity;
 using ClawMailCalCli.Services.Interfaces;
 using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
@@ -75,6 +76,48 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 
 			return await operation(retryClient);
 		}
+		catch (AuthenticationFailedException authenticationFailedException)
+		{
+			if (nonInteractiveMode.IsNonInteractive)
+			{
+				const string message = "Authentication required. Run 'claw-mail-cal-cli login <account>' interactively first.";
+				const string code = "AUTH_REQUIRED";
+
+				if (nonInteractiveMode.IsJson)
+				{
+					var errorObject = new { error = message, code };
+					Console.Out.WriteLine(JsonSerializer.Serialize(errorObject));
+				}
+				else
+				{
+					Console.Error.WriteLine($"Error: Token acquisition failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' interactively first.");
+				}
+
+				throw new InvalidOperationException($"Authentication required for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' interactively first.");
+			}
+
+			if (logger.IsEnabled(LogLevel.Information))
+			{
+				logger.LogInformation(authenticationFailedException, "Token acquisition failed for account '{AccountName}'. Triggering re-authentication.", defaultAccount.Name);
+			}
+
+			outputService.WriteError($"Token acquisition failed for account '{defaultAccount.Name}'. Re-authenticating...");
+			var reauthenticated = await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken, forceInteractive: true);
+			if (!reauthenticated)
+			{
+				outputService.WriteError($"Error: Re-authentication failed for account '{defaultAccount.Name}'. Please run 'login {defaultAccount.Name}' manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' manually.");
+			}
+
+			var retryClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
+			if (retryClient is null)
+			{
+				outputService.WriteError($"Error: Re-authentication failed for account '{defaultAccount.Name}'. Please run 'login {defaultAccount.Name}' manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' manually.");
+			}
+
+			return await operation(retryClient);
+		}
 	}
 
 	/// <inheritdoc />
@@ -117,6 +160,30 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 			if (retryClient is null)
 			{
 				outputService.WriteError("Error: Re-authentication failed. Please run 'login' manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{accountName}'. Run 'login {accountName}' manually.");
+			}
+
+			return await operation(retryClient);
+		}
+		catch (AuthenticationFailedException authenticationFailedException)
+		{
+			if (logger.IsEnabled(LogLevel.Information))
+			{
+				logger.LogInformation(authenticationFailedException, "Token acquisition failed for account '{AccountName}'. Triggering re-authentication.", accountName);
+			}
+
+			outputService.WriteError($"Token acquisition failed for account '{accountName}'. Re-authenticating...");
+			var reauthenticated = await authenticationService.AuthenticateAsync(accountName, cancellationToken, forceInteractive: true);
+			if (!reauthenticated)
+			{
+				outputService.WriteError($"Error: Re-authentication failed for account '{accountName}'. Please run 'login {accountName}' manually.");
+				throw new InvalidOperationException($"Re-authentication failed for account '{accountName}'. Run 'login {accountName}' manually.");
+			}
+
+			var retryClient = await graphServiceClientBuilder.BuildAsync(account, cancellationToken);
+			if (retryClient is null)
+			{
+				outputService.WriteError($"Error: Re-authentication failed for account '{accountName}'. Please run 'login {accountName}' manually.");
 				throw new InvalidOperationException($"Re-authentication failed for account '{accountName}'. Run 'login {accountName}' manually.");
 			}
 
