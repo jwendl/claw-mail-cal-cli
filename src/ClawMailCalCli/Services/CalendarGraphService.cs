@@ -21,7 +21,7 @@ namespace ClawMailCalCli.Services;
 public partial class CalendarGraphService(IAccountService accountService, IKeyVaultService keyVaultService, ILogger<CalendarGraphService> logger)
 	: ICalendarGraphService
 {
-	private static readonly string[] CalendarReadScopes = ["https://graph.microsoft.com/Calendars.Read"];
+	private static readonly string[] CalendarReadScopes = ["https://graph.microsoft.com/Calendars.ReadWrite"];
 	private static readonly string[] EventSelectFields = ["subject", "start", "end", "location", "organizer", "attendees", "body"];
 
 	/// <inheritdoc />
@@ -73,6 +73,40 @@ public partial class CalendarGraphService(IAccountService accountService, IKeyVa
 		return (response?.Value ?? [])
 			.Select(ToCalendarEvent)
 			.ToList();
+	}
+
+	/// <inheritdoc />
+	public async Task<bool> DeleteEventByIdAsync(string accountName, string eventId, CancellationToken cancellationToken = default)
+	{
+		var graphClient = await CreateGraphClientAsync(accountName, cancellationToken);
+		if (graphClient is null)
+		{
+			return false;
+		}
+
+		try
+		{
+			await graphClient.Me.Events[eventId].DeleteAsync(cancellationToken: cancellationToken);
+			return true;
+		}
+		catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Event ID '{EventId}' not found for account '{AccountName}'.", eventId, accountName);
+			}
+
+			return false;
+		}
+		catch (ODataError odataError)
+		{
+			if (logger.IsEnabled(LogLevel.Error))
+			{
+				logger.LogError(odataError, "Graph API error deleting event '{EventId}' for account '{AccountName}'.", eventId, accountName);
+			}
+
+			return false;
+		}
 	}
 
 	private async Task<GraphServiceClient?> CreateGraphClientAsync(string accountName, CancellationToken cancellationToken)

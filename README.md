@@ -239,7 +239,13 @@ Send an email:
 claw-mail-cal-cli email send <to> <subject> <content>
 ```
 
-> **Note:** Deleting emails is not available.
+Delete an email by subject or message ID:
+
+```
+claw-mail-cal-cli email delete <account-name> <subject-or-id> --confirm
+```
+
+> **Note:** The `--confirm` flag skips the interactive confirmation prompt. Omit it to be prompted interactively. Use `--json` to get structured JSON output.
 
 ### Calendar
 
@@ -261,7 +267,13 @@ Create a calendar event:
 claw-mail-cal-cli calendar create <title> <start-date-time> <end-date-time> <content>
 ```
 
-> **Note:** `calendar create` is planned and will be available in a future release.
+Delete a calendar event by title or event ID:
+
+```
+claw-mail-cal-cli calendar delete <query> [--account <name>] --confirm
+```
+
+> **Note:** The `--confirm` flag skips the interactive confirmation prompt. Omit it to be prompted interactively. Use `--json` to get structured JSON output.
 
 ## Authentication Flow
 

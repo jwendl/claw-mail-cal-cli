@@ -108,6 +108,49 @@ public class CalendarService(ICalendarGraphService calendarGraphService, IGraphC
 	private static bool IsEventId(string query) => query.Length >= EventIdMinimumLength;
 
 	/// <inheritdoc />
+	public async Task<bool> DeleteEventAsync(string query, string accountName, CancellationToken cancellationToken = default)
+	{
+		if (string.IsNullOrWhiteSpace(query))
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("DeleteEventAsync called with an empty query for account '{AccountName}'.", accountName);
+			}
+
+			return false;
+		}
+
+		string? eventId;
+
+		if (IsEventId(query))
+		{
+			eventId = query;
+
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Deleting calendar event by ID for account '{AccountName}'.", accountName);
+			}
+		}
+		else
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Searching for calendar event to delete by title for account '{AccountName}'.", accountName);
+			}
+
+			var events = await calendarGraphService.GetEventsBySubjectFilterAsync(accountName, query, cancellationToken);
+			eventId = events.Count > 0 ? events[0].Id : null;
+		}
+
+		if (string.IsNullOrWhiteSpace(eventId))
+		{
+			return false;
+		}
+
+		return await calendarGraphService.DeleteEventByIdAsync(accountName, eventId, cancellationToken);
+	}
+
+	/// <inheritdoc />
 	public async Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default)
 	{
 		try

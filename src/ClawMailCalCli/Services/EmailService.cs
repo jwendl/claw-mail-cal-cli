@@ -196,6 +196,92 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		}, cancellationToken);
 	}
 
+	/// <inheritdoc />
+	public async Task<bool> DeleteEmailAsync(string accountName, string subjectOrId, CancellationToken cancellationToken = default)
+	{
+		try
+		{
+			return await graphClientService.ExecuteWithRetryAsync(async graphClient =>
+			{
+				string? messageId;
+
+				if (LooksLikeMessageId(subjectOrId))
+				{
+					messageId = subjectOrId;
+
+					if (logger.IsEnabled(LogLevel.Debug))
+					{
+						logger.LogDebug("Deleting email by ID '{MessageId}' for account '{AccountName}'.", messageId, accountName);
+					}
+				}
+				else
+				{
+					if (logger.IsEnabled(LogLevel.Debug))
+					{
+						logger.LogDebug("Searching for email to delete by subject for account '{AccountName}'.", accountName);
+					}
+
+					var escapedSubject = subjectOrId.Replace("'", "''");
+					var response = await graphClient.Me.Messages.GetAsync(config =>
+					{
+						config.QueryParameters.Filter = $"contains(subject, '{escapedSubject}')";
+						config.QueryParameters.Select = ["id", "subject"];
+						config.QueryParameters.Top = 1;
+					}, cancellationToken);
+
+					messageId = response?.Value?.FirstOrDefault()?.Id;
+				}
+
+				if (string.IsNullOrWhiteSpace(messageId))
+				{
+					return false;
+				}
+
+				await graphClient.Me.Messages[messageId].DeleteAsync(cancellationToken: cancellationToken);
+				return true;
+			}, cancellationToken);
+		}
+		catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug("Message '{SubjectOrId}' not found for account '{AccountName}'.", subjectOrId, accountName);
+			}
+
+			return false;
+		}
+		catch (ODataError odataError)
+		{
+			var reason = odataError.Error?.Message ?? "unknown Graph API error";
+			Console.Error.WriteLine($"Failed to delete email: {reason}");
+			if (logger.IsEnabled(LogLevel.Error))
+			{
+				logger.LogError(odataError, "Graph API error deleting email '{SubjectOrId}' for account '{AccountName}'.", subjectOrId, accountName);
+			}
+
+			return false;
+		}
+		catch (InvalidOperationException invalidOperationException)
+		{
+			if (logger.IsEnabled(LogLevel.Debug))
+			{
+				logger.LogDebug(invalidOperationException, "Unable to delete email '{SubjectOrId}'.", subjectOrId);
+			}
+
+			return false;
+		}
+		catch (Exception exception)
+		{
+			Console.Error.WriteLine($"Failed to delete email: {exception.Message}");
+			if (logger.IsEnabled(LogLevel.Error))
+			{
+				logger.LogError(exception, "Unexpected error deleting email '{SubjectOrId}' for account '{AccountName}'.", subjectOrId, accountName);
+			}
+
+			return false;
+		}
+	}
+
 	private static IReadOnlyList<EmailSummary> MapMessages(IList<Message>? messages)
 	{
 		if (messages is null)

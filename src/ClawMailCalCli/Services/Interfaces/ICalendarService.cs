@@ -42,4 +42,16 @@ public interface ICalendarService
 	/// The Graph event ID of the created event, or <see langword="null"/> if creation failed.
 	/// </returns>
 	Task<string?> CreateEventAsync(string title, DateTimeOffset startDateTime, DateTimeOffset endDateTime, string content, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Deletes a calendar event by title (partial, case-insensitive match) or by its unique Graph event ID.
+	/// </summary>
+	/// <param name="query">
+	/// A search string: if it is 50 or more characters it is treated as a Graph event ID;
+	/// otherwise it is used as a partial subject filter.
+	/// </param>
+	/// <param name="accountName">The account name whose credentials are used for the request.</param>
+	/// <param name="cancellationToken">A token to cancel the asynchronous operation.</param>
+	/// <returns><see langword="true"/> if the event was deleted successfully; otherwise <see langword="false"/>.</returns>
+	Task<bool> DeleteEventAsync(string query, string accountName, CancellationToken cancellationToken = default);
 }

@@ -653,4 +653,106 @@ public class EmailServiceTests
 		result.Should().NotBeNull();
 		result!.Body.Should().Be("This is the preview text");
 	}
+
+	[Fact]
+	public async Task DeleteEmailAsync_WhenGraphCallSucceeds_ReturnsTrue()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.DeleteEmailAsync("my-account", "Meeting notes");
+
+		// Assert
+		result.Should().BeTrue();
+	}
+
+	[Fact]
+	public async Task DeleteEmailAsync_WhenGraphCallReturnsFalse_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.DeleteEmailAsync("my-account", "Not found subject");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task DeleteEmailAsync_WhenNotFoundODataError_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new ODataError { ResponseStatusCode = 404 });
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.DeleteEmailAsync("my-account", "Missing subject");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task DeleteEmailAsync_WhenODataErrorThrown_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new ODataError { Error = new MainError { Message = "Mailbox unavailable" } });
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.DeleteEmailAsync("my-account", "Subject");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task DeleteEmailAsync_WhenInvalidOperationExceptionThrown_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new InvalidOperationException("No default account."));
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.DeleteEmailAsync("my-account", "Subject");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task DeleteEmailAsync_WhenGenericExceptionThrown_ReturnsFalse()
+	{
+		// Arrange
+		_mockGraphClientService
+			.Setup(service => service.ExecuteWithRetryAsync(It.IsAny<Func<GraphServiceClient, Task<bool>>>(), It.IsAny<CancellationToken>()))
+			.ThrowsAsync(new HttpRequestException("Network error"));
+
+		var emailService = CreateEmailService();
+
+		// Act
+		var result = await emailService.DeleteEmailAsync("my-account", "Subject");
+
+		// Assert
+		result.Should().BeFalse();
+	}
 }

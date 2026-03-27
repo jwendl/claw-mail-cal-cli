@@ -187,4 +187,82 @@ public class EmailCommandTests
 		// Assert
 		result.Should().Be(1);
 	}
+
+	[Fact]
+	public async Task DeleteEmailCommand_WhenConfirmFlagSetAndDeleteSucceeds_ReturnsZero()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.DeleteEmailAsync("work-account", "Meeting notes", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new DeleteEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
+		var settings = new DeleteEmailSettings { AccountName = "work-account", SubjectOrId = "Meeting notes", Confirm = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+	}
+
+	[Fact]
+	public async Task DeleteEmailCommand_WhenConfirmFlagSetAndDeleteFails_ReturnsOne()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.DeleteEmailAsync("work-account", "nonexistent", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new DeleteEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
+		var settings = new DeleteEmailSettings { AccountName = "work-account", SubjectOrId = "nonexistent", Confirm = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+	}
+
+	[Fact]
+	public async Task DeleteEmailCommand_WhenConfirmFlagSetAndDeleteSucceeds_WritesJsonOutput()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.DeleteEmailAsync("work-account", "Meeting notes", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new DeleteEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
+		var settings = new DeleteEmailSettings { AccountName = "work-account", SubjectOrId = "Meeting notes", Confirm = true, Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.IsAny<object>()), Times.Once);
+	}
+
+	[Fact]
+	public async Task DeleteEmailCommand_WhenConfirmFlagSetAndDeleteFailsWithJson_WritesJsonAndReturnsOne()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.DeleteEmailAsync("work-account", "nonexistent", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new DeleteEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
+		var settings = new DeleteEmailSettings { AccountName = "work-account", SubjectOrId = "nonexistent", Confirm = true, Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJson(It.IsAny<object>()), Times.Once);
+	}
 }

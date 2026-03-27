@@ -1,6 +1,7 @@
 ﻿using System.Reflection;
 using ClawMailCalCli.Commands.Calendar;
 using ClawMailCalCli.Commands.Settings;
+using ClawMailCalCli.Configuration;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 using Spectre.Console.Cli;
@@ -236,5 +237,138 @@ public class CalendarCommandTests
 
 		// Assert
 		result.Should().Be(1);
+	}
+
+	[Fact]
+	public async Task DeleteCalendarCommand_WhenConfirmFlagSetAndDeleteSucceeds_ReturnsZero()
+	{
+		// Arrange
+		var mockConfigurationService = new Mock<IConfigurationService>();
+
+		_mockCalendarService
+			.Setup(service => service.DeleteEventAsync("Team Meeting", "my-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new DeleteCalendarCommand(_mockCalendarService.Object, mockConfigurationService.Object, _mockOutputService.Object);
+		var settings = new DeleteCalendarSettings { Query = "Team Meeting", AccountName = "my-account", Confirm = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+	}
+
+	[Fact]
+	public async Task DeleteCalendarCommand_WhenConfirmFlagSetAndDeleteFails_ReturnsOne()
+	{
+		// Arrange
+		var mockConfigurationService = new Mock<IConfigurationService>();
+
+		_mockCalendarService
+			.Setup(service => service.DeleteEventAsync("Nonexistent", "my-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new DeleteCalendarCommand(_mockCalendarService.Object, mockConfigurationService.Object, _mockOutputService.Object);
+		var settings = new DeleteCalendarSettings { Query = "Nonexistent", AccountName = "my-account", Confirm = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+	}
+
+	[Fact]
+	public async Task DeleteCalendarCommand_WhenNoAccountSpecified_ReturnsOne()
+	{
+		// Arrange
+		var mockConfigurationService = new Mock<IConfigurationService>();
+		mockConfigurationService
+			.Setup(service => service.ReadConfigurationAsync())
+			.ThrowsAsync(new InvalidOperationException("Config not found."));
+
+		var command = new DeleteCalendarCommand(_mockCalendarService.Object, mockConfigurationService.Object, _mockOutputService.Object);
+		var settings = new DeleteCalendarSettings { Query = "Team Meeting", AccountName = null, Confirm = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+	}
+
+	[Fact]
+	public async Task DeleteCalendarCommand_WhenConfirmFlagSetAndDeleteSucceeds_WritesJsonOutput()
+	{
+		// Arrange
+		var mockConfigurationService = new Mock<IConfigurationService>();
+
+		_mockCalendarService
+			.Setup(service => service.DeleteEventAsync("Team Meeting", "my-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new DeleteCalendarCommand(_mockCalendarService.Object, mockConfigurationService.Object, _mockOutputService.Object);
+		var settings = new DeleteCalendarSettings { Query = "Team Meeting", AccountName = "my-account", Confirm = true, Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.IsAny<object>()), Times.Once);
+	}
+
+	[Fact]
+	public async Task DeleteCalendarCommand_WhenConfirmFlagSetAndDeleteFailsWithJson_WritesJsonAndReturnsOne()
+	{
+		// Arrange
+		var mockConfigurationService = new Mock<IConfigurationService>();
+
+		_mockCalendarService
+			.Setup(service => service.DeleteEventAsync("Nonexistent", "my-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new DeleteCalendarCommand(_mockCalendarService.Object, mockConfigurationService.Object, _mockOutputService.Object);
+		var settings = new DeleteCalendarSettings { Query = "Nonexistent", AccountName = "my-account", Confirm = true, Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJson(It.IsAny<object>()), Times.Once);
+	}
+
+	[Fact]
+	public async Task DeleteCalendarCommand_WhenDefaultAccountUsedFromConfig_CallsDeleteWithDefaultAccount()
+	{
+		// Arrange
+		var mockConfigurationService = new Mock<IConfigurationService>();
+		mockConfigurationService
+			.Setup(service => service.ReadConfigurationAsync())
+			.ReturnsAsync(new ClawConfiguration("https://myvault.vault.azure.net/", "default-account"));
+
+		_mockCalendarService
+			.Setup(service => service.DeleteEventAsync("Team Meeting", "default-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new DeleteCalendarCommand(_mockCalendarService.Object, mockConfigurationService.Object, _mockOutputService.Object);
+		var settings = new DeleteCalendarSettings { Query = "Team Meeting", AccountName = null, Confirm = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockCalendarService.Verify(
+			service => service.DeleteEventAsync("Team Meeting", "default-account", It.IsAny<CancellationToken>()),
+			Times.Once);
 	}
 }

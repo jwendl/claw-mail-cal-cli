@@ -117,6 +117,9 @@ app.Configure(config =>
 		calendar.AddCommand<CreateCalendarCommand>("create")
 			.WithDescription("Create a new calendar event.")
 			.WithExample("calendar create \"Team Meeting\" \"2026-03-25T09:00:00\" \"2026-03-25T09:30:00\" \"Weekly team sync\"");
+		calendar.AddCommand<DeleteCalendarCommand>("delete")
+			.WithDescription("Delete a calendar event by title or event ID.")
+			.WithExample("calendar delete \"Team Meeting\" --confirm");
 	});
 
 	config.AddCommand<LoginCommand>("login")
@@ -139,6 +142,9 @@ app.Configure(config =>
 		email.AddCommand<ReadEmailCommand>("read")
 			.WithDescription("Read an email by subject or message ID.")
 			.WithExample("email", "read", "my-account", "Meeting notes");
+		email.AddCommand<DeleteEmailCommand>("delete")
+			.WithDescription("Delete an email by subject or message ID.")
+			.WithExample("email delete my-account \"Meeting notes\" --confirm");
 	});
 });
 

@@ -736,4 +736,128 @@ public class CalendarServiceTests
 			Location = location is not null ? new Location { DisplayName = location } : null,
 		};
 	}
+
+	[Fact]
+	public async Task DeleteEventAsync_WithEmptyQuery_ReturnsFalse()
+	{
+		// Arrange (no setup needed)
+
+		// Act
+		var result = await _calendarService.DeleteEventAsync(string.Empty, "myaccount");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task DeleteEventAsync_WithWhitespaceQuery_ReturnsFalse()
+	{
+		// Arrange (no setup needed)
+
+		// Act
+		var result = await _calendarService.DeleteEventAsync("   ", "myaccount");
+
+		// Assert
+		result.Should().BeFalse();
+	}
+
+	[Fact]
+	public async Task DeleteEventAsync_WithEmptyQuery_DoesNotCallGraphService()
+	{
+		// Arrange (no setup needed)
+
+		// Act
+		await _calendarService.DeleteEventAsync(string.Empty, "myaccount");
+
+		// Assert
+		_mockCalendarGraphService.Verify(
+			graphService => graphService.DeleteEventByIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+			Times.Never);
+	}
+
+	[Fact]
+	public async Task DeleteEventAsync_WithShortQuery_SearchesBySubjectThenDeletes()
+	{
+		// Arrange
+		var calendarEvent = CreateTestCalendarEvent("event-id-1", "Team Meeting");
+
+		_mockCalendarGraphService
+			.Setup(graphService => graphService.GetEventsBySubjectFilterAsync("myaccount", "Team Meeting", It.IsAny<CancellationToken>()))
+			.ReturnsAsync([calendarEvent]);
+
+		_mockCalendarGraphService
+			.Setup(graphService => graphService.DeleteEventByIdAsync("myaccount", "event-id-1", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		// Act
+		var result = await _calendarService.DeleteEventAsync("Team Meeting", "myaccount");
+
+		// Assert
+		result.Should().BeTrue();
+		_mockCalendarGraphService.Verify(
+			graphService => graphService.DeleteEventByIdAsync("myaccount", "event-id-1", It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task DeleteEventAsync_WithLongQuery_TreatsAsEventIdAndDeletes()
+	{
+		// Arrange
+		var eventId = new string('A', 51);
+
+		_mockCalendarGraphService
+			.Setup(graphService => graphService.DeleteEventByIdAsync("myaccount", eventId, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		// Act
+		var result = await _calendarService.DeleteEventAsync(eventId, "myaccount");
+
+		// Assert
+		result.Should().BeTrue();
+		_mockCalendarGraphService.Verify(
+			graphService => graphService.GetEventsBySubjectFilterAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+			Times.Never);
+		_mockCalendarGraphService.Verify(
+			graphService => graphService.DeleteEventByIdAsync("myaccount", eventId, It.IsAny<CancellationToken>()),
+			Times.Once);
+	}
+
+	[Fact]
+	public async Task DeleteEventAsync_WhenNoEventFoundBySubject_ReturnsFalse()
+	{
+		// Arrange
+		_mockCalendarGraphService
+			.Setup(graphService => graphService.GetEventsBySubjectFilterAsync("myaccount", "Nonexistent", It.IsAny<CancellationToken>()))
+			.ReturnsAsync([]);
+
+		// Act
+		var result = await _calendarService.DeleteEventAsync("Nonexistent", "myaccount");
+
+		// Assert
+		result.Should().BeFalse();
+		_mockCalendarGraphService.Verify(
+			graphService => graphService.DeleteEventByIdAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<CancellationToken>()),
+			Times.Never);
+	}
+
+	[Fact]
+	public async Task DeleteEventAsync_WhenDeleteByIdReturnsFalse_ReturnsFalse()
+	{
+		// Arrange
+		var calendarEvent = CreateTestCalendarEvent("event-id-1", "Team Meeting");
+
+		_mockCalendarGraphService
+			.Setup(graphService => graphService.GetEventsBySubjectFilterAsync("myaccount", "Team Meeting", It.IsAny<CancellationToken>()))
+			.ReturnsAsync([calendarEvent]);
+
+		_mockCalendarGraphService
+			.Setup(graphService => graphService.DeleteEventByIdAsync("myaccount", "event-id-1", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		// Act
+		var result = await _calendarService.DeleteEventAsync("Team Meeting", "myaccount");
+
+		// Assert
+		result.Should().BeFalse();
+	}
 }

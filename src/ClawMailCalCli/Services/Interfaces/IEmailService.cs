@@ -41,4 +41,13 @@ public interface IEmailService
 	/// <param name="cancellationToken">Cancellation token.</param>
 	/// <returns>The matched <see cref="EmailMessage"/>, or <see langword="null"/> if not found.</returns>
 	Task<EmailMessage?> ReadEmailAsync(string accountName, string subjectOrId, CancellationToken cancellationToken = default);
+
+	/// <summary>
+	/// Deletes an email message by subject (partial, case-insensitive match) or by exact Graph message ID.
+	/// </summary>
+	/// <param name="accountName">The short name of the account to query.</param>
+	/// <param name="subjectOrId">Subject search text or a Graph message ID.</param>
+	/// <param name="cancellationToken">Cancellation token.</param>
+	/// <returns><see langword="true"/> if the email was deleted successfully; otherwise <see langword="false"/>.</returns>
+	Task<bool> DeleteEmailAsync(string accountName, string subjectOrId, CancellationToken cancellationToken = default);
 }
