@@ -22,7 +22,11 @@ public interface IAuthenticationService
 	/// the <c>--non-interactive</c> flag. Use this for the <c>login</c> command which is
 	/// inherently interactive.
 	/// </param>
-	/// <returns><see langword="true"/> if authentication succeeded; <see langword="false"/> if a
-	/// configuration or lookup error prevented authentication.</returns>
+	/// <returns>
+	/// <see langword="true"/> if authentication succeeded;
+	/// <see langword="false"/> if authentication could not be performed or completed, for example
+	/// due to a configuration or lookup error, or because interactive authentication was required
+	/// but suppressed by <c>--non-interactive</c> and no cached <see cref="AuthenticationRecord"/> was available.
+	/// </returns>
 	Task<bool> AuthenticateAsync(string accountName, CancellationToken cancellationToken = default, bool forceInteractive = false);
 }
