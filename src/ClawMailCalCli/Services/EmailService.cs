@@ -10,7 +10,7 @@ namespace ClawMailCalCli.Services;
 /// <summary>
 /// Implements email operations (send, list, and read) using the Microsoft Graph API.
 /// </summary>
-public class EmailService(IGraphClientService graphClientService, ILogger<EmailService> logger)
+public class EmailService(IGraphClientService graphClientService, ILogger<EmailService> logger, IOutputService outputService)
 	: IEmailService
 {
 	private const int DefaultMessageCount = 20;
@@ -69,7 +69,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		catch (ODataError oDataError)
 		{
 			var reason = oDataError.Error?.Message ?? "unknown Graph API error";
-			Console.Error.WriteLine($"Failed to send email: {reason}");
+			outputService.WriteError($"Failed to send email: {reason}");
 			if (logger.IsEnabled(LogLevel.Error))
 			{
 				logger.LogError(oDataError, "Graph API error sending email to '{To}'.", to);
@@ -79,7 +79,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		}
 		catch (Exception exception)
 		{
-			Console.Error.WriteLine($"Failed to send email: {exception.Message}");
+			outputService.WriteError($"Failed to send email: {exception.Message}");
 			if (logger.IsEnabled(LogLevel.Error))
 			{
 				logger.LogError(exception, "Unexpected error sending email to '{To}'.", to);
@@ -133,7 +133,7 @@ public class EmailService(IGraphClientService graphClientService, ILogger<EmailS
 		}
 		catch (ODataError odataError) when (odataError.ResponseStatusCode == 404)
 		{
-			Console.Error.WriteLine($"Error: Folder '{normalizedFolderName}' was not found.");
+			outputService.WriteError($"Error: Folder '{normalizedFolderName}' was not found.");
 
 			if (logger.IsEnabled(LogLevel.Debug))
 			{

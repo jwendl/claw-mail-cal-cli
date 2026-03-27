@@ -26,7 +26,7 @@ internal sealed class DefaultCommand(IOutputService outputService)
 		}
 		else
 		{
-			AnsiConsole.MarkupLine("[green]claw-mail-cal-cli[/] is running.");
+			outputService.WriteMarkup("[green]claw-mail-cal-cli[/] is running.");
 		}
 
 		return 0;

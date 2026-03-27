@@ -22,7 +22,7 @@ internal sealed class DeleteAccountCommand(IAccountService accountService, IOutp
 			}
 			else
 			{
-				AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
+				outputService.WriteMarkup($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
 			}
 
 			return 1;
@@ -35,7 +35,7 @@ internal sealed class DeleteAccountCommand(IAccountService accountService, IOutp
 		}
 		else
 		{
-			AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' deleted successfully.");
+			outputService.WriteSuccess($"Account '[yellow]{Markup.Escape(settings.Name)}[/]' deleted successfully.");
 		}
 
 		return 0;

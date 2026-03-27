@@ -22,7 +22,7 @@ internal sealed class AddAccountCommand(IAccountService accountService, IOutputS
 			}
 			else
 			{
-				AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");
+				outputService.WriteMarkup($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");
 			}
 
 			return 1;
@@ -35,7 +35,7 @@ internal sealed class AddAccountCommand(IAccountService accountService, IOutputS
 		}
 		else
 		{
-			AnsiConsole.MarkupLine($"[green]✓[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' added successfully.");
+			outputService.WriteSuccess($"Account '[yellow]{Markup.Escape(settings.Name)}[/]' added successfully.");
 		}
 
 		return 0;

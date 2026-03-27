@@ -8,7 +8,7 @@ namespace ClawMailCalCli.Services;
 /// Wraps Microsoft Graph API calls with automatic 401 Unauthorized retry and re-authentication.
 /// When a 401 is received the default account is re-authenticated and the operation is retried once.
 /// </summary>
-public class GraphClientService(IAccountService accountService, IGraphServiceClientBuilder graphServiceClientBuilder, IAuthenticationService authenticationService, ILogger<GraphClientService> logger)
+public class GraphClientService(IAccountService accountService, IGraphServiceClientBuilder graphServiceClientBuilder, IAuthenticationService authenticationService, ILogger<GraphClientService> logger, IOutputService outputService)
 	: IGraphClientService
 {
 	/// <inheritdoc />
@@ -17,14 +17,14 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 		var defaultAccount = await accountService.GetDefaultAccountAsync(cancellationToken);
 		if (defaultAccount is null)
 		{
-			Console.Error.WriteLine("Error: No default account is set. Run 'account set <name>' to choose an account.");
+			outputService.WriteError("Error: No default account is set. Run 'account set <name>' to choose an account.");
 			throw new InvalidOperationException("No default account configured. Run 'account set <name>' to choose one.");
 		}
 
 		var graphClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
 		if (graphClient is null)
 		{
-			Console.Error.WriteLine($"Error: Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
+			outputService.WriteError($"Error: Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
 			throw new InvalidOperationException($"Account '{defaultAccount.Name}' is not authenticated. Run 'login {defaultAccount.Name}' first.");
 		}
 
@@ -39,13 +39,13 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 				logger.LogInformation("Received 401 Unauthorized for account '{AccountName}'. Triggering re-authentication.", defaultAccount.Name);
 			}
 
-			Console.Error.WriteLine($"Session expired for account '{defaultAccount.Name}'. Re-authenticating...");
+			outputService.WriteError($"Session expired for account '{defaultAccount.Name}'. Re-authenticating...");
 			await authenticationService.AuthenticateAsync(defaultAccount.Name, cancellationToken);
 
 			var retryClient = await graphServiceClientBuilder.BuildAsync(defaultAccount, cancellationToken);
 			if (retryClient is null)
 			{
-				Console.Error.WriteLine("Error: Re-authentication failed. Please run 'login' manually.");
+				outputService.WriteError("Error: Re-authentication failed. Please run 'login' manually.");
 				throw new InvalidOperationException($"Re-authentication failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' manually.");
 			}
 

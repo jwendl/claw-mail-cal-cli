@@ -21,7 +21,7 @@ internal sealed class ListAccountsCommand(IAccountService accountService, IOutpu
 
 		if (accounts.Count == 0)
 		{
-			AnsiConsole.MarkupLine("[yellow]No accounts found.[/]");
+			outputService.WriteWarning("No accounts found.");
 			return 0;
 		}
 
@@ -35,7 +35,7 @@ internal sealed class ListAccountsCommand(IAccountService accountService, IOutpu
 			table.AddRow(new Text(account.Name), new Text(account.Email), new Text(account.Type.ToString()));
 		}
 
-		AnsiConsole.Write(table);
+		outputService.WriteTable(table);
 		return 0;
 	}
 }

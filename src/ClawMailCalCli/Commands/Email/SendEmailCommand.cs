@@ -31,7 +31,7 @@ internal sealed class SendEmailCommand(IEmailService emailService, IOutputServic
 		}
 		else
 		{
-			AnsiConsole.MarkupLine($"[green]✓[/] Email sent to {Markup.Escape(settings.To)}");
+			outputService.WriteSuccess($"Email sent to {Markup.Escape(settings.To)}");
 		}
 
 		return 0;

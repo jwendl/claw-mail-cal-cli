@@ -28,35 +28,35 @@ internal sealed class DoctorCommand(IDoctorService doctorService, IOutputService
 			return results.All(checkResult => checkResult.Passed) ? 0 : 1;
 		}
 
-		AnsiConsole.MarkupLine("Checking environment...");
-		AnsiConsole.WriteLine();
+		outputService.WriteMarkup("Checking environment...");
+		outputService.WriteLine();
 
 		var allPassed = true;
 		foreach (var result in results)
 		{
 			if (result.Passed)
 			{
-				AnsiConsole.MarkupLine($"[green]✓[/] {Markup.Escape(result.CheckName)} ({Markup.Escape(result.Message)})");
+				outputService.WriteSuccess($"{Markup.Escape(result.CheckName)} ({Markup.Escape(result.Message)})");
 			}
 			else
 			{
 				allPassed = false;
-				AnsiConsole.MarkupLine($"[red]✗[/] {Markup.Escape(result.CheckName)}: {Markup.Escape(result.Message)}");
+				outputService.WriteMarkup($"[red]✗[/] {Markup.Escape(result.CheckName)}: {Markup.Escape(result.Message)}");
 				if (result.FixHint is not null)
 				{
-					AnsiConsole.MarkupLine($"  [grey]Fix: {Markup.Escape(result.FixHint)}[/]");
+					outputService.WriteMarkup($"  [grey]Fix: {Markup.Escape(result.FixHint)}[/]");
 				}
 			}
 		}
 
-		AnsiConsole.WriteLine();
+		outputService.WriteLine();
 		if (allPassed)
 		{
-			AnsiConsole.MarkupLine("[green]All checks passed.[/]");
+			outputService.WriteMarkup("[green]All checks passed.[/]");
 		}
 		else
 		{
-			AnsiConsole.MarkupLine("[red]One or more checks failed. See fix hints above.[/]");
+			outputService.WriteMarkup("[red]One or more checks failed. See fix hints above.[/]");
 		}
 
 		return allPassed ? 0 : 1;

@@ -314,6 +314,64 @@ public class OutputServiceTests
 	}
 
 	[Fact]
+	public void WriteSuccess_WritesGreenCheckPrefixedMessageToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteSuccess("Operation completed successfully.");
+
+		// Assert
+		testConsole.Output.Should().Contain("✓");
+		testConsole.Output.Should().Contain("Operation completed successfully.");
+	}
+
+	[Fact]
+	public void WriteWarning_WritesPlainTextMessageToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteWarning("No items found.");
+
+		// Assert
+		testConsole.Output.Should().Contain("No items found.");
+	}
+
+	[Fact]
+	public void WriteMarkup_WritesMarkupLineToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteMarkup("Checking environment...");
+
+		// Assert
+		testConsole.Output.Should().Contain("Checking environment...");
+	}
+
+	[Fact]
+	public void WriteLine_WritesBlankLineToConsole()
+	{
+		// Arrange
+		var testConsole = new TestConsole();
+		var outputService = new OutputService(testConsole);
+
+		// Act
+		outputService.WriteLine();
+
+		// Assert — a blank line produces at least a newline character
+		testConsole.Output.Should().NotBeEmpty();
+		testConsole.Output.Trim().Should().BeEmpty();
+	}
+
+	[Fact]
 	public void WriteJsonError_WritesJsonErrorObjectToStderr()
 	{
 		// Arrange

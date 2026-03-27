@@ -22,7 +22,7 @@ internal sealed class SetAccountCommand(IAccountService accountService, IOutputS
 			}
 			else
 			{
-				AnsiConsole.MarkupLine($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
+				outputService.WriteMarkup($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' does not exist.");
 			}
 
 			return 1;
@@ -35,7 +35,7 @@ internal sealed class SetAccountCommand(IAccountService accountService, IOutputS
 		}
 		else
 		{
-			AnsiConsole.MarkupLine($"[green]✓[/] Default account set to '[yellow]{Markup.Escape(settings.Name)}[/]'.");
+			outputService.WriteSuccess($"Default account set to '[yellow]{Markup.Escape(settings.Name)}[/]'.");
 		}
 
 		return 0;
