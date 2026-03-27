@@ -1,4 +1,5 @@
-﻿using ClawMailCalCli.Services.Interfaces;
+﻿using ClawMailCalCli.Models;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Email;
 
@@ -35,7 +36,21 @@ internal sealed class ReadEmailCommand(IEmailService emailService, IAccountServi
 			accountName = defaultAccount.Name;
 		}
 
-		var message = await emailService.ReadEmailAsync(accountName, settings.SubjectOrId, cancellationToken);
+		EmailMessage? message;
+
+		try
+		{
+			message = await emailService.ReadEmailAsync(accountName, settings.SubjectOrId, cancellationToken);
+		}
+		catch (OperationCanceledException)
+		{
+			throw;
+		}
+		catch (Exception exception)
+		{
+			outputService.WriteError($"Error: Failed to read email — {exception.Message}");
+			return 1;
+		}
 
 		if (message is null)
 		{
