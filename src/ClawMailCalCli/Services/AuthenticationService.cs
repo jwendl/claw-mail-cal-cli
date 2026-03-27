@@ -1,4 +1,5 @@
-﻿using Azure.Identity;
+﻿using System.Text.Json;
+using Azure.Identity;
 using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 
@@ -15,7 +16,7 @@ namespace ClawMailCalCli.Services;
 /// where the prefix is <c>hotmail</c> for personal accounts and <c>exchange</c> for
 /// work/school accounts.
 /// </remarks>
-public class AuthenticationService(IAccountService accountService, IKeyVaultService keyVaultService, IDeviceCodeCredentialProvider deviceCodeCredentialProvider, ILogger<AuthenticationService> logger)
+public class AuthenticationService(IAccountService accountService, IKeyVaultService keyVaultService, IDeviceCodeCredentialProvider deviceCodeCredentialProvider, NonInteractiveMode nonInteractiveMode, ILogger<AuthenticationService> logger)
 	: IAuthenticationService
 {
 	private static readonly string[] GraphScopes =
@@ -35,7 +36,7 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 	}
 
 	/// <inheritdoc />
-	public async Task<bool> AuthenticateAsync(string accountName, CancellationToken cancellationToken = default)
+	public async Task<bool> AuthenticateAsync(string accountName, CancellationToken cancellationToken = default, bool forceInteractive = false)
 	{
 		var account = await accountService.GetAccountAsync(accountName, cancellationToken);
 		if (account is null)
@@ -94,6 +95,17 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		if (logger.IsEnabled(LogLevel.Debug))
 		{
 			logger.LogDebug("No cached AuthenticationRecord found for account '{AccountName}', starting device code flow.", accountName);
+		}
+
+		if (nonInteractiveMode.IsNonInteractive && !forceInteractive)
+		{
+			if (logger.IsEnabled(LogLevel.Warning))
+			{
+				logger.LogWarning("Non-interactive mode is active and no cached AuthenticationRecord exists for account '{AccountName}'. Aborting to avoid device-code prompt.", accountName);
+			}
+
+			WriteAuthRequiredError(accountName, nonInteractiveMode.IsJson);
+			return false;
 		}
 
 		try
@@ -175,4 +187,25 @@ public class AuthenticationService(IAccountService accountService, IKeyVaultServ
 		AccountType.Work => "exchange",
 		_ => throw new InvalidOperationException($"Unknown account type: {accountType}"),
 	};
+
+	/// <summary>
+	/// Writes an AUTH_REQUIRED error to stdout (JSON) or stderr (human-readable) depending
+	/// on whether JSON mode is active.
+	/// </summary>
+	private static void WriteAuthRequiredError(string accountName, bool isJson)
+	{
+		const string message = "Authentication required. Run 'claw-mail-cal-cli login <account>' interactively first.";
+		const string code = "AUTH_REQUIRED";
+
+		if (isJson)
+		{
+			var errorObject = new { error = message, code };
+			Console.Out.WriteLine(JsonSerializer.Serialize(errorObject));
+		}
+		else
+		{
+			AnsiConsole.MarkupLine($"[red]Error:[/] Authentication required for account '[bold]{Markup.Escape(accountName)}[/]'.");
+			AnsiConsole.MarkupLine($"[yellow]Hint:[/] Run '[bold]claw-mail-cal-cli login {Markup.Escape(accountName)}[/]' interactively first, then use [bold]--non-interactive[/] for subsequent calls.");
+		}
+	}
 }
