@@ -6,7 +6,7 @@ namespace ClawMailCalCli.Commands.Settings;
 /// Settings for the <c>account add</c> command.
 /// </summary>
 internal sealed class AddAccountSettings
-	: CommandSettings
+	: JsonOutputSettings
 {
 	/// <summary>
 	/// The name of the account to add.

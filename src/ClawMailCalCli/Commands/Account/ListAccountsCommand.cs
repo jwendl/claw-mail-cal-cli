@@ -5,13 +5,20 @@ namespace ClawMailCalCli.Commands.Account;
 /// <summary>
 /// Lists all stored accounts in a table.
 /// </summary>
-internal sealed class ListAccountsCommand(IAccountService accountService)
-	: AsyncCommand
+internal sealed class ListAccountsCommand(IAccountService accountService, IOutputService outputService)
+	: AsyncCommand<ListAccountSettings>
 {
 	/// <inheritdoc />
-	public override async Task<int> ExecuteAsync(CommandContext context, CancellationToken cancellationToken)
+	public override async Task<int> ExecuteAsync(CommandContext context, ListAccountSettings settings, CancellationToken cancellationToken)
 	{
 		var accounts = await accountService.ListAccountsAsync(cancellationToken);
+
+		if (settings.Json)
+		{
+			outputService.WriteJson(accounts);
+			return 0;
+		}
+
 		if (accounts.Count == 0)
 		{
 			AnsiConsole.MarkupLine("[yellow]No accounts found.[/]");

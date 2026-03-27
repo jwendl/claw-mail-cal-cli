@@ -17,4 +17,11 @@ internal interface IOutputService
 	/// <summary>Writes a diagnostic message (errors, warnings, or other non-fatal diagnostics) to standard error.</summary>
 	/// <param name="message">The plain-text diagnostic message.</param>
 	void WriteError(string message);
+
+	/// <summary>
+	/// Serializes an error response as <c>{ "error": "..." }</c> and writes it to standard error.
+	/// Use this instead of <see cref="WriteError"/> when the caller has requested JSON output.
+	/// </summary>
+	/// <param name="message">The error message to include in the JSON payload.</param>
+	void WriteJsonError(string message);
 }

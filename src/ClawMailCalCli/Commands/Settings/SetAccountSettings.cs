@@ -4,7 +4,7 @@
 /// Settings for the <c>account set</c> command.
 /// </summary>
 internal sealed class SetAccountSettings
-	: CommandSettings
+	: JsonOutputSettings
 {
 	/// <summary>
 	/// The name of the account to set as default.
