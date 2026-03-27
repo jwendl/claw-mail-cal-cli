@@ -32,4 +32,11 @@ public interface IOutputService
 
 	/// <summary>Writes a blank line to the console.</summary>
 	void WriteLine();
+
+	/// <summary>
+	/// Serializes an error response as <c>{ "error": "..." }</c> and writes it to standard error.
+	/// Use this instead of <see cref="WriteError"/> when the caller has requested JSON output.
+	/// </summary>
+	/// <param name="message">The error message to include in the JSON payload.</param>
+	void WriteJsonError(string message);
 }

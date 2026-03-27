@@ -1,4 +1,5 @@
-﻿using ClawMailCalCli.Services.Interfaces;
+﻿using ClawMailCalCli.Models;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Account;
 
@@ -14,11 +15,29 @@ internal sealed class AddAccountCommand(IAccountService accountService, IOutputS
 		var added = await accountService.AddAccountAsync(settings.Name, settings.Email, settings.Type, cancellationToken);
 		if (!added)
 		{
-			outputService.WriteMarkup($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");
+			var errorMessage = $"Account '{settings.Name}' already exists.";
+			if (settings.Json)
+			{
+				outputService.WriteJsonError(errorMessage);
+			}
+			else
+			{
+				outputService.WriteMarkup($"[red]Error:[/] Account '[yellow]{Markup.Escape(settings.Name)}[/]' already exists.");
+			}
+
 			return 1;
 		}
 
-		outputService.WriteSuccess($"Account '[yellow]{Markup.Escape(settings.Name)}[/]' added successfully.");
+		var successMessage = $"Account '{settings.Name}' added successfully.";
+		if (settings.Json)
+		{
+			outputService.WriteJson(new CommandResult(true, successMessage));
+		}
+		else
+		{
+			outputService.WriteSuccess($"Account '[yellow]{Markup.Escape(settings.Name)}[/]' added successfully.");
+		}
+
 		return 0;
 	}
 }

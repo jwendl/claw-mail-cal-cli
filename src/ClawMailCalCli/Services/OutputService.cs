@@ -58,4 +58,12 @@ internal sealed class OutputService
 	{
 		AnsiConsole.WriteLine();
 	}
+
+	/// <inheritdoc />
+	public void WriteJsonError(string message)
+	{
+		var payload = new { error = message };
+		var json = JsonSerializer.Serialize(payload, JsonOptions);
+		Console.Error.WriteLine(json);
+	}
 }

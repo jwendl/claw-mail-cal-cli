@@ -1,4 +1,5 @@
-﻿using ClawMailCalCli.Services.Interfaces;
+﻿using ClawMailCalCli.Models;
+using ClawMailCalCli.Services.Interfaces;
 
 namespace ClawMailCalCli.Commands.Email;
 
@@ -15,10 +16,24 @@ internal sealed class SendEmailCommand(IEmailService emailService, IOutputServic
 		var sent = await emailService.SendEmailAsync(settings.To, settings.Subject, settings.Content, cancellationToken);
 		if (!sent)
 		{
+			if (settings.Json)
+			{
+				outputService.WriteJsonError($"Failed to send email to '{settings.To}'.");
+			}
+
 			return 1;
 		}
 
-		outputService.WriteSuccess($"Email sent to {Markup.Escape(settings.To)}");
+		var successMessage = $"Email sent to '{settings.To}'.";
+		if (settings.Json)
+		{
+			outputService.WriteJson(new CommandResult(true, successMessage));
+		}
+		else
+		{
+			outputService.WriteSuccess($"Email sent to {Markup.Escape(settings.To)}");
+		}
+
 		return 0;
 	}
 }

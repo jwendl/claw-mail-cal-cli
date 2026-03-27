@@ -237,4 +237,59 @@ public class CalendarCommandTests
 		// Assert
 		result.Should().Be(1);
 	}
+
+	[Fact]
+	public async Task CreateCalendarCommand_WhenJsonAndSuccess_WritesJsonResultWithEventId()
+	{
+		// Arrange
+		_mockCalendarService
+			.Setup(service => service.CreateEventAsync(
+				"Team Meeting",
+				It.IsAny<DateTimeOffset>(),
+				It.IsAny<DateTimeOffset>(),
+				It.IsAny<string>(),
+				It.IsAny<CancellationToken>()))
+			.ReturnsAsync("event-id-123");
+
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var settings = new CreateCalendarSettings
+		{
+			Title = "Team Meeting",
+			StartDateTime = "2026-03-25T09:00:00",
+			EndDateTime = "2026-03-25T10:00:00",
+			Content = "Content",
+			Json = true,
+		};
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.Is<CommandResult>(commandResult => commandResult.Success && commandResult.Id == "event-id-123")), Times.Once);
+	}
+
+	[Fact]
+	public async Task CreateCalendarCommand_WhenJsonAndInvalidStartDate_WritesJsonError()
+	{
+		// Arrange
+		var command = new CreateCalendarCommand(_mockCalendarService.Object, _mockOutputService.Object);
+		var settings = new CreateCalendarSettings
+		{
+			Title = "Meeting",
+			StartDateTime = "not-a-date",
+			EndDateTime = "2026-03-25T10:00:00",
+			Content = "Content",
+			Json = true,
+		};
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJsonError(It.IsAny<string>()), Times.Once);
+	}
 }

@@ -353,4 +353,53 @@ public class OutputServiceTests
 		// Assert
 		act.Should().NotThrow();
 	}
+
+	[Fact]
+	public void WriteJsonError_WritesJsonErrorObjectToStderr()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stringWriter = new StringWriter();
+		Console.SetError(stringWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Something went wrong.");
+
+			// Assert
+			var output = stringWriter.ToString();
+			var document = JsonDocument.Parse(output);
+			document.RootElement.ValueKind.Should().Be(JsonValueKind.Object);
+			document.RootElement.GetProperty("error").GetString().Should().Be("Something went wrong.");
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
+
+	[Fact]
+	public void WriteJsonError_UsesCamelCasePropertyName()
+	{
+		// Arrange
+		var originalError = Console.Error;
+		using var stringWriter = new StringWriter();
+		Console.SetError(stringWriter);
+
+		try
+		{
+			// Act
+			_outputService.WriteJsonError("Account not found.");
+
+			// Assert
+			var output = stringWriter.ToString();
+			output.Should().Contain("\"error\"");
+			output.Should().NotContain("\"Error\"");
+		}
+		finally
+		{
+			Console.SetError(originalError);
+		}
+	}
 }

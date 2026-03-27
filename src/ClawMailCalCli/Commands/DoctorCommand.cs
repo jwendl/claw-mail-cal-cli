@@ -13,17 +13,23 @@ internal sealed class DoctorCommand(IDoctorService doctorService, IOutputService
 	/// Settings for the <see cref="DoctorCommand"/>. No additional arguments are required.
 	/// </summary>
 	internal sealed class Settings
-		: CommandSettings
+		: JsonOutputSettings
 	{
 	}
 
 	/// <inheritdoc />
 	public override async Task<int> ExecuteAsync(CommandContext context, Settings settings, CancellationToken cancellationToken)
 	{
+		var results = await doctorService.RunAllChecksAsync(cancellationToken);
+
+		if (settings.Json)
+		{
+			outputService.WriteJson(results);
+			return results.All(checkResult => checkResult.Passed) ? 0 : 1;
+		}
+
 		outputService.WriteMarkup("Checking environment...");
 		outputService.WriteLine();
-
-		var results = await doctorService.RunAllChecksAsync(cancellationToken);
 
 		var allPassed = true;
 		foreach (var result in results)

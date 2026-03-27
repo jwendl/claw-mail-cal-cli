@@ -116,6 +116,46 @@ public class AccountCommandTests
 	}
 
 	[Fact]
+	public async Task AddAccountCommand_WhenJsonAndSuccess_WritesJsonResult()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.AddAccountAsync("new-account", "test@example.com", It.IsAny<AccountType>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new AddAccountCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new AddAccountSettings { Name = "new-account", Email = "test@example.com", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.Is<CommandResult>(commandResult => commandResult.Success)), Times.Once);
+	}
+
+	[Fact]
+	public async Task AddAccountCommand_WhenJsonAndFailure_WritesJsonError()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.AddAccountAsync("existing-account", "test@example.com", It.IsAny<AccountType>(), It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new AddAccountCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new AddAccountSettings { Name = "existing-account", Email = "test@example.com", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJsonError(It.IsAny<string>()), Times.Once);
+	}
+
+	[Fact]
 	public async Task DeleteAccountCommand_WhenAccountDeletedSuccessfully_ReturnsZero()
 	{
 		// Arrange
@@ -151,6 +191,46 @@ public class AccountCommandTests
 
 		// Assert
 		result.Should().Be(1);
+	}
+
+	[Fact]
+	public async Task DeleteAccountCommand_WhenJsonAndSuccess_WritesJsonResult()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.DeleteAccountAsync("test-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new DeleteAccountCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new DeleteAccountSettings { Name = "test-account", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.Is<CommandResult>(commandResult => commandResult.Success)), Times.Once);
+	}
+
+	[Fact]
+	public async Task DeleteAccountCommand_WhenJsonAndFailure_WritesJsonError()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.DeleteAccountAsync("nonexistent", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new DeleteAccountCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new DeleteAccountSettings { Name = "nonexistent", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJsonError(It.IsAny<string>()), Times.Once);
 	}
 
 	[Fact]
@@ -192,6 +272,46 @@ public class AccountCommandTests
 	}
 
 	[Fact]
+	public async Task SetAccountCommand_WhenJsonAndSuccess_WritesJsonResult()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.SetDefaultAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new SetAccountCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new SetAccountSettings { Name = "work-account", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.Is<CommandResult>(commandResult => commandResult.Success)), Times.Once);
+	}
+
+	[Fact]
+	public async Task SetAccountCommand_WhenJsonAndFailure_WritesJsonError()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.SetDefaultAccountAsync("nonexistent", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new SetAccountCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new SetAccountSettings { Name = "nonexistent", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJsonError(It.IsAny<string>()), Times.Once);
+	}
+
+	[Fact]
 	public async Task ListAccountsCommand_WhenNoAccounts_ReturnsZero()
 	{
 		// Arrange
@@ -200,10 +320,11 @@ public class AccountCommandTests
 			.ReturnsAsync([]);
 
 		var command = new ListAccountsCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ListAccountSettings();
 		var context = CreateCommandContext();
 
 		// Act
-		var result = await command.ExecuteAsync(context, CancellationToken.None);
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
 
 		// Assert
 		result.Should().Be(0);
@@ -224,12 +345,58 @@ public class AccountCommandTests
 			.ReturnsAsync(accounts);
 
 		var command = new ListAccountsCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ListAccountSettings();
 		var context = CreateCommandContext();
 
 		// Act
-		var result = await command.ExecuteAsync(context, CancellationToken.None);
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
 
 		// Assert
 		result.Should().Be(0);
+	}
+
+	[Fact]
+	public async Task ListAccountsCommand_WhenJsonFlag_WritesJsonAccounts()
+	{
+		// Arrange
+		IReadOnlyList<Account> accounts =
+		[
+			new Account("work-account", "user@contoso.com", AccountType.Work),
+		];
+
+		_mockAccountService
+			.Setup(service => service.ListAccountsAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync(accounts);
+
+		var command = new ListAccountsCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ListAccountSettings { Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(accounts), Times.Once);
+	}
+
+	[Fact]
+	public async Task ListAccountsCommand_WhenJsonFlagAndNoAccounts_WritesEmptyJsonArray()
+	{
+		// Arrange
+		_mockAccountService
+			.Setup(service => service.ListAccountsAsync(It.IsAny<CancellationToken>()))
+			.ReturnsAsync([]);
+
+		var command = new ListAccountsCommand(_mockAccountService.Object, _mockOutputService.Object);
+		var settings = new ListAccountSettings { Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.IsAny<IReadOnlyList<Account>>()), Times.Once);
 	}
 }

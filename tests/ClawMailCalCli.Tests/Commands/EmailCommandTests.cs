@@ -187,4 +187,44 @@ public class EmailCommandTests
 		// Assert
 		result.Should().Be(1);
 	}
+
+	[Fact]
+	public async Task SendEmailCommand_WhenJsonAndSuccess_WritesJsonResult()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(true);
+
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
+		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(0);
+		_mockOutputService.Verify(service => service.WriteJson(It.Is<CommandResult>(commandResult => commandResult.Success)), Times.Once);
+	}
+
+	[Fact]
+	public async Task SendEmailCommand_WhenJsonAndFailure_WritesJsonError()
+	{
+		// Arrange
+		_mockEmailService
+			.Setup(service => service.SendEmailAsync("to@example.com", "Subject", "Content", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(false);
+
+		var command = new SendEmailCommand(_mockEmailService.Object, _mockOutputService.Object);
+		var settings = new SendEmailSettings { To = "to@example.com", Subject = "Subject", Content = "Content", Json = true };
+		var context = CreateCommandContext();
+
+		// Act
+		var result = await command.ExecuteAsync(context, settings, CancellationToken.None);
+
+		// Assert
+		result.Should().Be(1);
+		_mockOutputService.Verify(service => service.WriteJsonError(It.IsAny<string>()), Times.Once);
+	}
 }
