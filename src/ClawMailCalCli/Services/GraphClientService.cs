@@ -81,16 +81,14 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 			if (nonInteractiveMode.IsNonInteractive)
 			{
 				const string message = "Authentication required. Run 'claw-mail-cal-cli login <account>' interactively first.";
-				const string code = "AUTH_REQUIRED";
 
 				if (nonInteractiveMode.IsJson)
 				{
-					var errorObject = new { error = message, code };
-					Console.Out.WriteLine(JsonSerializer.Serialize(errorObject));
+					outputService.WriteJsonError(message, ErrorCodes.AuthRequired);
 				}
 				else
 				{
-					Console.Error.WriteLine($"Error: Token acquisition failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' interactively first.");
+					outputService.WriteError($"Error: Token acquisition failed for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' interactively first.");
 				}
 
 				throw new InvalidOperationException($"Authentication required for account '{defaultAccount.Name}'. Run 'login {defaultAccount.Name}' interactively first.");
