@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using Azure.Identity;
+using ClawMailCalCli.Models;
 using ClawMailCalCli.Services.Interfaces;
 using Microsoft.Graph;
 using Microsoft.Graph.Models.ODataErrors;
@@ -172,16 +173,20 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 
 			if (nonInteractiveMode.IsNonInteractive)
 			{
-				var authRequiredError = JsonSerializer.Serialize(new
-				{
-					code = "AUTH_REQUIRED",
-					message = $"Authentication required for account '{accountName}'. Please run 'login {accountName}' interactively.",
-					account = accountName
-				});
+				const string message = "Authentication required. Run 'claw-mail-cal-cli login <account>' interactively first.";
 
-				outputService.WriteError(authRequiredError);
-				throw;
+				if (nonInteractiveMode.IsJson)
+				{
+					outputService.WriteJsonError(message, ErrorCodes.AuthRequired);
+				}
+				else
+				{
+					outputService.WriteError($"Error: Token acquisition failed for account '{accountName}'. Run 'login {accountName}' interactively first.");
+				}
+
+				throw new InvalidOperationException($"Authentication required for account '{accountName}'. Run 'login {accountName}' interactively first.");
 			}
+
 			outputService.WriteError($"Token acquisition failed for account '{accountName}'. Re-authenticating...");
 			var reauthenticated = await authenticationService.AuthenticateAsync(accountName, cancellationToken, forceInteractive: true);
 			if (!reauthenticated)

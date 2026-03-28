@@ -777,4 +777,35 @@ public class GraphClientServiceTests
 		await act.Should().ThrowAsync<InvalidOperationException>()
 			.WithMessage("*Re-authentication failed*");
 	}
+
+	[Fact]
+	public async Task ExecuteWithRetryAsync_WithAccountName_WhenNonInteractiveAndOperationThrowsAuthenticationFailed_ThrowsWithoutCallingAuthenticationService()
+	{
+		// Arrange
+		var account = new Account("work-account", "user@contoso.com", AccountType.Work);
+		_mockAccountService
+			.Setup(accountService => accountService.GetAccountAsync("work-account", It.IsAny<CancellationToken>()))
+			.ReturnsAsync(account);
+
+		var fakeGraphClient = BuildFakeGraphServiceClient();
+		_mockGraphServiceClientBuilder
+			.Setup(builder => builder.BuildAsync(account, It.IsAny<CancellationToken>()))
+			.ReturnsAsync(fakeGraphClient);
+
+		Func<GraphServiceClient, Task<string>> operation = _ =>
+			throw new AuthenticationFailedException("MSAL cache is empty");
+
+		var nonInteractiveMode = new NonInteractiveMode { IsNonInteractive = true };
+		var graphClientService = CreateGraphClientService(nonInteractiveMode);
+
+		// Act
+		var act = async () => await graphClientService.ExecuteWithRetryAsync(operation, "work-account");
+
+		// Assert — non-interactive mode must not attempt re-authentication; the error is surfaced immediately
+		await act.Should().ThrowAsync<InvalidOperationException>()
+			.WithMessage("*Authentication required*");
+		_mockAuthenticationService.Verify(
+			authService => authService.AuthenticateAsync(It.IsAny<string>(), It.IsAny<CancellationToken>(), It.IsAny<bool>()),
+			Times.Never);
+	}
 }
