@@ -170,6 +170,18 @@ public class GraphClientService(IAccountService accountService, IGraphServiceCli
 				logger.LogInformation(authenticationFailedException, "Token acquisition failed for account '{AccountName}'. Triggering re-authentication.", accountName);
 			}
 
+			if (nonInteractiveMode.IsNonInteractive)
+			{
+				var authRequiredError = JsonSerializer.Serialize(new
+				{
+					code = "AUTH_REQUIRED",
+					message = $"Authentication required for account '{accountName}'. Please run 'login {accountName}' interactively.",
+					account = accountName
+				});
+
+				outputService.WriteError(authRequiredError);
+				throw;
+			}
 			outputService.WriteError($"Token acquisition failed for account '{accountName}'. Re-authenticating...");
 			var reauthenticated = await authenticationService.AuthenticateAsync(accountName, cancellationToken, forceInteractive: true);
 			if (!reauthenticated)
